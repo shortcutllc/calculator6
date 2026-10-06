@@ -341,7 +341,12 @@ function MdConfirmed() {
   );
 }
 
-export function MobileSignupDemoCore({ state }: { state: MdState }) {
+export function MobileSignupDemoCore({ state, parkOffset = 86 }: {
+  state: MdState;
+  /** Subtracted from a section's offsetTop when the demo scrolls to it.
+   *  offsetTop is measured from the section's offsetParent, the sheet. */
+  parkOffset?: number;
+}) {
   const copy = React.useContext(MdCopyContext);
   const targets = useRef<Record<string, HTMLElement | null>>({});
   const viewRef = useRef<HTMLDivElement>(null);
@@ -356,12 +361,12 @@ export function MobileSignupDemoCore({ state }: { state: MdState }) {
     let y = 0;
     if (state.scroll !== 'top') {
       const el = targets.current['sec-' + state.scroll];
-      if (el) y = Math.max(0, el.offsetTop - 86);
+      if (el) y = Math.max(0, el.offsetTop - parkOffset);
       const max = Math.max(0, c.scrollHeight - v.clientHeight);
       y = Math.min(y, max);
     }
     c.style.transform = 'translateY(' + (-y) + 'px)';
-  }, [state.scroll, state.screen]);
+  }, [state.scroll, state.screen, parkOffset]);
 
   // dot
   useLayoutEffect(() => {

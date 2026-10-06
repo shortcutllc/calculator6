@@ -1,0 +1,185 @@
+/* ===========================================================================
+   SterlingRisk partner page (/partners/sterling) · base layer
+   ---------------------------------------------------------------------------
+   Ported from design_handoff_sterling_partner (2026-10-06): sw-web.css (the
+   website layer), the `_ds` design-system element rules, and the page's own
+   <style> block. Values are the handoff's; do not "round" them.
+
+   Scoping: everything hangs off `.sp` (the page root), so nothing leaks into
+   the rest of the app. Element defaults use `.sp :where(...)` (one class of
+   specificity) so any class rule below wins over them.
+
+   Font weight: the design system ships Outfit at 400/600/700/800 only, so in
+   the reference every `font-weight: 500` falls back to Regular 400. This app
+   loads Outfit 100-900 from Google, where 500 is a real Medium and renders
+   visibly heavier. Wherever the handoff says 500, this file says 400.
+
+   Section styles live in their own files: sterling-sections.css (hero, funds,
+   menu, benefits, handoff, proof, next), sterling-packages.css and
+   sterling-apart.css. Mobile collapse lives at the end of each.
+   =========================================================================== */
+
+.sp {
+  --sw-aqua: #9EFAFF;
+  --sw-sun: #FEDC64;
+  --sw-pink: #F7BBFF;
+  --sw-periwinkle: #C7CBFB;
+  --sw-mint: #A9F0CC;
+  --sw-peach: #FFCBA6;
+  --sw-navy: #003756;
+  --sw-coral: #FF5050;
+  --sw-ink: #032232;
+  --sw-ink-soft: #2A5468;
+  --sw-ink-meta: #45596A;
+  --sw-surface: #F1F6F5;
+  --sw-teal: #018EA2;
+  --sw-teal-ink: #016170;
+  --sw-rule: rgba(0, 55, 86, .14);
+  --sw-ease-in: cubic-bezier(.22, 1, .36, 1);
+  --sw-ease-hover: cubic-bezier(.22, .9, .28, 1);
+  --sw-ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+  --sw-t-in: .9s;
+  --sw-t-hover: .42s;
+  --sw-wrap-max: 1720px;
+  --sw-gutter: 100px;
+  --sw-fill: #9EFAFF;
+  --font-display: 'Outfit', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  position: relative;
+  width: 100%;
+  background: #fff;
+  overflow-x: clip;
+  /* The design system's body: Outfit 16px, line-height 1.4, -0.01em. */
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: -.01em;
+  color: var(--sw-navy);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---------------------------------------------------------------------------
+   Element defaults: what the reference renders with (the DS element rules
+   plus the browser's own button/link styles), not this app's globals.
+   --------------------------------------------------------------------------- */
+.sp :where(h1) { font-size: clamp(40px, 5vw, 72px); font-weight: 700; line-height: 1.1; letter-spacing: -.01em; color: #09364F; text-wrap: wrap; }
+.sp :where(h2) { font-size: clamp(32px, 3.6vw, 48px); font-weight: 700; line-height: 1.1; letter-spacing: -.01em; color: #09364F; }
+.sp :where(h3) { font-size: clamp(24px, 2vw, 28px); font-weight: 600; line-height: 1.15; letter-spacing: -.01em; color: #09364F; }
+.sp :where(p) { font-size: 17px; font-weight: 400; line-height: 1.5; color: #09364F; }
+.sp :where(a) { color: #003756; text-decoration: underline; }
+.sp :where(a:hover) { color: #FF5050; }
+.sp :where(button) { font-size: 13.3333px; font-weight: 400; line-height: normal; letter-spacing: normal; text-align: center; color: #000; }
+.sp :where(img, svg) { display: inline; max-width: none; vertical-align: baseline; }
+.sp :where(b) { font-weight: 700; }
+
+/* ---------------------------------------------------------------------------
+   Sections and the lap
+   Each section pulls up 50px under the one above with a 50px rounded top;
+   z-index ascends down the page so the lower section laps over the higher.
+   --------------------------------------------------------------------------- */
+.sp .sw-sec {
+  position: relative;
+  z-index: var(--sw-z, 1);
+  width: 100%;
+  box-sizing: border-box;
+  background: #fff;
+  padding: 112px 0 162px;
+  scroll-margin-top: 88px;
+}
+.sp .sw-sec--lap { margin-top: -50px; border-radius: 50px 50px 0 0; }
+.sp .sw-sec--navy { background: var(--sw-navy); color: #fff; }
+.sp .sw-sec--surface { background: var(--sw-surface); }
+
+.sp .sw-wrap {
+  box-sizing: border-box;
+  max-width: var(--sw-wrap-max);
+  margin-inline: auto;
+  padding: 0 var(--sw-gutter);
+}
+
+.sp .sw-head { display: flex; flex-direction: column; gap: 18px; }
+.sp .sw-head--center { align-items: center; text-align: center; }
+
+/* ---------------------------------------------------------------------------
+   Type (sw- layer + the page's Brokers D overrides)
+   --------------------------------------------------------------------------- */
+.sp .sw-h1 { margin: 0; font-size: 88px; line-height: 1.1; font-weight: 700; letter-spacing: -.035em; color: inherit; text-wrap: balance; }
+.sp .sw-h2 { margin: 0; font-size: 56px; line-height: 1.04; font-weight: 700; letter-spacing: -.035em; color: inherit; text-wrap: balance; max-width: none; }
+.sp .sw-h4 { margin: 0; font-size: 28px; line-height: 1.1; font-weight: 700; letter-spacing: -.03em; color: inherit; }
+.sp .sw-lead { margin: 0; font-size: 20px; line-height: 1.45; font-weight: 400; color: var(--sw-ink-soft); text-wrap: pretty; }
+.sp .sw-body { margin: 0; font-size: 17px; line-height: 1.55; font-weight: 400; color: var(--sw-ink-soft); text-wrap: pretty; }
+.sp .sw-kicker {
+  margin: 0;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 800; letter-spacing: .09em;
+  text-transform: uppercase; color: #45596A;
+}
+.sp .sw-sec--navy .sw-lead,
+.sp .sw-sec--navy .sw-body { color: #fff; }
+.sp .sw-sec--navy .sw-kicker { color: var(--sw-aqua); }
+.sp .sp-coral { color: #FF5050; }
+.sp .sp-aqua { color: #9EFAFF; }
+
+/* ---------------------------------------------------------------------------
+   Buttons
+   --------------------------------------------------------------------------- */
+.sp .sw-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  height: 52px; padding: 0 30px; box-sizing: border-box; white-space: nowrap;
+  border: 0; border-radius: 9999px;
+  font-family: inherit; font-size: 17px; font-weight: 700; letter-spacing: -.01em;
+  text-decoration: none; cursor: pointer;
+  transition: transform var(--sw-t-hover) var(--sw-ease-hover), box-shadow var(--sw-t-hover) ease;
+}
+.sp .sw-btn:hover { transform: translateY(-3px); }
+.sp .sw-btn--coral { background: var(--sw-coral); color: #fff; box-shadow: 0 4px 14px rgba(255, 80, 80, .3); }
+.sp .sw-btn--coral:hover { color: #fff; box-shadow: 0 12px 30px rgba(255, 80, 80, .42); }
+.sp .sw-btn--navy { background: var(--sw-navy); color: #fff; box-shadow: 0 4px 14px rgba(0, 55, 86, .26); }
+.sp .sw-btn--navy:hover { color: #fff; box-shadow: 0 12px 30px rgba(0, 55, 86, .32); }
+
+/* The homepage dot pill (filters and package tabs). */
+.sp .sc-dot-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 16px 9px 13px; border: 0; border-radius: 9999px;
+  font-family: var(--font-display); font-size: 13px; font-weight: 700;
+  cursor: pointer; background: #F1F6F5; color: #003756;
+  transition: background .3s ease, color .3s ease;
+}
+.sp .sc-dot-pill.is-on { background: #003756; color: #fff; }
+.sp .sc-dot-pill.is-on .sc-dot { box-shadow: 0 0 0 2px rgba(255, 255, 255, .55); }
+.sp .sc-dot { width: 10px; height: 10px; border-radius: 9999px; flex: none; }
+
+/* ---------------------------------------------------------------------------
+   Entrances
+   --------------------------------------------------------------------------- */
+@keyframes sp-rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes sp-fade { from { opacity: 0; } to { opacity: 1; } }
+.sp .sw-in-rise { opacity: 0; animation: sp-rise var(--sw-t-in) var(--sw-ease-in) both; }
+.sp .sw-in-fade { opacity: 0; animation: sp-fade var(--sw-t-in) var(--sw-ease-in) both; }
+.sp [data-sw-reveal]:not(.sw-in) .sw-in-rise,
+.sp [data-sw-reveal]:not(.sw-in) .sw-in-fade,
+.sp [data-sw-reveal]:not(.sw-in).sw-in-rise,
+.sp [data-sw-reveal]:not(.sw-in).sw-in-fade { animation-play-state: paused !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sp .sw-in-rise, .sp .sw-in-fade { animation: none !important; opacity: 1 !important; transform: none !important; }
+  .sp .sw-btn { transition: none !important; }
+}
+
+/* ---------------------------------------------------------------------------
+   Mobile collapse (no 390 design yet, Will 2026-10-06: best effort).
+   Single column, 24px gutters, sections still lap.
+   --------------------------------------------------------------------------- */
+@media (max-width: 1023px) {
+  .sp { --sw-gutter: 24px; }
+  .sp .sw-sec { padding: 72px 0 112px; }
+  .sp .sw-sec--lap { border-radius: 32px 32px 0 0; }
+  .sp .sw-h2 { font-size: 36px; }
+  .sp .sw-lead { font-size: 17px; }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .sp { --sw-gutter: 40px; }
+  .sp .sw-h2 { font-size: 44px; }
+}

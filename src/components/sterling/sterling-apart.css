@@ -1,0 +1,259 @@
+/* ===========================================================================
+   SterlingRisk partner page · 6 · What sets Shortcut apart (#apart)
+   Values transcribed from the handoff's inline styles and sw-web.css (the
+   transplanted wd-/mv-/md-/msd- modules keep their class names, as the
+   handoff asks). Conventions as in sterling-partner.css: `.sp` scope,
+   500 → 400, `sp-` keyframes.
+   =========================================================================== */
+
+.sp .sp-apart { --sw-z: 6; background: #fff; }
+.sp .sp-apart .sw-h2 { max-width: none; color: #003756; }
+
+/* ── The sticky stack ─────────────────────────────────────────────────────── */
+.sp .sw-wdstack { margin-top: 56px; }
+.sp .sw-wdstack > article + article { margin-top: 280px; }
+.sp .sp-wd-tail { display: block; height: 200px; }
+
+.sp .sp-wd-card {
+  position: sticky; top: 120px; will-change: transform;
+  display: grid; grid-template-columns: 1fr 1fr;
+  height: 546px; border-radius: 28px; overflow: hidden;
+  box-shadow: 0 1px 2px rgba(3, 34, 50, .05), 0 10px 30px rgba(3, 34, 50, .06);
+}
+
+.sp .sp-wd-art { position: relative; overflow: hidden; }
+.sp .sp-wd-art--surface { background: #F1F6F5; }
+.sp .sp-wd-art--aqua { background: #9EFAFF; }
+.sp .sp-wd-art--navy { background: #003756; }
+.sp .sp-wd-art--coral { background: #FF5050; }
+.sp .sp-wd-fill { position: absolute; inset: 0; background: #FF5050; }
+
+.sp .sp-wd-panel { display: flex; flex-direction: column; justify-content: center; padding: 40px 48px; box-sizing: border-box; }
+.sp .sp-wd-panel--gap { gap: 12px; }
+.sp .sp-wd-panel--navy { background: #003756; }
+.sp .sp-wd-panel--aqua { background: #9EFAFF; }
+
+.sp .sp-wd-h { margin: 0; font-size: 32px; line-height: 1.12; font-weight: 600; letter-spacing: -.025em; color: #003756; text-wrap: balance; }
+.sp .sp-wd-p { margin: 0; max-width: 38ch; font-size: 17px; line-height: 1.5; font-weight: 400; color: #2A5468; text-wrap: pretty; }
+.sp .sp-wd-panel--navy .sp-wd-h { color: #fff; }
+.sp .sp-wd-panel--navy .sp-wd-p { color: rgba(255, 255, 255, .78); }
+.sp .sp-wd-panel--toggle .sp-wd-p { margin: 12px 0 0; }
+
+/* Employee / Manager toggle */
+.sp .sp-wd-toggle { margin: 0 0 28px; display: flex; gap: 8px; }
+.sp .sp-wd-btn {
+  cursor: pointer; font-family: inherit; height: 40px; padding: 0 16px;
+  border-radius: 9999px; font-size: 15px; font-weight: 800; letter-spacing: -.01em; white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, .28); background: transparent; color: #fff;
+}
+.sp .sp-wd-btn.is-on { border: 1px solid #9EFAFF; background: #9EFAFF; color: #003756; }
+
+/* Pros cutout */
+.sp .sp-wd-pro {
+  position: absolute; inset: 0;
+  background-image: url('/ds-assets/onepager/pros-guy-cutout.webp');
+  background-size: auto 88%; background-position: center bottom; background-repeat: no-repeat;
+}
+
+/* Demo stage (phone and checklist sit in a filled art cell) */
+.sp .sw-demo-stage {
+  position: absolute; inset: 0; height: 100%;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+
+/* ── Sign-up phone ────────────────────────────────────────────────────────── */
+.sp .wd-msd {
+  position: static; width: 364px; height: 624px;
+  transform: scale(.8); transform-origin: center;
+  margin: -62px -36px;
+}
+.sp .wd-phone {
+  position: relative; width: 100%; height: 100%; box-sizing: border-box; padding: 12px;
+  border-radius: 56px; background: #fff;
+  box-shadow: 0 22px 54px rgba(3, 34, 50, .30), 0 0 0 1px rgba(3, 34, 50, .07), 0 1px 0 1px rgba(255, 255, 255, .6) inset;
+}
+.sp .wd-island {
+  position: absolute; top: 21px; left: 50%; transform: translateX(-50%);
+  width: 108px; height: 30px; border-radius: 9999px; background: #0c0d12; z-index: 50;
+}
+/* Where the app's mobile-signup-demo.css differs from the design's lt-/md-/msd- rules */
+.sp .wd-msd .msd-host { width: 100%; height: 100%; }
+.sp .wd-phone .msd-screen { height: 100%; aspect-ratio: auto; border-radius: 44px; box-shadow: none; }
+.sp .wd-msd .md-viewport::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 46px;
+  background: #fff; z-index: 40; pointer-events: none;
+}
+.sp .wd-msd .md-content { padding-top: 46px; }
+.sp .wd-msd .md-screen { animation: none; }
+/* The reference ships Outfit 400/600/700/800 and Inter 700 only: 500 renders 400, Inter 600 renders 700. */
+.sp .wd-msd .lt-input { font-weight: 400; }
+/* The design's DS signup.css lifts a slot on hover. */
+.sp .wd-msd .lt-slot:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(9, 54, 79, .12); }
+/* proposal-refresh.css (loaded app-wide) styles .lt-* globally; undo what the msd-host rules don't set. */
+.sp .wd-msd .lt-btn { height: auto; letter-spacing: inherit; }
+.sp .wd-msd .lt-btn:hover { transform: none; }
+.sp .wd-msd .lt-btn-coral { box-shadow: none; }
+.sp .wd-msd .lt-btn-secondary:hover { background: transparent; }
+.sp .wd-msd .lt-eyebrow { display: block; }
+.sp .wd-msd .lt-h2 { text-wrap: wrap; }
+
+/* Reminder notification */
+.sp .wd-msd .md-notif {
+  position: absolute; top: 48px; left: 12px; right: 12px; z-index: 60; box-sizing: border-box;
+  display: flex; align-items: flex-start; gap: 11px;
+  background: rgba(255, 255, 255, .97); border-radius: 18px; padding: 12px 14px;
+  box-shadow: 0 10px 30px rgba(3, 34, 50, .24);
+  transform: translateY(-170%); opacity: 0;
+  transition: transform 640ms cubic-bezier(.22, 1, .36, 1), opacity 380ms ease;
+}
+.sp .wd-msd .md-notif.sp-notif-on { transform: translateY(0); opacity: 1; }
+.sp .wd-msd .md-notif * { box-sizing: border-box; }
+.sp .wd-msd .md-notif-ic {
+  width: 30px; height: 30px; flex: none; border-radius: 9px; background: #fff;
+  border: 1px solid rgba(3, 34, 50, .10); display: flex; align-items: center; justify-content: center;
+}
+.sp .wd-msd .md-notif-ic img { width: 17px; height: 17px; display: block; }
+.sp .wd-msd .sp-notif-txt { flex: 1; }
+.sp .wd-msd .md-notif-hd {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  font-family: var(--font-ui); font-weight: 700; font-size: 12px; color: var(--sc-navy);
+}
+.sp .wd-msd .md-notif-when { font-weight: 700; color: #45596A; }
+.sp .wd-msd .md-notif-b {
+  display: block; margin-top: 2px; font-family: var(--font-display);
+  font-weight: 400; font-size: 13px; line-height: 1.35; color: var(--sc-navy);
+}
+
+/* ── Manager view ─────────────────────────────────────────────────────────── */
+.sp .sp-mv-stage { position: absolute; inset: 0; background: #9EFAFF; display: flex; align-items: center; justify-content: center; }
+.sp .mv-card {
+  width: 372px; box-sizing: border-box; background: #fff;
+  border-radius: 26px; padding: 24px 26px 26px;
+  box-shadow: 0 20px 48px rgba(3, 34, 50, .26), 0 3px 10px rgba(3, 34, 50, .12);
+}
+.sp .sp-mv-hd { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.sp .sp-mv-t { display: block; font-size: 16px; font-weight: 800; letter-spacing: -.018em; color: #003756; }
+.sp .sp-mv-s { display: block; margin-top: 3px; font-size: 13px; font-weight: 600; color: #45596A; }
+.sp .sp-mv-live {
+  height: 26px; display: inline-flex; align-items: center; padding: 0 11px; border-radius: 9999px;
+  background: #E7F7EE; font-size: 11.5px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: #08694A;
+}
+.sp .sp-mv-stat { margin-top: 20px; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.sp .sp-mv-n { font-size: 30px; line-height: 1; font-weight: 800; letter-spacing: -.032em; color: #003756; }
+.sp .sp-mv-of { font-size: 16px; font-weight: 700; color: #45596A; }
+.sp .sp-mv-pct { font-size: 13px; font-weight: 700; color: var(--sw-teal-ink); }
+.sp .mv-bar { position: relative; height: 7px; border-radius: 9999px; background: #E5E7EB; overflow: hidden; margin-top: 12px; }
+.sp .mv-bar i {
+  position: absolute; inset: 0; border-radius: 9999px; background: var(--sw-teal);
+  transform-origin: left center; transform: scaleX(0);
+  animation: sp-mv-fill 6s cubic-bezier(.22, 1, .36, 1) infinite;
+}
+@keyframes sp-mv-fill { 0%, 6% { transform: scaleX(.12) } 58%, 90% { transform: scaleX(.7) } 97%, 100% { transform: scaleX(.12) } }
+.sp .sp-mv-rows { margin-top: 18px; display: flex; flex-direction: column; }
+.sp .mv-row { display: flex; align-items: center; gap: 11px; padding: 9px 0; border-bottom: 1px solid rgba(0, 55, 86, .09); }
+.sp .mv-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.sp .mv-av {
+  width: 28px; height: 28px; flex: none; border-radius: 9999px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; letter-spacing: -.01em; color: var(--sw-navy);
+}
+.sp .sp-mv-name { flex: 1 1 auto; min-width: 0; font-size: 14px; font-weight: 700; letter-spacing: -.01em; color: #003756; }
+.sp .sp-mv-meta { font-size: 13px; font-weight: 600; color: #45596A; }
+.sp .mv-tick {
+  width: 19px; height: 19px; flex: none; border-radius: 9999px; background: var(--sw-navy);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; animation: sp-mv-tick 6s cubic-bezier(.34, 1.56, .64, 1) infinite;
+}
+.sp .mv-tick svg { width: 11px; height: 11px; display: block; }
+@keyframes sp-mv-tick { 0%, 4% { opacity: 0; transform: scale(.3) } 11%, 90% { opacity: 1; transform: scale(1) } 97%, 100% { opacity: 0; transform: scale(.3) } }
+.sp .sp-mv-foot {
+  margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(0, 55, 86, .12);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.sp .sp-mv-add {
+  height: 34px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 9999px;
+  background: #003756; color: #fff; font-size: 13.5px; font-weight: 700;
+}
+
+/* ── Coverage map ─────────────────────────────────────────────────────────── */
+.sp .wd-mapwrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.sp .wd-map { position: relative; width: 82%; }
+.sp .wd-map img { width: 100%; height: auto; display: block; }
+.sp .wd-pin {
+  position: absolute; width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px;
+  border-radius: 9999px; background: #FF5050; opacity: 0;
+  animation: sp-wd-pin-in .55s cubic-bezier(.34, 1.56, .64, 1) both,
+             sp-wd-pin-pulse 2.8s ease-in-out infinite;
+}
+.sp .wd-pin::after {
+  content: ''; position: absolute; inset: -7px; border-radius: 9999px;
+  background: #FF5050; opacity: .28; animation: sp-wd-pin-halo 2.8s ease-in-out infinite;
+}
+@keyframes sp-wd-pin-in { from { opacity: 0; transform: scale(.2) } to { opacity: 1; transform: scale(1) } }
+@keyframes sp-wd-pin-pulse { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.18) } }
+@keyframes sp-wd-pin-halo { 0%, 100% { transform: scale(.85); opacity: .30 } 50% { transform: scale(1.35); opacity: .05 } }
+
+/* ── Turnout checklist ────────────────────────────────────────────────────── */
+.sp .wd-mfwrap { position: static; display: flex; align-items: center; justify-content: center; }
+.sp .wd-mf {
+  width: 352px; box-sizing: border-box; background: #fff; border-radius: 26px; padding: 24px 26px 26px;
+  box-shadow: 0 20px 48px rgba(3, 34, 50, .26), 0 3px 10px rgba(3, 34, 50, .12);
+}
+.sp .wd-mf-hd { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.sp .wd-mf-t { font-size: 15px; font-weight: 800; letter-spacing: -.015em; color: #003756; }
+.sp .wd-mf-c { font-size: 12.5px; font-weight: 700; color: #2A5468; }
+.sp .wd-mf-bar { position: relative; height: 5px; border-radius: 9999px; background: #E5E7EB; overflow: hidden; margin: 12px 0 6px; }
+.sp .wd-mf-bar i {
+  position: absolute; inset: 0; border-radius: 9999px; background: #0098AD;
+  transform-origin: left center; transform: scaleX(0);
+  animation: sp-mf-bar 6s cubic-bezier(.22, 1, .36, 1) infinite;
+}
+.sp .wd-mf-row { display: flex; align-items: center; gap: 11px; padding: 9px 0; border-bottom: 1px solid rgba(0, 55, 86, .09); }
+.sp .wd-mf-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.sp .wd-mf-tick {
+  width: 21px; height: 21px; flex: none; border-radius: 9999px; background: #003756;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; animation: sp-mf-tick 6s cubic-bezier(.34, 1.56, .64, 1) infinite;
+}
+.sp .wd-mf-tick svg { display: block; width: 12px; height: 12px; }
+.sp .wd-mf-l { font-size: 14.5px; font-weight: 600; letter-spacing: -.01em; color: #003756; }
+@keyframes sp-mf-tick { 0%, 6% { opacity: 0; transform: scale(.35) } 13%, 90% { opacity: 1; transform: scale(1) } 97%, 100% { opacity: 0; transform: scale(.35) } }
+@keyframes sp-mf-bar { 0%, 6% { transform: scaleX(0) } 55%, 90% { transform: scaleX(1) } 97%, 100% { transform: scaleX(0) } }
+
+/* ── Loops wait for their card (and section) to arrive ───────────────────── */
+.sp [data-sw-reveal]:not(.sw-in) .wd-mf-tick,
+.sp [data-sw-reveal]:not(.sw-in) .wd-mf-bar i,
+.sp [data-sw-reveal]:not(.sw-in) .mv-bar i,
+.sp [data-sw-reveal]:not(.sw-in) .mv-tick,
+.sp [data-sw-reveal]:not(.sw-in) .wd-pin,
+.sp [data-sw-reveal]:not(.sw-in) .wd-pin::after { animation-play-state: paused !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sp .wd-mf-tick, .sp .wd-mf-bar i { animation: none !important; opacity: 1 !important; transform: none !important; }
+  .sp .mv-bar i, .sp .mv-tick { animation: none !important; opacity: 1 !important; transform: none !important; }
+  .sp .wd-pin, .sp .wd-pin::after { animation: none !important; opacity: 1 !important; transform: none !important; }
+  .sp .wd-msd .md-content, .sp .wd-msd .md-dot, .sp .wd-msd .md-dot-inner,
+  .sp .wd-msd .lt-service-card, .sp .wd-msd .lt-slot, .sp .wd-msd .lt-input,
+  .sp .wd-msd .lt-btn, .sp .wd-msd .md-fade, .sp .wd-msd .md-notif { transition: none !important; }
+  .sp .wd-msd .md-check, .sp .wd-msd .md-caret { animation: none !important; }
+}
+
+/* ---------------------------------------------------------------------------
+   Mobile (no 390 design yet; best effort): cards stop sticking and stack
+   art over copy.
+   --------------------------------------------------------------------------- */
+@media (max-width: 1023px) {
+  .sp .sw-wdstack { margin-top: 40px; }
+  .sp .sw-wdstack > article + article { margin-top: 24px; }
+  .sp .sp-wd-tail { display: none; }
+  .sp .sp-wd-card { position: relative; top: auto; will-change: auto; grid-template-columns: 1fr; grid-template-rows: 380px auto; height: auto; }
+  .sp .sp-wd-panel { padding: 32px 24px 36px; }
+  .sp .sp-wd-h { font-size: 26px; }
+  .sp .sp-wd-p { font-size: 16px; }
+  .sp .sp-wd-toggle { margin-bottom: 22px; }
+  .sp .wd-msd { transform: scale(.56); margin: -137.28px -80.08px; }
+  .sp .mv-card { transform: scale(.74); }
+}
+@media (max-width: 479px) {
+  .sp .wd-mf { transform: scale(.86); }
+}

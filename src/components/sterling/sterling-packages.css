@@ -1,0 +1,191 @@
+/* ===========================================================================
+   SterlingRisk partner page · 4 · Year-end packages (the package builder)
+   Values transcribed from the handoff's inline styles and renderVals();
+   conventions in sterling-partner.css (`.sp` scope, 500 → 400).
+   =========================================================================== */
+
+.sp .sp-packages { --sw-z: 4; }
+
+/* Step rail */
+.sp .sp-steps { animation-delay: .1s; margin: 48px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.sp .sp-step-li { position: relative; display: flex; }
+.sp .sp-step {
+  position: relative; flex: 1; display: flex; flex-direction: column; min-height: 200px; overflow: hidden;
+  box-sizing: border-box; padding: 28px; border-radius: 28px; text-decoration: none;
+  transition: transform .3s ease, box-shadow .3s ease;
+}
+.sp .sp-step:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(3, 34, 50, .14); }
+.sp .sp-step-n { position: absolute; right: 20px; bottom: -22px; font-size: 150px; line-height: 1; font-weight: 800; letter-spacing: -.06em; color: rgba(0, 55, 86, .10); }
+.sp .sp-step-k { position: relative; font-size: 12px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: #003756; opacity: .7; }
+.sp .sp-step-t { position: relative; margin-top: 12px; font-size: 24px; line-height: 1.15; font-weight: 700; letter-spacing: -.025em; color: #003756; }
+.sp .sp-step-vw { position: relative; margin-top: auto; padding-top: 28px; }
+.sp .sp-step-v {
+  display: inline-flex; align-items: center; gap: 8px; height: 36px; max-width: 100%; box-sizing: border-box;
+  padding: 0 16px; border-radius: 9999px; background: #fff; font-size: 14.5px; font-weight: 700; color: #003756;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 2px 8px rgba(3, 34, 50, .08);
+}
+.sp .sp-step-dot { width: 8px; height: 8px; flex: none; border-radius: 9999px; background: #FF5050; }
+.sp .sp-step-arrow {
+  position: absolute; right: -24px; top: 50%; z-index: 2; width: 28px; height: 28px; margin-top: -14px;
+  border-radius: 9999px; background: #003756; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 12px rgba(3, 34, 50, .24);
+}
+
+/* Builder grid */
+.sp .sp-pk-grid { margin-top: 64px; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 40px; align-items: start; }
+.sp .sp-pk-main { min-width: 0; display: flex; flex-direction: column; gap: 56px; }
+
+/* Holiday offer */
+.sp .sp-offer {
+  animation-delay: .1s; display: flex; align-items: center; gap: 24px; padding: 22px 24px 22px 28px;
+  border-radius: 24px; background: rgba(254, 220, 100, .28); border: 1px solid rgba(254, 220, 100, .9);
+}
+.sp .sp-offer-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.sp .sp-offer-k { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: #003756; }
+.sp .sp-offer-t { margin: 0; font-size: 20px; line-height: 1.25; font-weight: 800; letter-spacing: -.02em; color: #003756; text-wrap: balance; }
+.sp .sp-offer-s { margin: 0; font-size: 15px; line-height: 1.4; font-weight: 600; color: #45596A; }
+.sp .sp-offer-chip { flex: none; height: 36px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 9999px; background: #003756; font-size: 13.5px; font-weight: 800; color: #fff; white-space: nowrap; }
+
+/* Step headers */
+.sp .sp-pk-sec { display: flex; flex-direction: column; gap: 24px; scroll-margin-top: 110px; }
+.sp .sp-pk-h { display: flex; align-items: center; gap: 14px; }
+.sp .sp-pk-num { width: 34px; height: 34px; flex: none; border-radius: 9999px; color: #003756; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; }
+.sp .sp-pk-h3 { margin: 0; font-size: 24px; line-height: 1.15; font-weight: 700; letter-spacing: -.025em; color: #003756; }
+.sp .sp-pk-hrow { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.sp .sp-pk-tabs { display: flex; gap: 6px; }
+
+/* Tiles (headcount + cadence share the on/off look) */
+.sp .sp-heads { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.sp .sp-tile {
+  height: 88px; border-radius: 20px; cursor: pointer; font-family: inherit;
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px;
+  padding: 0 24px; text-align: left; box-sizing: border-box;
+  transition: border-color .15s ease, box-shadow .15s ease;
+  background: #fff; color: #003756; border: 2px solid #E2E9E8;
+}
+.sp .sp-on { background: #003756; color: #fff; border: 2px solid #003756; box-shadow: 0 10px 24px rgba(3, 34, 50, .18); }
+.sp .sp-tile-n { font-size: 26px; line-height: 1; font-weight: 800; letter-spacing: -.03em; }
+.sp .sp-tile-s { font-size: 13px; font-weight: 600; color: #45596A; }
+.sp .sp-on .sp-tile-s { color: rgba(255, 255, 255, .75); }
+.sp .sp-custom { overflow: hidden; }
+.sp .sp-custom.sp-on { padding: 0 12px 0 24px; }
+.sp .sp-custom-btn {
+  width: 100%; height: 100%; border: 0; background: transparent; cursor: pointer; font-family: inherit;
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px;
+  padding: 0; text-align: left; color: #003756;
+}
+.sp .sp-custom-t { font-size: 18px; line-height: 1; font-weight: 800; letter-spacing: -.02em; }
+.sp .sp-custom-s { font-size: 13px; font-weight: 600; color: #45596A; }
+.sp .sp-custom-on { width: 100%; height: 100%; display: flex; align-items: center; gap: 8px; padding: 0; box-sizing: border-box; }
+.sp .sp-custom-l { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; cursor: text; }
+.sp .sp-custom-in {
+  width: 100%; border: 0; outline: 0; background: transparent; font-family: inherit;
+  font-size: 26px; line-height: 1; font-weight: 800; letter-spacing: -.03em; color: #fff; padding: 0;
+}
+.sp .sp-custom-ppl { font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, .75); }
+.sp .sp-custom-steps { display: flex; flex-direction: column; gap: 4px; flex: none; }
+.sp .sp-custom-step { width: 30px; height: 30px; border-radius: 9px; border: 0; padding: 0; cursor: pointer; background: rgba(255, 255, 255, .16); display: flex; align-items: center; justify-content: center; }
+
+/* Package cards (the holiday page cards) */
+.sp .sp-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.sp .sp-card {
+  position: relative; display: flex; flex-direction: column; padding: 0; border-radius: 24px; overflow: hidden;
+  cursor: pointer; font-family: inherit; text-align: left; transition: transform .2s ease, box-shadow .2s ease;
+  background: #fff; color: #003756; border: 2px solid #E2E9E8; box-shadow: 0 1px 2px rgba(3, 34, 50, .05);
+}
+.sp .sp-card.sp-card--on { background: #003756; color: #fff; border: 2px solid #003756; box-shadow: 0 14px 34px rgba(3, 34, 50, .22); }
+.sp .sp-card--span { grid-column: 1 / -1; }
+.sp .sp-card-tick {
+  position: absolute; top: 14px; right: 14px; z-index: 1; width: 28px; height: 28px; border-radius: 9999px;
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(3, 34, 50, .2); background: #fff;
+}
+.sp .sp-card--on .sp-card-tick { background: #FEDC64; }
+.sp .sp-card-tick svg { display: none; }
+.sp .sp-card--on .sp-card-tick svg { display: inline; }
+.sp .sp-card-strip { display: flex; height: 124px; overflow: hidden; border-bottom: 1px solid #E2E9E8; }
+.sp .sp-card--on .sp-card-strip { border-bottom: 1px solid rgba(255, 255, 255, .12); }
+.sp .sp-card-panel { position: relative; flex: 1; min-width: 0; overflow: hidden; }
+.sp .sp-card-art { position: absolute; inset: -8%; background-position: center 35%; background-size: cover; background-repeat: no-repeat; }
+.sp .sp-card--span .sp-card-art { inset: 0; background-position: center; background-size: auto 118%; }
+.sp .sp-card-body { display: flex; flex-direction: column; gap: 6px; padding: 22px 24px 24px; text-align: left; }
+.sp .sp-card-in { font-size: 11.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #FF5050; }
+.sp .sp-card--on .sp-card-in { color: #FEDC64; }
+.sp .sp-card-name { font-size: 21px; line-height: 1.15; font-weight: 700; letter-spacing: -.025em; text-wrap: balance; }
+.sp .sp-card-from { margin-top: 6px; font-size: 15px; font-weight: 700; color: #45596A; }
+.sp .sp-card--on .sp-card-from { color: #9EFAFF; }
+
+/* Cadence */
+.sp .sp-cads { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.sp .sp-cad { height: auto; min-height: 120px; justify-content: flex-start; gap: 6px; padding: 20px 24px; }
+.sp .sp-cad-l { font-size: 20px; line-height: 1.1; font-weight: 800; letter-spacing: -.02em; }
+.sp .sp-cad-s { font-size: 13.5px; font-weight: 600; color: #45596A; }
+.sp .sp-on .sp-cad-s { color: rgba(255, 255, 255, .78); }
+.sp .sp-cad-save { margin-top: auto; height: 28px; display: inline-flex; align-items: center; padding: 0 11px; border-radius: 9999px; font-size: 12.5px; font-weight: 800; color: #003756; background: #F1F6F5; }
+.sp .sp-on .sp-cad-save--plain { background: rgba(255, 255, 255, .16); color: #fff; }
+.sp .sp-pk-foot { margin: -32px 0 0; font-size: 14px; line-height: 1.5; font-weight: 600; color: #45596A; }
+
+/* Summary rail */
+.sp .sp-sum-wrap { position: sticky; top: 96px; }
+.sp .sp-sum { border-radius: 24px; background: #003756; padding: 28px; color: #fff; box-shadow: 0 20px 50px rgba(3, 34, 50, .22); }
+.sp .sp-sum-k { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: #FEDC64; }
+.sp .sp-sum-h { margin: 8px 0 0; font-size: 22px; line-height: 1.15; font-weight: 700; letter-spacing: -.025em; color: #fff; }
+.sp .sp-sum-meta { margin: 6px 0 0; font-size: 14px; font-weight: 600; color: rgba(255, 255, 255, .72); }
+.sp .sp-sum-lines { margin-top: 22px; display: flex; flex-direction: column; gap: 12px; }
+.sp .sp-sum-line { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.sp .sp-sum-lk { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.sp .sp-sum-dot { width: 8px; height: 8px; flex: none; border-radius: 9999px; transform: translateY(-1px); }
+.sp .sp-sum-ln { font-size: 14.5px; font-weight: 600; }
+.sp .sp-sum-lv { font-size: 14.5px; font-weight: 700; white-space: nowrap; }
+.sp .sp-sum-empty { margin: 0; font-size: 14.5px; font-weight: 600; color: rgba(255, 255, 255, .72); }
+.sp .sp-sum-save { margin-top: 12px; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: #9EFAFF; }
+.sp .sp-sum-save-k { font-size: 14.5px; font-weight: 700; }
+.sp .sp-sum-save-v { font-size: 14.5px; font-weight: 800; white-space: nowrap; }
+.sp .sp-sum-nudge { margin: 12px 0 0; font-size: 13.5px; font-weight: 700; color: #9EFAFF; }
+.sp .sp-sum-total { margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, .16); display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.sp .sp-sum-total-k { font-size: 15px; font-weight: 700; }
+.sp .sp-sum-amt { font-size: 34px; line-height: 1; font-weight: 800; letter-spacing: -.03em; color: #9EFAFF; }
+.sp .sp-sum-split { margin: 10px 0 0; font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, .72); }
+.sp .sp-sum-treat { margin-top: 20px; border-radius: 16px; background: rgba(255, 255, 255, .08); padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+.sp .sp-sum-tick { width: 24px; height: 24px; flex: none; border-radius: 9999px; background: #FEDC64; display: flex; align-items: center; justify-content: center; }
+.sp .sp-sum-treat-t { font-size: 13.5px; line-height: 1.4; font-weight: 600; }
+.sp .sp-sum-cta { margin-top: 20px; width: 100%; box-sizing: border-box; justify-content: center; background: #FF5050; color: #fff; }
+.sp .sp-sum-cta:hover { color: #fff; }
+.sp .sp-sum-by { margin: 12px 0 0; font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, .7); text-align: center; }
+
+/* Aetna strip */
+.sp .sp-aetna {
+  margin: 40px 0 0; height: 76px; background: #fff; border: 1px solid #E2E9E8;
+  box-shadow: 0 1px 2px rgba(3, 34, 50, .05), 0 10px 30px rgba(3, 34, 50, .06);
+  padding: 0 18px 0 24px; border-radius: 9999px; display: flex; align-items: center; gap: 18px; animation-delay: .3s;
+}
+.sp .sp-aetna-ic { width: 36px; height: 36px; flex: none; border-radius: 9999px; background: #A9F0CC; display: flex; align-items: center; justify-content: center; }
+.sp .sp-aetna-ic svg { width: 18px; height: 18px; }
+.sp .sp-aetna-t { margin: 0; font-size: 17px; line-height: 1.25; font-weight: 700; letter-spacing: -.018em; color: #003756; min-width: 0; }
+.sp .sp-aetna-t span { font-weight: 400; color: #45596A; }
+.sp .sp-aetna-fill { flex: 1; }
+.sp .sp-aetna-chips { display: flex; align-items: center; gap: 8px; }
+.sp .sp-aetna-chip { height: 34px; padding: 0 15px; border-radius: 9999px; display: inline-flex; align-items: center; font-size: 13px; font-weight: 800; color: #fff; }
+
+/* Mobile collapse (best effort; no 390 design yet) */
+@media (max-width: 1023px) {
+  .sp .sp-steps { grid-template-columns: 1fr; gap: 12px; margin-top: 32px; }
+  .sp .sp-step { min-height: 0; padding: 20px 22px; }
+  .sp .sp-step-n { font-size: 96px; bottom: -14px; }
+  .sp .sp-step-vw { padding-top: 16px; }
+  .sp .sp-step-arrow { display: none; }
+  .sp .sp-pk-grid { grid-template-columns: 1fr; gap: 40px; margin-top: 40px; }
+  .sp .sp-pk-main { gap: 40px; }
+  .sp .sp-sum-wrap { position: static; }
+  .sp .sp-offer { flex-direction: column; align-items: flex-start; gap: 14px; padding: 20px; }
+  .sp .sp-heads { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .sp .sp-pk-tabs { flex-wrap: wrap; }
+  .sp .sp-cards { grid-template-columns: 1fr; }
+  .sp .sp-card--span { grid-column: auto; }
+  .sp .sp-card--span .sp-card-art { inset: -8%; background-position: center 35%; background-size: cover; }
+  .sp .sp-cads { grid-template-columns: 1fr; gap: 12px; }
+  .sp .sp-cad { min-height: 0; }
+  .sp .sp-cad-save { margin-top: 6px; }
+  .sp .sp-pk-foot { margin-top: -20px; }
+  .sp .sp-aetna { height: auto; border-radius: 24px; padding: 18px 20px; flex-wrap: wrap; gap: 12px; }
+  .sp .sp-aetna-fill { display: none; }
+}
