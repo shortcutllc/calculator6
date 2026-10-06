@@ -287,6 +287,26 @@
 .sp .sp-pill-btn:hover { color: #fff; }
 .sp .sp-pill-btn svg { width: 16px; height: 16px; }
 
+/* Ethics CLE band (added 2026-10-06, not in the handoff): the carrier-card
+   language on the CLE pink. Both headline lines stay navy because coral on
+   this pink is about 2:1. Navy on #F7BBFF is 8:1, #2A5468 is 5.3:1. */
+.sp .sp-cle {
+  margin-top: 24px; border-radius: 28px; background: #F7BBFF; padding: 40px 44px; box-sizing: border-box;
+  display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: center; scroll-margin-top: 110px;
+}
+.sp .sp-cle-txt { display: flex; flex-direction: column; }
+.sp .sp-cle-k { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: #003756; }
+.sp .sp-cle-h { margin: 12px 0 0; font-size: 36px; line-height: 1.08; font-weight: 700; letter-spacing: -.03em; color: #003756; text-wrap: balance; }
+.sp .sp-cle-b { margin: 14px 0 0; font-size: 17px; line-height: 1.5; font-weight: 400; color: #2A5468; max-width: 52ch; text-wrap: pretty; }
+.sp .sp-cle-states { margin-top: 22px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sp .sp-cle-sk { margin-right: 4px; font-size: 12px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: #003756; }
+.sp .sp-cle-st { height: 34px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 9999px; background: #fff; font-size: 14px; font-weight: 800; color: #003756; }
+.sp .sp-cle-btn svg { width: 16px; height: 16px; }
+
+/* The CLE benefit card's link out. */
+.sp .sp-ben-link { margin-top: auto; align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; color: #003756; text-decoration: none; border-bottom: 2px solid rgba(0, 55, 86, .28); padding-bottom: 2px; transition: color .42s ease, border-color .42s ease; }
+.sp .sp-ben-link:hover { color: #FF5050; border-bottom-color: #FF5050; }
+
 /* ── 3 · The menu ────────────────────────────────────────────────────────── */
 .sp .sp-menu { --sw-z: 3; }
 .sp .sp-cats { margin-top: 10px; display: flex; gap: 6px; animation-delay: .12s; }
@@ -451,6 +471,8 @@
   .sp .sp-ask { grid-template-columns: 1fr; gap: 24px; padding: 28px 24px; }
   .sp .sp-ask-t { font-size: 22px; }
 
+  .sp .sp-cle { grid-template-columns: 1fr; gap: 24px; padding: 28px 24px; }
+  .sp .sp-cle-h { font-size: 28px; }
   .sp .sp-cats { flex-wrap: wrap; }
   .sp .sw-srail { margin-top: 40px; }
   .sp .sc-rc { flex-basis: 280px; margin-right: 16px; }

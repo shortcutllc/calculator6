@@ -8,7 +8,7 @@ import SterlingPackages from './sterling/SterlingPackages';
 import SterlingApart from './sterling/SterlingApart';
 import { Sec, CountTo } from './sterling/swMotion';
 import {
-  BENEFITS, CARRIERS, GALLERY, HANDOFF, HERO_PILLS, LOGOS, QUIP, RAIL_CATS, RAIL_SERVICES, STATS, TINT,
+  BENEFITS, CARRIERS, CLE_STATES, CLE_URL, GALLERY, HANDOFF, HERO_PILLS, LOGOS, QUIP, RAIL_CATS, RAIL_SERVICES, STATS, TINT,
   type RailService,
 } from './sterling/sterlingData';
 import './sterling/sterling-partner.css';
@@ -250,6 +250,23 @@ function Funds() {
             <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M12.5 5.5L19 12l-6.5 6.5" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </a>
         </div>
+
+        {/* Ethics CLE for law firm clients (not in the handoff; Will, 2026-10-06). */}
+        <div className="sp-cle" id="cle">
+          <div className="sp-cle-txt">
+            <p className="sp-cle-k">For your law firm clients</p>
+            <p className="sp-cle-h">One hour of ethics credit.<br />Zero admin for the firm.</p>
+            <p className="sp-cle-b">Accredited in NY, PA and FL, led by an attorney, on site or on Zoom. Bring it to your next law firm renewal.</p>
+            <div className="sp-cle-states">
+              <span className="sp-cle-sk">Accredited in</span>
+              {CLE_STATES.map((st) => <span key={st} className="sp-cle-st">{st}</span>)}
+            </div>
+          </div>
+          <a href={CLE_URL} target="_blank" rel="noopener noreferrer" className="sw-btn sw-btn--navy sp-cle-btn">
+            See the CLE program
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M12.5 5.5L19 12l-6.5 6.5" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </a>
+        </div>
       </div>
     </Sec>
   );
@@ -390,6 +407,12 @@ function Benefits() {
               <span className="sp-ben-chip" style={{ background: b.chip }}>{b.who}</span>
               <h3 className="sw-h4 sp-ben-h">{b.title}</h3>
               <p className="sw-body sp-ben-b">{b.body}</p>
+              {b.link && (
+                <a href={b.link.href} target="_blank" rel="noopener noreferrer" className="sp-ben-link">
+                  {b.link.label}
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9.5 5.5 16 12l-6.5 6.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </a>
+              )}
             </div>
           ))}
         </div>

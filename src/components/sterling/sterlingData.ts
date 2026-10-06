@@ -266,16 +266,28 @@ export const CARRIERS = [
   { name: 'Anthem', color: '#1A4FA3', fund: 'Wellness Fund' },
 ];
 
+/* ── Ethics CLE (Will, 2026-10-06: make CLE prominent, link to www) ──────
+   Claim rules (vertical_law_firm_gtm): one hour, ethics category only,
+   accredited in NY, PA and FL only, never "covers the requirement". */
+
+/** The www law-firms page, tagged so clicks from this page show in GA. */
+export const CLE_URL = 'https://www.getshortcut.co/solutions/law-firms?utm_source=sterlingrisk&utm_medium=partner_page';
+
+export const CLE_STATES = ['NY', 'PA', 'FL'];
+
 /* ── Partner benefits ──────────────────────────────────────────────────── */
 
-export interface Benefit { who: string; title: string; body: string; chip: string; dark?: boolean }
+export interface Benefit { who: string; title: string; body: string; chip: string; dark?: boolean; link?: { label: string; href: string } }
 
 export const BENEFITS: Benefit[] = [
   { who: 'For you', title: 'Nothing lands on your desk.', body: 'Pre-approval, carrier invoices, W-9 and participation reports go straight from us. Your team stays out of it.', chip: '#9EFAFF' },
   { who: 'For your clients', title: '10% off everything off-fund.', body: 'Hair, nails, facials and headshots at the SterlingRisk partner rate.', chip: '#FF5050', dark: true },
   { who: 'For you', title: 'Something to show at renewal.', body: 'Real participation numbers from a program people actually used.', chip: '#FEDC64' },
   { who: 'For your book', title: 'One vendor, every office.', body: 'On site nationwide, with mindfulness, sound baths and yoga on Zoom for remote teams.', chip: '#C7CBFB' },
-  { who: 'For your law firm clients', title: 'Ethics CLE in the same pitch.', body: 'A one-hour accredited Ethics CLE, led by an attorney, in NY, PA and FL. We file and report the credits.', chip: '#F7BBFF' },
+  // "We file and report the credits" (handoff) is only true in PA, where the
+  // provider reports to the board; NY and FL attorneys self-report. Will,
+  // 2026-10-06, per the CLE compliance rules in vertical_law_firm_gtm.
+  { who: 'For your law firm clients', title: 'Ethics CLE in the same pitch.', body: 'A one-hour accredited Ethics CLE in NY, PA and FL, led by an attorney on site or on Zoom. We handle the accreditation, attendance and certificates.', chip: '#F7BBFF', link: { label: 'See the CLE program', href: CLE_URL } },
   { who: 'For your clients', title: 'Built to the account.', body: 'Self-funded, 100+ lives, a brutal busy season. We shape the program to the client.', chip: '#A9F0CC' },
 ];
 
