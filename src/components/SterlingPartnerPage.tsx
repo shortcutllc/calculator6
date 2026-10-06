@@ -145,7 +145,7 @@ function Hero() {
               <div className="hpm-book-hd">
                 <img src="/signup-demo/bcg-logo.webp" alt="BCG" />
                 <span className="hpm-book-sep" />
-                <span className="hpm-book-by">by <img src="/proposal-refresh/shortcut-symbol.svg" alt="Shortcut" /></span>
+                <span className="hpm-book-by">by <img src="/ds-assets/brand/shortcut-symbol-coral.svg" alt="Shortcut" /></span>
               </div>
               <div className="hpm-book-body">
                 <div className="hb-panel hb-p1">

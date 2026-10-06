@@ -127,7 +127,7 @@ function SignupPhone() {
                 <MobileSignupDemoCore state={demo} parkOffset={PARK_OFFSET} />
               </MdCopyContext.Provider>
               <div className={`md-notif${demo.notif ? ' sp-notif-on' : ''}`}>
-                <span className="md-notif-ic"><img src="/proposal-refresh/shortcut-symbol.svg" alt="" /></span>
+                <span className="md-notif-ic"><img src="/ds-assets/brand/shortcut-symbol-coral.svg" alt="" /></span>
                 <span className="sp-notif-txt">
                   <span className="md-notif-hd"><span>Shortcut</span><span className="md-notif-when">now</span></span>
                   <span className="md-notif-b">Reminder: chair massage tomorrow, 12:40 pm, 11th floor lounge.</span>
