@@ -57,9 +57,11 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
     }
   };
 
-  const fetchGalleries = async () => {
+  // `silent` refreshes without the full-screen spinner, so an open photo
+  // popup stays on screen while it updates.
+  const fetchGalleries = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       console.log('Fetching galleries for eventId:', eventId);
       const data = await HeadshotService.getGalleriesByEvent(eventId);
       console.log('Fetched galleries:', data);
@@ -77,9 +79,11 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
           }
         }
       }
+      return data;
     } catch (err) {
       console.error('Error fetching galleries:', err);
       setError('Failed to load employee galleries');
+      return null;
     } finally {
       setLoading(false);
     }
@@ -124,27 +128,23 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
     }
   };
 
-  const handleDeletePhoto = async (photoId: string, photoName: string) => {
-    if (!confirm(`Are you sure you want to delete this photo?`)) {
-      return;
-    }
+  const handleDeletePhoto = async (photoId: string, isFinal: boolean) => {
+    const message = isFinal
+      ? 'Delete this final photo? The employee will no longer see it in their gallery.'
+      : 'Delete this photo? The employee will no longer see it in their gallery.';
+    if (!confirm(message)) return;
 
     try {
       await HeadshotService.deletePhoto(photoId);
-      await fetchGalleries();
-      
-      // Update viewing photos if we're viewing that gallery
-      if (viewingPhotos) {
-        const updatedGallery = galleries.find(g => g.id === viewingPhotos.id);
-        if (updatedGallery) {
-          setViewingPhotos(updatedGallery);
-        }
+      // Refresh from the fresh result, not the `galleries` state captured by
+      // this closure, or the popup keeps showing the photo just deleted.
+      const fresh = await fetchGalleries(true);
+      if (fresh && viewingPhotos) {
+        setViewingPhotos(fresh.find(g => g.id === viewingPhotos.id) || null);
       }
-      
-      alert('Photo deleted successfully');
     } catch (err) {
       console.error('Error deleting photo:', err);
-      setError('Failed to delete photo');
+      alert('That photo could not be deleted. Please try again.');
     }
   };
 
@@ -162,8 +162,8 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
       }
 
       // Refresh galleries and update viewing photos
-      await fetchGalleries();
-      const updatedGallery = galleries.find(g => g.id === viewingPhotos.id);
+      const fresh = await fetchGalleries(true);
+      const updatedGallery = fresh?.find(g => g.id === viewingPhotos.id);
       if (updatedGallery) {
         setViewingPhotos(updatedGallery);
       }
@@ -664,11 +664,12 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
                       {/* Delete Button */}
                       <button
-                        onClick={() => handleDeletePhoto(photo.id, photo.photo_name || 'photo')}
-                        className="absolute right-2 top-2 rounded-full bg-[#FF5050] p-1 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:opacity-90"
-                        title="Delete photo"
+                        onClick={() => handleDeletePhoto(photo.id, !!photo.is_final)}
+                        className="absolute left-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-white text-[#003756] shadow-[0_2px_8px_rgba(3,34,50,.25)] transition-colors hover:bg-[#FF5050] hover:text-white"
+                        title={photo.is_final ? 'Delete final photo' : 'Delete photo'}
+                        aria-label={photo.is_final ? 'Delete final photo' : 'Delete photo'}
                       >
-                        <Trash2 className="w-3 h-3" />
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   ))}

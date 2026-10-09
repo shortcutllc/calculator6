@@ -345,7 +345,8 @@ export class HeadshotService {
     // Delete all photos from storage
     if (photos && photos.length > 0) {
       const fileNames = photos
-        .map(photo => photo.photo_url.split('/').pop())
+        .map(photo => photo.photo_url.split('/headshot-photos/')[1])
+        .map(path => path && decodeURIComponent(path))
         .filter(Boolean);
       
       if (fileNames.length > 0) {
@@ -371,30 +372,69 @@ export class HeadshotService {
   }
 
   static async deletePhoto(photoId: string): Promise<void> {
-    // Get photo info first
     const { data: photo, error: fetchError } = await supabase
       .from('gallery_photos')
-      .select('photo_url')
+      .select('photo_url, gallery_id, is_final')
       .eq('id', photoId)
       .single();
 
     if (fetchError) throw fetchError;
 
-    // Delete from storage
-    const fileName = photo.photo_url.split('/').pop();
-    if (fileName) {
-      await supabase.storage
-        .from('headshot-photos')
-        .remove([fileName]);
-    }
-
-    // Delete from database
     const { error } = await supabase
       .from('gallery_photos')
       .delete()
       .eq('id', photoId);
 
     if (error) throw error;
+
+    // Files live at <galleryId>/<file> in the bucket, so take the whole path
+    // after the bucket name. The bare file name never matched anything.
+    const storagePath = photo.photo_url.split('/headshot-photos/')[1];
+    if (storagePath) {
+      const { error: storageError } = await supabase.storage
+        .from('headshot-photos')
+        .remove([decodeURIComponent(storagePath)]);
+      if (storageError) console.error('Photo row deleted but file remains in storage:', storageError);
+    }
+
+    await this.reconcileGalleryAfterDelete(photo.gallery_id, photoId, photo.is_final);
+  }
+
+  // Keeps the gallery's status and pick honest after a photo is removed: a
+  // deleted pick clears the pick, and deleting the last final steps the
+  // gallery back from completed so the employee doesn't see "final ready".
+  private static async reconcileGalleryAfterDelete(galleryId: string, deletedPhotoId: string, wasFinal: boolean): Promise<void> {
+    const { data: gallery } = await supabase
+      .from('employee_galleries')
+      .select('status, selected_photo_id')
+      .eq('id', galleryId)
+      .single();
+    if (!gallery) return;
+
+    const { data: remaining } = await supabase
+      .from('gallery_photos')
+      .select('id, is_final, is_selected')
+      .eq('gallery_id', galleryId);
+    const photos = remaining || [];
+
+    const updates: Record<string, unknown> = {};
+    if (gallery.selected_photo_id === deletedPhotoId) {
+      const nextPick = photos.find(p => p.is_selected && !p.is_final);
+      updates.selected_photo_id = nextPick ? nextPick.id : null;
+    }
+    const pickId = 'selected_photo_id' in updates ? updates.selected_photo_id : gallery.selected_photo_id;
+
+    if (photos.length === 0) {
+      updates.status = 'pending';
+    } else if (wasFinal && gallery.status === 'completed' && !photos.some(p => p.is_final)) {
+      updates.status = pickId ? 'selection_made' : 'photos_uploaded';
+    } else if (!pickId && gallery.status === 'selection_made') {
+      updates.status = 'photos_uploaded';
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await supabase.from('employee_galleries').update(updates).eq('id', galleryId);
+    }
   }
 
   // Notifications
