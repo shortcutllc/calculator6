@@ -9,6 +9,7 @@ import type { SponsorPageConfig } from '../../types/sponsorPage';
 import '../../styles/sponsor-page.css';
 import StationModal, { useGalleryByKey } from './StationModal';
 import SponsorBento from './SponsorBento';
+import SponsorReels from './SponsorReels';
 import SponsorPricing from './SponsorPricing';
 import { SPONSOR_SERVICES, serviceById, type SponsorServiceDef } from '../../utils/sponsorPackages';
 
@@ -114,11 +115,11 @@ const HOW_STEPS: {
   {
     who: 'Your attendees', title: 'Every visit is booked ahead, so no one waits in line', visual: 'photo',
     img: '/conference/onepager/wh/booth-3.jpeg', cap: 'Workhuman Live 2026', pos: 'bg-[center_35%]',
-    body: 'Attendees pick a time on their phone for a free massage, headshot or manicure, and get a reminder before it. Over 90% of slots get booked.',
+    body: 'Attendees pick a time on their phone for a free massage, headshot or manicure. Over 90% of slots get booked.',
   },
   {
     who: 'Your sponsor', title: 'Guaranteed traffic, face time and leads', visual: 'leads', tint: 'bg-[#FEDC64]',
-    body: 'Attendees come to the sponsor by appointment, all day long, and every booking is a lead.',
+    body: 'Attendees come to the sponsor by appointment, all day long, and the sponsor gets each one\u2019s name, title, company and email.',
   },
 ];
 
@@ -661,6 +662,7 @@ export default function SponsorOnePager() {
 
   const tocItems = [
     { id: 'how-it-works', label: 'How it works' },
+    { id: 'about', label: 'About' },
     { id: 'how', label: 'What sets us apart' },
     { id: 'stations', label: 'Services' },
     { id: 'pricing', label: 'Pricing' },
@@ -788,18 +790,32 @@ export default function SponsorOnePager() {
         </section>
 
         {/* ══════════ HOW IT WORKS ══════════
-            One section, talking to the sales team: the five steps from the
-            sale to the floor as a horizontal rail, then the client logos. It
-            replaces the old About band and the three audience cards. */}
+            One section, talking to the sales team: the steps from the sale
+            to the floor as a horizontal rail. */}
         <Panel id="how-it-works">
           <SectionHead
             kicker="How it works"
             title="How your sales team turns the lounge into revenue"
-            sub="At your conference, we give your sales team a premium sponsorship to sell, and we work with your events team to run it from load-in to teardown."
+            sub="At your conference, we give your sales team a new sponsorship to sell, and we work with your events team to run it from load-in to teardown."
           />
           <HowRail confName={conf.name} />
 
-          <div className="mt-14 md:mt-16 pt-10 border-t border-[#E2E9E8] flex flex-col items-center gap-8">
+        </Panel>
+
+        {/* ══════════ ABOUT SHORTCUT ══════════
+            Who we are, below How it works (Will, 2026-10-16): the website's
+            "In the room" reel of real office visits, then the client logos
+            (moved here from How it works). */}
+        <Panel id="about" tone="tint">
+          <SectionHead
+            kicker="About Shortcut"
+            title="The premier on-site corporate wellness partner in the US"
+            sub="We run wellness days inside company offices, and 87% of the companies we work with book us again. Your conference gets the same team and the same booking tech."
+          />
+          <div className="-mx-6 md:-mx-10 lg:-mx-[100px]">
+            <SponsorReels />
+          </div>
+          <div className="mt-14 md:mt-16 pt-10 border-t border-[#DCE6E5] flex flex-col items-center gap-8">
             <p className={`m-0 text-[12px] font-extrabold uppercase tracking-[.09em] ${INK_META}`}>
               Trusted by more than 500 companies, including
             </p>
@@ -857,7 +873,6 @@ export default function SponsorOnePager() {
           <SectionHead
             kicker="Step by step"
             title="From the proposal to the follow up."
-            accent="You tell us what you need. We handle the rest."
           />
           <ol className="m-0 p-0 list-none grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
             {PATH.map((p, i) => (
@@ -930,7 +945,7 @@ export default function SponsorOnePager() {
           <SectionHead
             kicker="TradeStation"
             title="A branded event day, start to finish."
-            sub="Haircuts and styling under TradeStation\u2019s own signage, run by our team."
+            sub="Haircuts and styling under TradeStation’s own signage, run by our team."
           />
           <SizzleReel />
         </Panel>
@@ -947,7 +962,7 @@ export default function SponsorOnePager() {
                 Let&rsquo;s chat about adding the lounge to {conf.name}
               </h2>
             </div>
-            <ol className="m-0 mt-12 p-0 list-none grid grid-cols-1 md:grid-cols-3 gap-5 max-w-[1100px] mx-auto">
+            <ol className="m-0 mt-12 p-0 list-none grid grid-cols-1 md:grid-cols-3 gap-5">
               {NEXT_STEPS.map((step, i) => (
                 <li key={step} className="rounded-[28px] bg-white/[.08] border border-white/[.12] p-7 flex flex-col gap-4">
                   <span className="grid h-10 w-10 place-items-center rounded-full bg-shortcut-teal text-[16px] font-extrabold text-shortcut-blue">{i + 1}</span>

@@ -44,17 +44,18 @@ export default function SponsorBento({ conferenceName, dateLabel }: {
 }) {
   return (
     <div className="pv-root !bg-transparent [&_.pv-bento]:mt-0">
-      <div className="mx-auto max-w-[1100px]">
+      <div>
         <WhyShortcutBento
           label="What sets Shortcut apart"
           headA="Tech that runs every sign-up,"
           headB="and a team that handles the rest."
           wideTitle="Sign-ups handled before, during and after"
-          wideBody="Invites and reminders before the show, booking and check-in during it, and a results report after. It all plugs into your event app."
+          wideBody="Invites, booking and reminders before the show, check-in during it, and a results report after. It all plugs into your event app."
           eventName={`Wellness Lounge · ${conferenceName}`}
           eventWhen={dateLabel}
           cityTitle={<>One vendor.<br />Every venue.</>}
           cityBody="Hotels, convention centers and offsites, coast to coast."
+          handledTitle="All the logistics, handled."
           checklist={CHECKLIST}
           extraRowFirst
           extraRow={

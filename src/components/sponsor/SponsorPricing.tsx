@@ -331,9 +331,11 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
           <section id="pr-build" className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5 mb-2">
               <StepHead n={3} title="Make it yours" dot={DAY_DOTS[2]} />
-              <p className={`m-0 ml-12 text-[16px] font-semibold ${META}`}>
-                {!pkg ? 'Pick a package above to see what’s inside.' : pkg.optIn ? 'Pick as many services as you like.' : `${pkg.name}. Pick how much of each service your sponsor gets.`}
-              </p>
+              {pkg && (
+                <p className={`m-0 ml-12 text-[16px] font-semibold ${META}`}>
+                  {pkg.optIn ? 'Pick as many services as you like.' : `${pkg.name}. Pick how much of each service your sponsor gets.`}
+                </p>
+              )}
             </div>
 
             {!pkg && (
