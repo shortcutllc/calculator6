@@ -50,7 +50,7 @@ export default function SponsorBento({ conferenceName, dateLabel }: {
           headA="Tech that runs every sign-up,"
           headB="and a team that handles the rest."
           wideTitle="Sign-ups handled before, during and after"
-          wideBody="Invites and reminders before the show, check-in and the waitlist during it, and a results report after. It all plugs into your event app."
+          wideBody="Invites and reminders before the show, booking and check-in during it, and a results report after. It all plugs into your event app."
           eventName={`Wellness Lounge · ${conferenceName}`}
           eventWhen={dateLabel}
           cityTitle={<>One vendor.<br />Every venue.</>}

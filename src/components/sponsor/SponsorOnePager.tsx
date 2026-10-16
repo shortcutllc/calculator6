@@ -112,9 +112,9 @@ const HOW_STEPS: {
     body: 'You set the sponsor\u2019s price. Our fee is fixed and billed only after your sponsor signs.',
   },
   {
-    who: 'Your attendees', title: 'Attendees book ahead and line up', visual: 'photo',
+    who: 'Your attendees', title: 'Every visit is booked ahead, so no one waits in line', visual: 'photo',
     img: '/conference/onepager/wh/booth-3.jpeg', cap: 'Workhuman Live 2026', pos: 'bg-[center_35%]',
-    body: 'A free massage, headshot or manicure on a long conference day. Over 90% of slots get booked, and a waitlist fills any that open up.',
+    body: 'Attendees pick a time on their phone for a free massage, headshot or manicure, and get a reminder before it. Over 90% of slots get booked.',
   },
   {
     who: 'Your sponsor', title: 'Guaranteed traffic, face time and leads', visual: 'leads', tint: 'bg-[#FEDC64]',
