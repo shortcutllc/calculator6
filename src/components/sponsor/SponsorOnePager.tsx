@@ -854,7 +854,7 @@ export default function SponsorOnePager() {
         <Panel id="gets" tone="tint">
           <SectionHead
             kicker="Step by step"
-            title="Start to finish."
+            title="From the proposal to the follow up."
             accent="You tell us what you need. We handle the rest."
           />
           <ol className="m-0 p-0 list-none grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
