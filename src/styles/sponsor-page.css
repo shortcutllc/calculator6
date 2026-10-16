@@ -110,3 +110,9 @@
 .sp-reel:hover > img, .sp-reel:hover > video { transform: scale(1.05); }
 .sp-reel-lab { position: absolute; left: 14px; right: 14px; bottom: 14px; margin: 0; padding: 14px 16px 15px; border-radius: 20px; background: rgba(255,255,255,.96); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 8px 24px rgba(3,34,50,.16); }
 @media (prefers-reduced-motion: reduce) { .sp-reels .sp-reel-track { animation: none; } }
+
+/* The trust line's entrance: the website's `sw-in-rise` (web.css), .9s on
+   cubic-bezier(.22,1,.36,1), 24px up, held until the line is on screen. */
+.sp-trust { opacity: 0; }
+.sp-trust.is-in { animation: sp-rise .9s cubic-bezier(.22,1,.36,1) .28s both; }
+@media (prefers-reduced-motion: reduce) { .sp-trust { opacity: 1; } .sp-trust.is-in { animation: none; } }
