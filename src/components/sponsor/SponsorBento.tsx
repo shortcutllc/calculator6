@@ -1,214 +1,130 @@
-import { useEffect, useRef, useState } from 'react';
-import { PINS, Tick } from '../proposal/sections/WhyShortcutBento';
+import WhyShortcutBento from '../proposal/sections/WhyShortcutBento';
+import MobileSignupModule from '../proposal/MobileSignupModule';
 import '../../styles/proposal-refresh.css';
 
 /* ─────────────────────────────────────────────
-   How it works, on the website's bento module (pv-bcard shells and the
-   mv-/wd- art from proposal-refresh.css, ported from shortcut/frontend/
-   components/HomeDeliver.vue), laid out for the white label story:
+   "What sets Shortcut apart", the website's bento, told for a conference
+   organizer (Will, 2026-10-16). Its job is how easy we make the activation,
+   and the How it works rail above already carries the deal, so nothing here
+   restates it.
 
-     Row 1  Built in their brand (the setup checklist)  |  A booking
-            platform that runs the day (the manager view, fully booked)
-     Row 2  One vendor, every venue  |  Pros  |  What the sponsor takes home
+   Two halves, tech first:
+     The tech: one white label, fully customizable booking platform that runs
+       every sign-up before, during and after the show (the wide card's live
+       roster), carries the sponsor's brand (the phone sign-up), and captures
+       the sponsor's leads (the navy card).
+     The team: the Pros card (kept as the website has it), the coverage map
+       and the setup checklist, in show terms rather than office terms.
 
-   The module's own animations run here: the checklist ticks in row by row
-   and its bar fills, the manager view's bar fills to 40 of 40 and its rows
-   tick, the map pins land, and the lead list's statuses pop in. Like the
-   homepage, they wait until the bento is on screen (`.is-in`).
-
-   The section heading is the page's own SectionHead, so it matches every
-   other section. `.pv-root` supplies the design tokens the cards read.
+   The same module the homepage and the proposal viewer run
+   (WhyShortcutBento, ported from shortcut/frontend/components/HomeDeliver.vue).
+   `extraRowFirst` and `checklist` are this page's only overrides of it.
+   `.pv-root` supplies the design tokens the bento's styles read.
    ───────────────────────────────────────────── */
 
-const BRAND_ITEMS = [
-  'Branded booking page',
-  'Custom reminders',
-  'Signage and screens',
-  'Pro uniforms',
-  'The lounge build',
-  'COI to the venue',
-  'Shortcut lead on site',
+/* The lead card's mock: one attendee's record, the same Jordan Patel the
+   phone demo books, so the two cards read as one story. Demo values. */
+const LEAD_RECORD = [
+  { k: 'Title', v: 'Head of People' },
+  { k: 'Company', v: 'Brightline' },
+  { k: 'Work email', v: 'jordan@company.com' },
+  { k: 'Company size', v: '500 to 1,000', note: 'Sponsor\u2019s question' },
+];
+
+const CHECKLIST = [
+  'Certificates of insurance to the venue',
+  'Show orders and freight',
+  'Lounge build and signage',
+  'Our lead on site',
   'Setup and cleanup',
 ];
-
-const ROSTER = [
-  { ini: 'MR', av: '#9EFAFF', name: 'Maya R.', slot: '11:00 am' },
-  { ini: 'DK', av: '#FEDC64', name: 'Devon K.', slot: '11:20 am' },
-  { ini: 'PS', av: '#F7BBFF', name: 'Priya S.', slot: '11:40 am' },
-  { ini: 'TB', av: '#C7CBFB', name: 'Tom B.', slot: '12:00 pm' },
-  { ini: 'AN', av: '#A9F0CC', name: 'Alex N.', slot: '12:20 pm' },
-];
-
-/* The sponsor's lead list, drawn as the export they get: the same people
-   as the schedule, now with title and company, opted in. */
-const LEADS = [
-  { ini: 'MR', av: 'bg-[#9EFAFF]', name: 'Maya Rivera', role: 'VP People · Northwind', showed: true },
-  { ini: 'DK', av: 'bg-[#FEDC64]', name: 'Devon Kim', role: 'Head of HR · Brightline', showed: true },
-  { ini: 'PS', av: 'bg-[#F7BBFF]', name: 'Priya Shah', role: 'Chief of Staff · Lumen', showed: true },
-  { ini: 'TB', av: 'bg-[#C7CBFB]', name: 'Tom Baker', role: 'Talent Director · Harbor', showed: false },
-];
-
-/* The module's art is absolutely placed in a clipped well. These pin it to
-   the top of the well so the white card hangs off the card's bottom edge,
-   the way the homepage's manager view does. */
-const WELL = 'pv-bcard-art !m-0 max-[980px]:!-mx-6 max-[980px]:!h-[390px]';
-const HANG = 'absolute left-1/2 top-6 w-[calc(100%-32px)] max-w-[372px] -translate-x-1/2';
 
 export default function SponsorBento({ conferenceName, dateLabel }: {
   conferenceName: string; dateLabel: string;
 }) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const [inView, setInView] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (typeof IntersectionObserver === 'undefined') { setInView(true); return; }
-    const io = new IntersectionObserver(
-      (entries) => { if (entries.some((e) => e.isIntersecting)) { setInView(true); io.disconnect(); } },
-      { rootMargin: '0px 0px -12% 0px' }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
   return (
-    <div className="pv-root !bg-transparent">
-      <div ref={ref} className={`pv-bento !mt-0 flex flex-col gap-5${inView ? ' is-in' : ''}`}>
-
-        {/* Row 1: what we build, and the platform that runs the day. */}
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <article className="pv-bcard pv-bcard--coral md:!h-[560px]">
-            <div className="pv-bcard-copy">
-              <h3>Built in their brand.</h3>
-              <p>Everything attendees see carries the sponsor&rsquo;s name. Everything behind it is ours.</p>
-            </div>
-            <div className={`${WELL} [&_.wd-mf]:![transform:translate(-50%,-50%)_scale(.94)] max-[980px]:[&_.wd-mf]:![transform:translate(-50%,-50%)_scale(.82)]`}>
-              <div className="wd-mf">
-                <div className="wd-mf-hd">
-                  <span className="wd-mf-t">The sponsor package</span>
-                  <span className="wd-mf-c">Included</span>
+    <div className="pv-root !bg-transparent [&_.pv-bento]:mt-0">
+      <div className="mx-auto max-w-[1100px]">
+        <WhyShortcutBento
+          label="What sets Shortcut apart"
+          headA="Tech that runs every sign-up,"
+          headB="and a team that handles the rest."
+          wideTitle="Sign-ups handled before, during and after"
+          wideBody="Invites and reminders before the show, check-in and the waitlist during it, and a results report after. It all plugs into your event app."
+          eventName={`Wellness Lounge · ${conferenceName}`}
+          eventWhen={dateLabel}
+          cityTitle={<>One vendor.<br />Every venue.</>}
+          cityBody="Hotels, convention centers and offsites, coast to coast."
+          checklist={CHECKLIST}
+          extraRowFirst
+          extraRow={
+            <div className="pv-bento-row ![grid-template-columns:1fr] min-[981px]:![grid-template-columns:1.15fr_1fr]">
+              <article className="pv-bcard pv-bcard--aqua sp-bcard">
+                <div className="pv-bcard-copy">
+                  <h3>White-labeled and fully customizable</h3>
+                  <p>Your sponsor&rsquo;s logo, colors, questions and opt-in language on the booking page, the emails and the texts.</p>
                 </div>
-                <div className="wd-mf-bar"><i /></div>
-                {BRAND_ITEMS.map((label, i) => (
-                  <div className="wd-mf-row" key={label}>
-                    <span className="wd-mf-tick" style={{ animationDelay: `${(0.2 + i * 0.3).toFixed(2)}s` }}>
-                      <Tick width={3} />
-                    </span>
-                    <span className="wd-mf-l">{label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </article>
-
-          <article className="pv-bcard pv-bcard--yellow md:!h-[560px]">
-            <div className="pv-bcard-copy">
-              <h3>A booking platform that runs the day.</h3>
-              <p>Bookings, reminders, the waitlist and last minute changes, all in the sponsor&rsquo;s name. Their team just shows up.</p>
-            </div>
-            <div className={`${WELL} [&_.mv-card]:!static [&_.mv-card]:!transform-none [&_.mv-bar_i]:[animation-name:pv-mf-bar] max-[980px]:[&_.mv-card]:!px-5`}>
-              <div className={HANG}>
-                <div className="mv-card !w-full">
-                  <div className="mv-hd">
-                    <span>
-                      <span className="mv-hd-t">Wellness Lounge · {conferenceName}</span>
-                      <span className="mv-hd-s">{dateLabel}</span>
-                    </span>
-                    <span className="mv-live">Full</span>
-                  </div>
-                  <div className="mv-stat">
-                    <span className="mv-stat-n">40 <span className="mv-stat-l">of 40 booked</span></span>
-                    <span className="mv-stat-p">100%</span>
-                  </div>
-                  <div className="mv-bar"><i /></div>
-                  <div className="mv-rows">
-                    {ROSTER.map((r, i) => (
-                      <div className="mv-row" key={r.ini}>
-                        <span className="mv-av" style={{ background: r.av }}>{r.ini}</span>
-                        <span className="mv-name">{r.name}</span>
-                        <span className="mv-slot">{r.slot}</span>
-                        <span className="mv-tick" style={{ animationDelay: `${(i * 0.25).toFixed(2)}s` }}><Tick /></span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mv-foot">
-                    <span className="mv-foot-l">12 on the waitlist</span>
-                    <span className="mv-foot-b">Add a Pro</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </article>
-        </div>
-
-        {/* Row 2: the reach, the people, and the payoff. */}
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-          <article className="pv-bcard pv-bcard--navy lg:!h-[440px]">
-            <div className="pv-bcard-copy">
-              <h3>One vendor. Every venue.</h3>
-              <p>Hotels, convention centers and offsites, coast to coast.</p>
-            </div>
-            <div className="pv-bcard-art">
-              <div className="wd-map">
-                <img src="/proposal-refresh/bento/us-map.svg" alt="Shortcut coverage across the United States" />
-                {PINS.map((p, i) => (
-                  <span
-                    className="wd-pin"
-                    key={p.title}
-                    title={p.title}
-                    style={{ left: p.left, top: p.top, animationDelay: `${(0.35 + i * 0.055).toFixed(3)}s, ${(0.9 + i * 0.11).toFixed(2)}s` }}
-                  />
-                ))}
-              </div>
-            </div>
-          </article>
-
-          <article className="pv-bcard pv-bcard--aqua lg:!h-[440px]">
-            <div className="pv-bcard-copy">
-              <h3>Pros you&rsquo;d book yourself.</h3>
-              <p>Licensed, insured, handpicked.</p>
-            </div>
-            <div className="pv-bcard-art">
-              <span className="wd-photo" role="img" aria-label="A Shortcut Pro" />
-            </div>
-          </article>
-
-          <article className="pv-bcard pv-bcard--navy lg:!h-[440px]">
-            <div className="pv-bcard-copy">
-              <h3>What the sponsor takes home.</h3>
-              <p>Every name, title, company and email, opted in.</p>
-            </div>
-            <div className={WELL}>
-              <div className={`${HANG} rounded-[26px] bg-white p-5 text-left shadow-[0_20px_48px_rgba(0,0,0,.3)]`}>
-                <div className="flex items-start justify-between gap-3">
+                <div className="pv-bcard-art">
                   <div>
-                    <p className="m-0 text-[15px] font-extrabold tracking-[-.018em] !text-shortcut-blue">Sponsor leads</p>
-                    <p className="m-0 mt-0.5 text-[12.5px] font-semibold !text-[#45596A]">40 contacts</p>
+                    <MobileSignupModule
+                      size={300}
+                      eyebrow="The attendee sign-up"
+                      copy={{
+                        eventTitle: `Wellness Lounge at ${conferenceName}`,
+                        eventLine: 'Chair massage with a licensed therapist, on the sponsor.',
+                        location: 'Expo hall lounge',
+                        barSub: `Free for ${conferenceName} attendees`,
+                        brandText: 'SPONSOR LOGO',
+                        whenLine: dateLabel || conferenceName,
+                        slotLine: dateLabel ? `${dateLabel} · 12:40 pm` : '12:40 pm',
+                        slotShort: '12:40 pm',
+                        email: 'jordan@company.com',
+                        address: `${conferenceName}, expo hall lounge`,
+                      }}
+                    />
                   </div>
-                  <span className="inline-flex h-[30px] items-center rounded-full bg-shortcut-blue px-3.5 text-[12.5px] font-bold text-white">Export</span>
                 </div>
-                <div className="mt-3 flex flex-col">
-                  {LEADS.map((l, i) => (
-                    <div key={l.ini} className="flex items-center gap-2.5 border-t border-[#003756]/[.09] py-2.5">
-                      <span className={`grid h-7 w-7 flex-none place-items-center rounded-full text-[10.5px] font-extrabold text-shortcut-blue ${l.av}`}>{l.ini}</span>
+              </article>
+              <article className="pv-bcard pv-bcard--navy sp-bcard">
+                <div className="pv-bcard-copy">
+                  <h3>Every sign-up is a lead</h3>
+                  <p>Captured in the fields your sponsor chooses, and handed over after the show.</p>
+                </div>
+                <div className="pv-bcard-art">
+                  <div className="sp-lead w-[min(340px,calc(100%-48px))] rounded-[20px] bg-white px-5 pt-5 pb-9 shadow-[0_12px_36px_rgba(0,0,0,.28)]" aria-hidden="true">
+                    <div className="flex items-center gap-3 pb-3.5 border-b border-[#E2E9E8]">
+                      <span className="w-10 h-10 flex-none rounded-full bg-[#9EFAFF] grid place-items-center text-[12px] font-extrabold text-[#003756]">JP</span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[13px] font-bold tracking-[-.01em] text-shortcut-blue">{l.name}</span>
-                        <span className="block truncate text-[11.5px] font-semibold text-[#45596A]">{l.role}</span>
+                        <span className="block text-[15px] font-bold leading-tight text-[#003756]">Jordan Patel</span>
+                        <span className="block text-[12px] font-semibold leading-tight text-[#45596A]">Booked 12:40 pm</span>
                       </span>
-                      <span
-                        className={`inline-flex h-[22px] flex-none items-center rounded-full px-2 text-[10.5px] font-extrabold uppercase tracking-[.03em] ${l.showed ? 'bg-[#E7F7EE] text-[#08694A]' : 'bg-[#EEF2F4] text-[#45596A]'} ${inView ? 'motion-safe:[animation:pv-mv-tick_6s_cubic-bezier(.34,1.56,.64,1)_infinite_both]' : ''}`}
-                        style={{ animationDelay: `${(0.4 + i * 0.3).toFixed(2)}s` }}
-                      >
-                        {l.showed ? 'Showed' : 'Booked'}
-                      </span>
+                      <span className="h-6 inline-flex items-center px-2.5 rounded-full bg-[#E6F6EF] text-[10.5px] font-extrabold uppercase tracking-[.06em] text-[#137A52]">New lead</span>
                     </div>
-                  ))}
+                    <dl className="m-0 mt-1">
+                      {LEAD_RECORD.map((r) => (
+                        <div key={r.k} className="flex items-baseline justify-between gap-3 py-2 border-b border-[#E2E9E8]">
+                          <dt className="text-[12px] font-semibold text-[#45596A]">
+                            {r.k}
+                            {r.note && <span className="ml-1.5 rounded-full bg-[#FEDC64] px-1.5 py-px text-[9.5px] font-extrabold uppercase tracking-[.05em] text-[#003756]">{r.note}</span>}
+                          </dt>
+                          <dd className="m-0 text-[13px] font-bold text-[#003756] text-right">{r.v}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    <div className="mt-3 flex gap-2">
+                      {['Opted in', 'Showed up'].map((t) => (
+                        <span key={t} className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-[#F1F6F5] text-[11.5px] font-bold text-[#003756]">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#137A52" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </article>
             </div>
-          </article>
-        </div>
+          }
+        />
       </div>
     </div>
   );
