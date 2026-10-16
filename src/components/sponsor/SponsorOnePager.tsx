@@ -76,21 +76,19 @@ const HERO_PILLS: { label: string; alt: string; emoji?: boolean; cls: string }[]
   ],
 ];
 
-/* The trust line's marks: the website hero trust rail's white logos and
-   its per-logo optical heights (shortcut repo, frontend/components/
-   TrustRail.vue). Teads is left out until its clearance is confirmed. Each
-   class is written out whole so Tailwind can see it. */
+/* About: committed client logos (the /conference one-pager's set). Teads is
+   left out until its clearance is confirmed. */
 const CLIENT_LOGOS = [
-  { src: '/ds-assets/logos/draftkings-white.svg', alt: 'DraftKings', h: 'h-[22px]' },
-  { src: '/ds-assets/logos/bcg-white.svg', alt: 'BCG', h: 'h-[15px]' },
-  { src: '/ds-assets/logos/nfl-white.svg', alt: 'NFL', h: 'h-[26px]' },
-  { src: '/ds-assets/logos/paramount-white.svg', alt: 'Paramount', h: 'h-[28px]' },
-  { src: '/ds-assets/logos/mtv-white.svg', alt: 'MTV', h: 'h-[22px]' },
-  { src: '/ds-assets/logos/warner-bros-white.svg', alt: 'Warner Bros.', h: 'h-[26px]' },
-  { src: '/ds-assets/logos/white-case-white.svg', alt: 'White & Case', h: 'h-[10px]' },
-  { src: '/ds-assets/logos/pwc-white.svg', alt: 'PwC', h: 'h-[26px]' },
-  { src: '/ds-assets/logos/tripadvisor-white.svg', alt: 'Tripadvisor', h: 'h-[26px]' },
-  { src: '/ds-assets/logos/wix-white.svg', alt: 'Wix', h: 'h-[18px]' },
+  { src: '/conference/onepager/logos/draftkings.svg', alt: 'DraftKings' },
+  { src: '/conference/onepager/logos/nfl.svg', alt: 'NFL', tall: true },
+  { src: '/conference/onepager/logos/bcg.svg', alt: 'BCG' },
+  { src: '/conference/onepager/logos/wix.svg', alt: 'Wix' },
+  { src: '/conference/onepager/logos/tripadvisor.svg', alt: 'Tripadvisor' },
+  { src: '/conference/onepager/logos/pwc.svg', alt: 'PwC' },
+  { src: '/conference/onepager/logos/paramount.svg', alt: 'Paramount' },
+  { src: '/conference/onepager/logos/warner-bros.svg', alt: 'Warner Bros.', tall: true },
+  { src: '/conference/onepager/logos/white-case.svg', alt: 'White & Case' },
+  { src: '/conference/onepager/logos/mtv.svg', alt: 'MTV' },
 ];
 
 /* How it works, as five slides in the order a sponsorship seller thinks:
@@ -251,9 +249,9 @@ function Reveal({ children, className = '' }: { children: React.ReactNode; class
 }
 
 function Panel({ id, children, tone = 'white' }: {
-  id?: string; children: React.ReactNode; tone?: 'white' | 'tint' | 'navy' | 'coral';
+  id?: string; children: React.ReactNode; tone?: 'white' | 'tint' | 'navy';
 }) {
-  const bg = tone === 'white' ? 'bg-white' : tone === 'tint' ? 'bg-neutral-light-gray' : tone === 'coral' ? 'bg-shortcut-coral' : 'bg-shortcut-blue';
+  const bg = tone === 'white' ? 'bg-white' : tone === 'tint' ? 'bg-neutral-light-gray' : 'bg-shortcut-blue';
   return (
     <section className={`relative -mt-[50px] rounded-t-[50px] py-16 md:py-28 ${bg}`}>
       {id && <div data-toc id={id} className="absolute -top-20" />}
@@ -262,29 +260,20 @@ function Panel({ id, children, tone = 'white' }: {
   );
 }
 
-/* On the red band, white on #FF5050 measures 3.2:1. That passes for large
-   text only (3:1), so there the kicker sits in a white pill (navy on white,
-   12:1) and the sub is set bold at 19px or more, which counts as large. */
-function SectionHead({ kicker, title, accent, sub, dark = false, coral = false }: {
-  kicker: string; title: string; accent?: string; sub?: string; dark?: boolean; coral?: boolean;
+function SectionHead({ kicker, title, accent, sub, dark = false }: {
+  kicker: string; title: string; accent?: string; sub?: string; dark?: boolean;
 }) {
   return (
     <div className="flex flex-col items-center text-center gap-3.5 mb-12 md:mb-14">
-      {coral ? (
-        <p className="m-0 inline-flex h-8 items-center rounded-full bg-white px-4 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-blue">
-          {kicker}
-        </p>
-      ) : (
-        <p className={`m-0 text-[12px] font-extrabold uppercase tracking-[.09em] ${dark ? 'text-shortcut-teal' : INK_META}`}>
-          {kicker}
-        </p>
-      )}
-      <h2 className={`m-0 text-[30px] md:text-[44px] font-bold leading-[1.05] tracking-[-.035em] max-w-[22ch] text-balance ${dark || coral ? 'text-white' : 'text-shortcut-blue'}`}>
+      <p className={`m-0 text-[12px] font-extrabold uppercase tracking-[.09em] ${dark ? 'text-shortcut-teal' : INK_META}`}>
+        {kicker}
+      </p>
+      <h2 className={`m-0 text-[30px] md:text-[44px] font-bold leading-[1.05] tracking-[-.035em] max-w-[22ch] text-balance ${dark ? 'text-white' : 'text-shortcut-blue'}`}>
         {title}
         {accent && <span className="block text-shortcut-coral">{accent}</span>}
       </h2>
       {sub && (
-        <p className={`m-0 max-w-[58ch] ${coral ? 'text-[19px] md:text-[20px] font-bold leading-[1.45] text-white' : `text-[16px] md:text-[17px] font-medium leading-[1.55] ${dark ? 'text-white/80' : INK}`}`}>
+        <p className={`m-0 text-[16px] md:text-[17px] font-medium leading-[1.55] max-w-[58ch] ${dark ? 'text-white/80' : INK}`}>
           {sub}
         </p>
       )}
@@ -295,9 +284,10 @@ function SectionHead({ kicker, title, accent, sub, dark = false, coral = false }
 /* The website heroes' trust line (shortcut repo, TrustRail.vue and the
    holiday hero): "Trusted by 500+ organizations" at 24px, rising in once it
    is on screen, the 500 counting up over 1.6s (sc-count.client.js), then the
-   white logo marquee. Like the website, the markup always holds the real
-   number, so a skipped animation never shows anything but 500. The "+" is
-   navy here because the website's coral one would vanish on the red band. */
+   logo marquee. Like the website, the markup always holds the real
+   number, so a skipped animation never shows anything but 500. On this
+   page it sits on the light band, so the text is navy and the logos are
+   the color set. */
 function TrustLine() {
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
@@ -324,8 +314,8 @@ function TrustLine() {
   }, []);
   return (
     <div ref={ref} className={`sp-trust mt-16 md:mt-24 flex flex-col items-center gap-9 ${inView ? 'is-in' : ''}`}>
-      <p className="m-0 text-center text-[20px] md:text-[24px] font-extrabold leading-[1.25] tracking-[-.02em] text-white">
-        Trusted by <span className="tabular-nums">{n}</span><span className="text-shortcut-blue">+</span> organizations
+      <p className="m-0 text-center text-[20px] md:text-[24px] font-extrabold leading-[1.25] tracking-[-.02em] text-shortcut-blue">
+        Trusted by <span className="tabular-nums">{n}</span><span className="text-shortcut-coral">+</span> organizations
       </p>
       <div className="sp-logos w-full">
         <div className="sp-logo-track">
@@ -335,7 +325,7 @@ function TrustLine() {
               src={l.src}
               alt={i < CLIENT_LOGOS.length ? l.alt : ''}
               aria-hidden={i >= CLIENT_LOGOS.length ? true : undefined}
-              className={`block flex-none w-24 object-contain ${l.h}`}
+              className={`block flex-none w-[112px] object-contain ${l.tall ? 'h-10' : 'h-8'}`}
             />
           ))}
         </div>
@@ -868,10 +858,9 @@ export default function SponsorOnePager() {
         {/* ══════════ ABOUT SHORTCUT ══════════
             Who we are, below How it works (Will, 2026-10-16): the website's
             "In the room" reel of real office visits, then the website
-            heroes' trust line. On the red band (Will, 2026-10-16). */}
-        <Panel id="about" tone="coral">
+            heroes' trust line. */}
+        <Panel id="about" tone="tint">
           <SectionHead
-            coral
             kicker="About Shortcut"
             title="The premier on-site corporate wellness partner in the US"
             sub="We run wellness days inside company offices, and 87% of the companies we work with book us again. Your conference gets the same team and the same booking tech."
