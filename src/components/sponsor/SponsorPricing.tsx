@@ -3,7 +3,10 @@ import { serviceById, money, type SponsorServiceId } from '../../utils/sponsorPa
 import '../../styles/proposal-refresh.css';
 
 /* ─────────────────────────────────────────────
-   "Price your sponsorship": the conference partner page's pricing builder.
+   "See how pricing could work": the conference partner page's pricing
+   builder. Steps: pick a package, pick your days, make it yours (Will,
+   2026-10-16: package first). It is a SAMPLE and never defines our costs:
+   the fee reads as an estimate and branding as ranges.
 
    LAYOUT is the getshortcut.co holiday builder (shortcut repo,
    frontend/components/HolidayDesktop.vue, the "Packages" section): the
@@ -174,8 +177,8 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
   };
 
   const rail = [
-    { id: 'pr-days', t: 'Pick your days', v: days ? `${days} day${days > 1 ? 's' : ''}` : 'Not set yet' },
     { id: 'pr-pkg', t: 'Pick a package', v: pkg ? pkg.name : 'Not picked yet' },
+    { id: 'pr-days', t: 'Pick your days', v: days ? `${days} day${days > 1 ? 's' : ''}` : 'Not set yet' },
     { id: 'pr-build', t: 'Make it yours', v: lines.length ? `${lines.length} service${lines.length > 1 ? 's' : ''} on` : 'Pick services' },
   ];
 
@@ -233,9 +236,50 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
             </p>
           </div>
 
-          {/* ── Step 1: days ── */}
+          {/* ── Step 1: package ── */}
+          <section id="pr-pkg">
+            <StepHead n={1} title="Choose a package" dot={DAY_DOTS[0]} />
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {PACKS.map((p) => {
+                const on = p.id === pkgId;
+                const from = fromPrice(p);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => { setPkgId(p.id); setTimeout(() => scrollTo(days ? 'pr-build' : 'pr-days'), 40); }}
+                    className={`relative flex flex-col overflow-hidden rounded-[24px] border-2 text-left transition-[transform,box-shadow] duration-200 ${p.optIn ? 'sm:col-span-2' : ''} ${on ? 'bg-[#003756] border-[#003756] text-white shadow-[0_14px_34px_rgba(3,34,50,.22)]' : 'bg-white border-[#E2E9E8] text-[#003756] shadow-[0_1px_2px_rgba(3,34,50,.05)] hover:-translate-y-0.5'}`}
+                  >
+                    <span className={`absolute top-3.5 right-3.5 z-[1] grid h-7 w-7 place-items-center rounded-full shadow-[0_2px_8px_rgba(3,34,50,.2)] ${on ? 'bg-[#FEDC64]' : 'bg-white'}`}>
+                      {on && <Check stroke="#003756" size={14} />}
+                    </span>
+                    <span className={`flex h-[124px] overflow-hidden border-b ${on ? 'border-white/[.12]' : 'border-[#E2E9E8]'}`}>
+                      {p.services.slice(0, p.optIn ? 7 : 3).map((id) => {
+                        const st = serviceById(id);
+                        return (
+                          <span key={id} className="relative min-w-0 flex-1 overflow-hidden" style={{ background: st.tint }}>
+                            <span className="absolute inset-[-8%] bg-cover bg-[center_35%] bg-no-repeat" style={{ backgroundImage: `url('${st.image}')` }} />
+                          </span>
+                        );
+                      })}
+                    </span>
+                    <span className="flex flex-col gap-1.5 px-6 pt-[22px] pb-6">
+                      <span className={`text-[11.5px] font-extrabold uppercase tracking-[.08em] ${on ? 'text-[#FEDC64]' : 'text-[#FF5050]'}`}>{p.inside}</span>
+                      <span className="text-[21px] font-bold leading-[1.15] tracking-[-.025em]">{p.name}</span>
+                      <span className={`mt-1.5 text-[15px] font-bold ${on ? 'text-[#9EFAFF]' : META}`}>
+                        {p.optIn ? 'All seven services' : !days ? `From ${money(from || 0)} a day` : `From ${money(from || 0)}`}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* ── Step 2: days ── */}
           <section id="pr-days" className="flex flex-col gap-6">
-            <StepHead n={1} title="How many days?" dot={DAY_DOTS[0]} />
+            <StepHead n={2} title="How many days?" dot={DAY_DOTS[1]} />
             <div role="group" aria-label="Days at the conference" className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[1, 2, 3].map((n) => {
                 const on = !daysCustom && days === n;
@@ -275,47 +319,6 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
             </div>
           </section>
 
-          {/* ── Step 2: package ── */}
-          <section id="pr-pkg">
-            <StepHead n={2} title="Choose a package" dot={DAY_DOTS[1]} />
-            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {PACKS.map((p) => {
-                const on = p.id === pkgId;
-                const from = fromPrice(p);
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => { setPkgId(p.id); setTimeout(() => scrollTo('pr-build'), 40); }}
-                    className={`relative flex flex-col overflow-hidden rounded-[24px] border-2 text-left transition-[transform,box-shadow] duration-200 ${p.optIn ? 'sm:col-span-2' : ''} ${on ? 'bg-[#003756] border-[#003756] text-white shadow-[0_14px_34px_rgba(3,34,50,.22)]' : 'bg-white border-[#E2E9E8] text-[#003756] shadow-[0_1px_2px_rgba(3,34,50,.05)] hover:-translate-y-0.5'}`}
-                  >
-                    <span className={`absolute top-3.5 right-3.5 z-[1] grid h-7 w-7 place-items-center rounded-full shadow-[0_2px_8px_rgba(3,34,50,.2)] ${on ? 'bg-[#FEDC64]' : 'bg-white'}`}>
-                      {on && <Check stroke="#003756" size={14} />}
-                    </span>
-                    <span className={`flex h-[124px] overflow-hidden border-b ${on ? 'border-white/[.12]' : 'border-[#E2E9E8]'}`}>
-                      {p.services.slice(0, p.optIn ? 7 : 3).map((id) => {
-                        const st = serviceById(id);
-                        return (
-                          <span key={id} className="relative min-w-0 flex-1 overflow-hidden" style={{ background: st.tint }}>
-                            <span className="absolute inset-[-8%] bg-cover bg-[center_35%] bg-no-repeat" style={{ backgroundImage: `url('${st.image}')` }} />
-                          </span>
-                        );
-                      })}
-                    </span>
-                    <span className="flex flex-col gap-1.5 px-6 pt-[22px] pb-6">
-                      <span className={`text-[11.5px] font-extrabold uppercase tracking-[.08em] ${on ? 'text-[#FEDC64]' : 'text-[#FF5050]'}`}>{p.inside}</span>
-                      <span className="text-[21px] font-bold leading-[1.15] tracking-[-.025em]">{p.name}</span>
-                      <span className={`mt-1.5 text-[15px] font-bold ${on ? 'text-[#9EFAFF]' : META}`}>
-                        {p.optIn ? 'All seven services' : !days ? 'Pick your days to see the price' : `From ${money(from || 0)}`}
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-
           {/* ── Step 3: make it yours ── */}
           <section id="pr-build" className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5 mb-2">
@@ -327,7 +330,7 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
 
             {!pkg && (
               <p className={`m-0 rounded-[20px] border-2 border-dashed border-[#E2E9E8] px-6 py-5 text-[15px] font-semibold leading-[1.5] ${META}`}>
-                Pick a package in step 2 and its services appear here, with each one&rsquo;s options and price.
+                Pick a package in step 1 and its services appear here, with each one&rsquo;s options and price.
               </p>
             )}
 
@@ -368,7 +371,7 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
                   <p className="m-0 text-[15px] font-semibold leading-[1.45] text-[#003756]">
                     {days
                       ? `${lines.map((l) => `${l.label} ${money(l.cost)}`).join(' + ')}${addOnLines.length ? `, plus about ${money(addOnLines.reduce((t, a) => t + a.amount, 0))} of branding` : ''}, over ${days} day${days > 1 ? 's' : ''}.`
-                      : `${lines.map((l) => l.label).join(' + ')}. Pick your days in step 1 to price it.`}
+                      : `${lines.map((l) => l.label).join(' + ')}. Pick your days in step 2 to price it.`}
                   </p>
                 </div>
                 <div className="flex-none text-right">
@@ -486,7 +489,7 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
             <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-[#FEDC64]">Sample sponsorship</p>
             <h3 className="m-0 mt-2 text-[22px] font-bold leading-[1.15] tracking-[-.025em] text-white">{pkg ? pkg.name : 'Nothing picked yet'}</h3>
             <p className="m-0 mt-1.5 text-[14px] font-semibold text-white/[.72]">
-              {days && lines.length ? `${days} day${days > 1 ? 's' : ''}${appts ? ` · ${appts} appointments` : ''}` : !pkg ? 'Pick your days and a package to start' : !lines.length ? 'Pick a service to price it' : 'Pick your days to price it'}
+              {days && lines.length ? `${days} day${days > 1 ? 's' : ''}${appts ? ` · ${appts} appointments` : ''}` : !pkg ? 'Pick a package and your days to start' : !lines.length ? 'Pick a service to price it' : 'Pick your days to price it'}
             </p>
 
             <div className="mt-[22px] flex flex-col gap-3">
