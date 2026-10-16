@@ -1,0 +1,118 @@
+/* ─────────────────────────────────────────────
+   /sponsor/:slug page styles that Tailwind can't express: keyframes and
+   hover chains. Scoped to `.sp-hero` and `.sp-logos`.
+
+   HERO: the service pills and entrance motion from the
+   getshortcut.co holiday hero (shortcut repo, frontend/assets/web-holiday.css,
+   `.hol-d .hb-*` and `sw-rise` in web.css), scoped to `.sp-hero`. Keyframes
+   and timings are copied as they are there, so the two heroes move the same.
+   The snowfall is holiday theming and is left out.
+   ───────────────────────────────────────────── */
+
+@keyframes sp-rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+/* Longhands, not the `animation` shorthand: the shorthand would reset the
+   per-element delays the page sets with Tailwind's [animation-delay:…]. */
+.sp-hero .sp-rise { opacity: 0; animation-name: sp-rise; animation-duration: .9s; animation-timing-function: cubic-bezier(.22, 1, .36, 1); animation-fill-mode: both; }
+
+/* The pills drop in from above and bounce. They wait (paused) until the page
+   adds `hb-go` once fonts are ready, exactly as the holiday page does. */
+@keyframes sp-pill-drop {
+  0%   { opacity: 0; transform: translate3d(0, -560px, 0) }
+  6%   { opacity: 1 }
+  18%  { transform: translate3d(0, -500px, 0) }
+  32%  { transform: translate3d(0, -360px, 0) }
+  46%  { transform: translate3d(0, -150px, 0) }
+  56%  { transform: translate3d(0, 0, 0) scaleY(1) }
+  60%  { transform: translate3d(0, 3px, 0) scaleY(.94) }
+  68%  { transform: translate3d(0, -18px, 0) scaleY(1.01) }
+  77%  { transform: translate3d(0, 0, 0) scaleY(.99) }
+  83%  { transform: translate3d(0, -5px, 0) scaleY(1) }
+  90%  { transform: translate3d(0, 0, 0) scaleY(1) }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scaleY(1) }
+}
+@keyframes sp-pill-hover { 0% { transform: rotate(0) scale(1) } 40% { transform: rotate(-3deg) scale(1.04) } 70% { transform: rotate(1.5deg) scale(1.02) } 100% { transform: rotate(0) scale(1.03) } }
+
+.sp-hero .hb-pill { position: relative; opacity: 0; transform-origin: 50% 100%; animation-name: sp-pill-drop; animation-duration: 2.1s; animation-timing-function: linear; animation-fill-mode: both; will-change: transform, opacity; backface-visibility: hidden; transition: translate .45s cubic-bezier(.34, 1.56, .64, 1), box-shadow .35s ease, filter .35s ease; }
+.sp-hero .hb-pile:not(.hb-go) .hb-pill { animation-play-state: paused !important; }
+.sp-hero .hb-pill-in { transition: transform .55s cubic-bezier(.34, 1.56, .64, 1); will-change: transform; }
+.sp-hero .hb-pill svg { flex: none; transition: transform .5s cubic-bezier(.34, 1.56, .64, 1), opacity .3s ease; }
+
+.sp-hero .hb-pile .hb-pill:hover { translate: 0 -6px; box-shadow: 0 16px 30px rgba(3, 34, 50, .28); filter: brightness(1.05); z-index: 2; }
+.sp-hero .hb-pile .hb-pill:hover .hb-pill-in { animation: sp-pill-hover .6s cubic-bezier(.34, 1.56, .64, 1) both; }
+.sp-hero .hb-pile .hb-pill:hover svg { transform: translate(1px, -1px) rotate(-45deg); }
+.sp-hero .hb-pile > div:hover .hb-pill:not(:hover) .hb-pill-in { transform: translateY(2px) rotate(2deg) scale(.98); }
+
+/* The word swap: the service name rises out, the second word rises in. */
+.sp-hero .hb-w { position: relative; display: inline-block; line-height: 1.3; clip-path: inset(-1px -60px); }
+.sp-hero .hb-w1 { display: block; white-space: nowrap; will-change: transform; transition: transform .38s cubic-bezier(.4, 0, .7, 0), opacity .25s ease; }
+.sp-hero .hb-w2 { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; white-space: nowrap; will-change: transform; transform: translateY(130%); opacity: 0; font-weight: 800; letter-spacing: .01em; transition: transform .5s cubic-bezier(.3, 1.25, .5, 1) .1s, opacity .3s ease .1s; }
+.sp-hero .hb-w2.is-emoji { font-size: 18px; letter-spacing: 0; }
+.sp-hero .hb-pile .hb-pill:hover .hb-w1 { transform: translateY(-130%); opacity: 0; transition: transform .32s cubic-bezier(.22, .9, .28, 1), opacity .2s ease; }
+.sp-hero .hb-pile .hb-pill:hover .hb-w2 { transform: translateY(0); opacity: 1; }
+
+/* Phones: the homepage's 390 treatment. Smaller pills, no shadow, no arrows. */
+@media (max-width: 767px) {
+  .sp-hero .hb-pill { height: 38px; padding: 0 15px; font-size: 14px; box-shadow: none; }
+  .sp-hero .hb-pill svg { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sp-hero .sp-rise, .sp-hero .hb-pill { animation: none !important; opacity: 1 !important; transform: none !important; }
+}
+
+/* ── ABOUT: the client logo marquee, as on the getshortcut.co holiday hero
+   (`.hb-logos .pl-track`, 48s). Two copies of the list scroll by half their
+   width for a seamless loop; the edges fade out. ── */
+@keyframes sp-logo-scroll { to { transform: translate3d(-50%, 0, 0) } }
+.sp-logos { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.sp-logos .sp-logo-track { display: flex; align-items: center; gap: 56px; width: max-content; animation: sp-logo-scroll 48s linear infinite; will-change: transform; }
+.sp-logos:hover .sp-logo-track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .sp-logos .sp-logo-track { animation: none; } }
+
+/* ── HOW IT WORKS: the horizontal rail. No visible scrollbar; it scrolls by
+   swipe, trackpad or the arrow buttons. ── */
+.sp-rail { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.sp-rail::-webkit-scrollbar { display: none; }
+
+/* ── WHAT SETS SHORTCUT APART: the middle row (the phone sign-up and the lead
+   record) in the same frame as the website bento's other cards: a fixed
+   height, a 26px gap under the copy, and the mock rising from the bottom edge
+   the way the homepage's dashboard does (it clips by ~19px; these clip a
+   little more because they are taller). Below 980px the bento stacks, and the
+   art gets a fixed well like its other cards. ── */
+.pv-root .pv-bcard.sp-bcard { height: 420px; }
+.pv-root .sp-bcard .pv-bcard-art { display: flex; align-items: flex-start; justify-content: center; padding-top: 28px; }
+.pv-root .sp-bcard .sp-lead { min-height: 320px; }
+@media (max-width: 980px) {
+  .pv-root .pv-bcard.sp-bcard { height: auto; }
+  .pv-root .sp-bcard .pv-bcard-art { height: 330px; padding-top: 22px; }
+}
+
+/* ── PRICING: the V2 proposal service card inside the builder. Three option
+   tiles across (the AACSB ladder), and the card stacks on phones. ── */
+.pv-root .sp-popt-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 720px) {
+  .pv-root .sp-svc-grid { grid-template-columns: 1fr; }
+  .pv-root .sp-svc-grid .pv-svc-photo { min-height: 180px; }
+  .pv-root .sp-popt-grid { grid-template-columns: 1fr; }
+}
+
+/* ── About Shortcut reel: the getshortcut.co "In the room" rail
+   (shortcut repo, frontend/assets/web-holiday.css, `.hol-page .gl-*`).
+   Same 262×392 cards, 24px corners, label card and 31s loop. Each card
+   carries its own right margin instead of a track gap, so the -50% loop
+   lands exactly on the second pass. */
+.sp-reels { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
+.sp-reels .sp-reel-track { display: flex; width: max-content; animation: sp-logo-scroll 31s linear infinite; will-change: transform; }
+.sp-reels:hover .sp-reel-track { animation-play-state: paused; }
+.sp-reel { position: relative; flex: none; width: 262px; height: 392px; margin: 0 20px 0 0; border-radius: 24px; overflow: hidden; background: #0A4864; }
+.sp-reel > img, .sp-reel > video { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; transition: transform .7s cubic-bezier(.22,.9,.28,1); }
+.sp-reel:hover > img, .sp-reel:hover > video { transform: scale(1.05); }
+.sp-reel-lab { position: absolute; left: 14px; right: 14px; bottom: 14px; margin: 0; padding: 14px 16px 15px; border-radius: 20px; background: rgba(255,255,255,.96); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 8px 24px rgba(3,34,50,.16); }
+@media (prefers-reduced-motion: reduce) { .sp-reels .sp-reel-track { animation: none; } }
+
+/* The trust line's entrance: the website's `sw-in-rise` (web.css), .9s on
+   cubic-bezier(.22,1,.36,1), 24px up, held until the line is on screen. */
+.sp-trust { opacity: 0; }
+.sp-trust.is-in { animation: sp-rise .9s cubic-bezier(.22,1,.36,1) .28s both; }
+@media (prefers-reduced-motion: reduce) { .sp-trust { opacity: 1; } .sp-trust.is-in { animation: none; } }

@@ -95,6 +95,9 @@ export interface WhyShortcutBentoProps {
    *  empty because its sidebar already runs a live sign-up demo; a page with
    *  no sidebar passes the phone card here. */
   extraRow?: React.ReactNode;
+  /** Render `extraRow` straight after the wide card, before the three-across
+   *  (the sponsor page groups its tech cards first). */
+  extraRowFirst?: boolean;
 }
 
 const WhyShortcutBento: React.FC<WhyShortcutBentoProps> = ({
@@ -113,6 +116,7 @@ const WhyShortcutBento: React.FC<WhyShortcutBentoProps> = ({
   handledBody = 'COI, signage, setup, cleanup.',
   checklist = CHECKLIST,
   extraRow,
+  extraRowFirst = false,
 }) => {
   const ref = useRef<HTMLDivElement | null>(null);
   const [inView, setInView] = useState(false);
@@ -193,6 +197,8 @@ const WhyShortcutBento: React.FC<WhyShortcutBentoProps> = ({
           </div>
         </div>
       </article>
+
+      {extraRowFirst && extraRow}
 
       {/* Three across. */}
       <div className="pv-bento-row">
@@ -277,7 +283,7 @@ const WhyShortcutBento: React.FC<WhyShortcutBentoProps> = ({
         </article>
       </div>
 
-      {extraRow}
+      {!extraRowFirst && extraRow}
     </div>
   );
 };

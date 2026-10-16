@@ -35,6 +35,10 @@ export interface MdCopy {
   whenLine?: string;
   slotLine?: string;
   slotShort?: string;
+  /** The attendee's email the form types and the confirmation names, and
+   *  the address on the confirmation. Default to the BCG demo. */
+  email?: string;
+  address?: string;
 }
 const MD_COPY_DEFAULT: MdCopy = {
   eventTitle: 'Massage Day at BCG',
@@ -295,7 +299,18 @@ function MdPage({ state, reg }: { state: MdState; reg: RegFn }) {
         <div ref={(el) => { if (el) reg('sec-details', el); }} data-cap="sec-details">
           <h2 className="lt-h2" style={{ fontSize: 20, marginBottom: 14 }}>Your details</h2>
           <MdField label="Full name" value={state.name} placeholder="Your name" focused={state.focus === 'name'} />
-          <MdField label="Work email" value={state.email} placeholder="you@company.com" focused={state.focus === 'email'} />
+          {/* The timeline types MD_EMAIL; a page with its own email shows the same
+              progress through that address instead, ending on the whole of it. */}
+          <MdField
+            label="Work email"
+            value={copy.email && state.email
+              ? (state.email.length >= MD_EMAIL.length
+                ? copy.email
+                : copy.email.slice(0, Math.round((state.email.length / MD_EMAIL.length) * copy.email.length)))
+              : state.email}
+            placeholder="you@company.com"
+            focused={state.focus === 'email'}
+          />
           <div className="lt-consent" style={{ marginTop: 14 }}>
             <span ref={(el) => { if (el) reg('consent', el); }}
                   data-cap="consent"
@@ -323,13 +338,13 @@ function MdConfirmed() {
       <div className="lt-check-circle md-check"><MdIcon name="check" size={30} stroke="#fff" sw={2.5} /></div>
       <h1 className="lt-m-h1" style={{ marginTop: 18 }}>You're booked.</h1>
       <p className="lt-body" style={{ fontSize: 14, marginTop: 6 }}>
-        A confirmation is on its way to jordan@bcg.com.
+        A confirmation is on its way to {copy.email ?? MD_EMAIL}.
       </p>
       <div style={{ background: 'var(--sc-light-gray)', borderRadius: 16, padding: '18px 20px', marginTop: 22, textAlign: 'left', alignSelf: 'stretch' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <span className="lt-meta" style={{ fontSize: 13.5 }}><MdIcon name="calendar" stroke="var(--sc-teal)" />{copy.slotLine ?? MD_COPY_DEFAULT.slotLine}</span>
           <span className="lt-meta" style={{ fontSize: 13.5 }}><MdIcon name="user" stroke="var(--sc-teal)" />Chair massage with Maya Rivera</span>
-          <span className="lt-meta" style={{ fontSize: 13.5 }}><MdIcon name="pin" stroke="var(--sc-teal)" />350 5th Ave, 11th floor lounge</span>
+          <span className="lt-meta" style={{ fontSize: 13.5 }}><MdIcon name="pin" stroke="var(--sc-teal)" />{copy.address ?? '350 5th Ave, 11th floor lounge'}</span>
         </div>
       </div>
       <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>

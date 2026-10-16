@@ -1,25 +1,31 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Eye, EyeOff, Play, ArrowUpRight } from 'lucide-react';
+import {
+  Eye, EyeOff, Play,
+  ArrowUpRight,
+} from 'lucide-react';
 import { fetchPublicSponsorPage } from '../../services/sponsorPageService';
 import type { SponsorPageConfig } from '../../types/sponsorPage';
+import '../../styles/sponsor-page.css';
 import StationModal, { useGalleryByKey } from './StationModal';
 import SponsorBento from './SponsorBento';
+import SponsorReels from './SponsorReels';
+import SponsorPricing from './SponsorPricing';
 import { SPONSOR_SERVICES, serviceById, type SponsorServiceDef } from '../../utils/sponsorPackages';
 
 /* ─────────────────────────────────────────────
    Conference partner page: the pitch to a CONFERENCE ORGANIZER.
 
    The organizer buys the lounge from us and sells it to one of their
-   sponsors as a white label sponsorship. The page runs:
-     Hero           a wellness lounge in your sponsor's name
-     Services       what goes in the lounge
-     Why it sells   who we are, and what it does for the sponsor and for you
-     How it works   their name on everything, our team behind all of it
-     Step by step   from the custom proposal to the follow up, and who
-                    does each step
-     Proof          Workhuman Live 2026
-     Next step
+   sponsors as a premium sponsorship. So the argument runs:
+     1. Your sponsors want three things from your audience: time with them,
+        their contact details, and to be remembered.
+     2. The lounge gives a sponsor all three, with their name on every step
+        from the invite to the follow up.
+     3. You sell it. We run every part of it.
+     4. Proof it draws: Workhuman Live 2026.
+     5. What can go in the lounge.
+     6. Next step.
 
    No prices. The organizer sets the sponsor's price and we quote our cost
    privately (Will, 2026-09-28). See sponsorPages.ts for who reads this.
@@ -51,31 +57,27 @@ const COL = 'w-full max-w-[1720px] mx-auto';
 
 const INK = 'text-[#2A5468]';
 const INK_META = 'text-[#45596A]';
-/* One card system. Radius 28, padding 7/8, one title size. Cards on a tint
-   panel are white. */
-const CARD_R = 'rounded-[28px]';
-const CARD_PAD = 'p-7 md:p-8';
-const CARD_ON_TINT = `${CARD_R} bg-white border border-[#E2E9E8] shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)]`;
-const CARD_TITLE = 'm-0 text-[22px] md:text-[24px] font-bold leading-[1.15] tracking-[-.025em]';
-const CARD_KICKER = 'm-0 text-[12px] font-extrabold uppercase tracking-[.09em]';
-const CARD_BODY = 'm-0 text-[16px] font-medium leading-[1.55]';
+const CARD_SHELL =
+  'rounded-[28px] bg-white border border-[#E2E9E8] shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)]';
 
-/* The website hero's falling service pills (.pv-hero-pill in
-   proposal-refresh.css, from getshortcut.co). The same set on every
-   conference page; each pill jumps to the services. */
-const HERO_PILLS = [
-  { label: 'Massage', fill: '#9EFAFF', tilt: 0, delay: 0.95 },
-  { label: 'Headshots', fill: '#FEDC64', tilt: 0, delay: 1.13 },
-  { label: 'Hair and makeup', fill: '#F7BBFF', tilt: 0, delay: 1.31 },
-  { label: 'Nails', fill: '#FFCBA6', tilt: 0, delay: 0.4 },
-  { label: 'Mindfulness', fill: '#C7CBFB', tilt: 0, delay: 0.58 },
-  { label: 'Sound baths', fill: '#A9F0CC', tilt: 0, delay: 0.76 },
+/* The hero's service pills: the holiday hero's six, with its colors, its
+   hover words and its drop delays (the bottom row lands first). Each class
+   string is written out whole so Tailwind can see it. */
+const HERO_PILLS: { label: string; alt: string; emoji?: boolean; cls: string }[][] = [
+  [
+    { label: 'Massage', alt: 'aaaah', cls: 'bg-[#9EFAFF] [animation-delay:.95s]' },
+    { label: 'Hair', alt: 'snip', cls: 'bg-[#FEDC64] [animation-delay:1.13s]' },
+    { label: 'Beauty', alt: 'fresh', cls: 'bg-[#F7BBFF] [animation-delay:1.31s]' },
+  ],
+  [
+    { label: 'Meditation', alt: 'shhh', cls: 'bg-[#C7CBFB] [animation-delay:.4s]' },
+    { label: 'Movement', alt: '\u{1F4AA}', emoji: true, cls: 'bg-[#A9F0CC] [animation-delay:.58s]' },
+    { label: 'Headshots', alt: '\u{1F4F8}', emoji: true, cls: 'bg-[#FFCBA6] [animation-delay:.76s]' },
+  ],
 ];
 
-/* Why it sells: who we are (the website's client logo scroll), then what
-   the white label lounge does for each side of the sale. */
-
-/* The website's client logos, as ConferenceOnePager's marquee runs them. */
+/* About: committed client logos (the /conference one-pager's set). Teads is
+   left out until its clearance is confirmed. */
 const CLIENT_LOGOS = [
   { src: '/conference/onepager/logos/draftkings.svg', alt: 'DraftKings' },
   { src: '/conference/onepager/logos/nfl.svg', alt: 'NFL', tall: true },
@@ -89,49 +91,83 @@ const CLIENT_LOGOS = [
   { src: '/conference/onepager/logos/mtv.svg', alt: 'MTV' },
 ];
 
-function LogoRow({ logos, reverse = false }: { logos: typeof CLIENT_LOGOS; reverse?: boolean }) {
+/* How it works, as five slides in the order a sponsorship seller thinks:
+   what they sell (a white labeled experience), what they make, why it draws,
+   why sponsors pay, and who runs it (Will, 2026-10-16: the sales team is the
+   second slide). Who runs it is the bento's job below, so the rail ends at
+   the sponsor (2026-10-16). Each slide is one visual, a step label, a short title and
+   one line. "Turnkey" is used at Will's request: the messaging spine's ban
+   on the word covers HR-buyer pages, not partner pages. */
+type HowVisual = 'invoice' | 'photo' | 'leads';
+const HOW_STEPS: {
+  who: string; title: string; body: string; visual: HowVisual;
+  tint?: string; img?: string; cap?: string; pos?: string;
+}[] = [
+  {
+    who: 'Your sponsor\u2019s lounge', title: 'A turnkey, white-labeled wellness experience', visual: 'photo',
+    img: '/conference/tradestation/ts-event-51.jpg', cap: 'TradeStation \u00b7 Fresh Look activation', pos: 'bg-center',
+    body: 'Everything carries your sponsor\u2019s brand: the lounge, the signage, the booking page, the emails and the Pros\u2019 uniforms. We design and build all of it.',
+  },
+  {
+    who: 'Your sales team', title: 'Sell it at a premium and keep most of it', visual: 'invoice', tint: 'bg-[#9EFAFF]',
+    body: 'You set the sponsor\u2019s price. Our fee is fixed and billed only after your sponsor signs.',
+  },
+  {
+    who: 'Your attendees', title: 'Every visit is booked ahead, so no one waits in line', visual: 'photo',
+    img: '/conference/onepager/wh/booth-3.jpeg', cap: 'Workhuman Live 2026', pos: 'bg-[center_35%]',
+    body: 'Attendees pick a time on their phone for a free massage, headshot or manicure. Over 90% of slots get booked.',
+  },
+  {
+    who: 'Your sponsor', title: 'Guaranteed traffic, face time and leads', visual: 'leads', tint: 'bg-[#FEDC64]',
+    body: 'Attendees come to the sponsor by appointment, all day long, and the sponsor gets each one\u2019s name, title, company and email.',
+  },
+];
+
+/* The sponsor slide's mock lead list. Demo people, same set as the bento's live list. */
+const DEMO_LEADS = [
+  { ini: 'MR', name: 'Maya R.', role: 'VP, People', av: 'bg-[#9EFAFF]' },
+  { ini: 'DK', name: 'Devon K.', role: 'Head of Talent', av: 'bg-[#F7BBFF]' },
+  { ini: 'PS', name: 'Priya S.', role: 'Benefits Director', av: 'bg-[#C7CBFB]' },
+];
+
+
+
+/* Workhuman Live 2026, from the website's conference gallery
+   (conferences-data.js, CONF_GALLERY). Only this event's photos sit under
+   the Workhuman headline. Ported verbatim from the live page (origin/main,
+   #9) at Will's request, 2026-10-16. */
+const PROOF_GALLERY = [
+  { cap: 'Workhuman Live \u00b7 The Gratitude Garden', img: '/ds-assets/conference/zone-signage.jpeg', tint: '#9EFAFF' },
+  { cap: 'Chair massage on the floor', img: '/ds-assets/conference/welcome-desk.jpeg', tint: '#C7CBFB' },
+  { cap: 'The Zen Zone', img: '/ds-assets/conference/zen-zone.jpeg', tint: '#FFCBA6' },
+];
+
+/** Photo tile with the caption pill (the live page's Shot). */
+function Shot({ cap, img, alt, className = '', pos = 'center', inset = false }: {
+  cap: string; img: string; alt?: string; className?: string; pos?: string; inset?: boolean;
+}) {
   return (
-    <div className="overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)]">
-      <div className={`flex w-max animate-logo-marquee will-change-transform motion-reduce:animate-none ${reverse ? '[animation-direction:reverse]' : ''}`}>
-        {[false, true].map((dup) => (
-          <div key={String(dup)} className="flex items-center gap-10 pr-10" aria-hidden={dup}>
-            {logos.map((logo) => (
-              <img
-                key={`${logo.src}${dup}`}
-                src={logo.src}
-                alt={dup ? '' : logo.alt}
-                className={`${logo.tall ? 'h-[38px]' : 'h-[28px]'} w-auto flex-none [filter:grayscale(1)_sepia(1)_saturate(4)_hue-rotate(165deg)_brightness(.85)]`}
-              />
-            ))}
-          </div>
-        ))}
-      </div>
+    <div className={`relative overflow-hidden rounded-[20px] ${inset ? 'bg-shortcut-teal/40' : 'bg-neutral-light-gray'} ${className}`}>
+      {inset ? (
+        <img src={img} alt={alt ?? cap} loading="lazy" className="absolute left-6 right-6 top-6 md:left-10 md:right-10 md:top-10 w-[calc(100%-48px)] md:w-[calc(100%-80px)] rounded-t-[14px] shadow-[0_12px_36px_rgba(3,34,50,.18)]" />
+      ) : (
+        <img src={img} alt={alt ?? cap} loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: pos }} />
+      )}
+      <span className="absolute bottom-3 left-3 max-w-[calc(100%-24px)] inline-flex min-h-[30px] items-center rounded-full bg-white/[.92] px-3 py-1 text-[12px] md:text-[12.5px] font-extrabold leading-tight text-shortcut-blue">
+        {cap}
+      </span>
     </div>
   );
 }
-const TWO_SIDES = [
-  {
-    who: 'Shortcut',
-    title: 'Trusted by 500+ companies.',
-    body: 'One team for massage, headshots, beauty and group wellness across the US. We bring the Pros, the setup and the tech.',
-    img: '',
-    alt: '',
-  },
-  {
-    who: 'For your sponsor',
-    title: 'Guaranteed traffic. Guaranteed leads.',
-    body: 'Attendees book before the show. The sponsor walks in with a full schedule and a contact list to engage before, during and after.',
-    img: '/proposal-refresh/yw3-hero.jpg',
-    alt: 'The same Pro giving a chair massage in a sponsor’s branded shirt',
-  },
-  {
-    who: 'For you',
-    title: 'The easiest upsell in your prospectus.',
-    body: 'A premium package your team can sell right away. Attendees love it, sponsors see results, and we run every part of it.',
-    img: '/conference/tradestation/ts-event-26.jpg',
-    alt: 'A branded wellness activation on a busy event floor',
-  },
-];
+
+const FRAME = 'rounded-[28px] bg-white p-3 md:p-4';
+
+/* Step by step, brought back verbatim from the live page (origin/main)
+   at Will's request, 2026-10-16. Card tokens are the live page's. */
+const CARD_R = 'rounded-[28px]';
+const CARD_TITLE = 'm-0 text-[22px] md:text-[24px] font-bold leading-[1.15] tracking-[-.025em]';
+const CARD_KICKER = 'm-0 text-[12px] font-extrabold uppercase tracking-[.09em]';
+const CARD_BODY = 'm-0 text-[16px] font-medium leading-[1.55]';
 
 /* What the sponsor gets: one attendee's visit, told in order, with the
    sponsor as the host at every step and the list as the payoff. Each card
@@ -153,18 +189,8 @@ const PATH = [
     body: 'The sponsor gets every name. You get a results report.' },
 ];
 
-/* Workhuman Live 2026, from the website's conference gallery
-   (conferences-data.js, CONF_GALLERY). Only this event's photos sit under
-   the Workhuman headline. */
-const PROOF_GALLERY = [
-  { cap: 'Workhuman Live \u00b7 The Gratitude Garden', img: '/ds-assets/conference/zone-signage.jpeg', tint: '#9EFAFF' },
-  { cap: 'Chair massage on the floor', img: '/ds-assets/conference/welcome-desk.jpeg', tint: '#C7CBFB' },
-  { cap: 'The Zen Zone', img: '/ds-assets/conference/zen-zone.jpeg', tint: '#FFCBA6' },
-];
-
 /* What a sponsor's brand looks like on the booking page and on the floor.
-   NOTE: YW3 x Netflix Ads is under an MNDA (2026-09-16); clear it before
-   this ships. */
+   The Netflix Ads booking page is cleared to use (Will, 2026-10-16). */
 const BRAND_SHOTS = {
   booking: { cap: 'The booking page · Netflix Ads', img: '/yw3/booking-page.jpg',
     alt: 'A Shortcut booking page branded end to end for Netflix Ads' },
@@ -176,28 +202,17 @@ const BRAND_SHOTS = {
   ],
 };
 
-/** Photo tile with the caption pill every gallery on the page uses. */
-function Shot({ cap, img, alt, className = '', pos = 'center', inset = false }: {
-  cap: string; img: string; alt?: string; className?: string; pos?: string; inset?: boolean;
-}) {
-  return (
-    <div className={`relative overflow-hidden rounded-[20px] ${inset ? 'bg-shortcut-teal/40' : 'bg-neutral-light-gray'} ${className}`}>
-      {inset ? (
-        <img src={img} alt={alt ?? cap} loading="lazy" className="absolute left-6 right-6 top-6 md:left-10 md:right-10 md:top-10 w-[calc(100%-48px)] md:w-[calc(100%-80px)] rounded-t-[14px] shadow-[0_12px_36px_rgba(3,34,50,.18)]" />
-      ) : (
-        <img src={img} alt={alt ?? cap} loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: pos }} />
-      )}
-      <span className="absolute bottom-3 left-3 max-w-[calc(100%-24px)] inline-flex min-h-[30px] items-center rounded-full bg-white/[.92] px-3 py-1 text-[12px] md:text-[12.5px] font-extrabold leading-tight text-shortcut-blue">
-        {cap}
-      </span>
-    </div>
-  );
-}
-
-const FRAME = 'rounded-[28px] bg-white p-3 md:p-4';
+/* Next steps: a call, and what we do for the organizer's team after it
+   (Will, 2026-10-16: present to the team, design the program, hand over
+   everything the sales team needs to sell it). */
+const NEXT_STEPS = [
+  'We present to your team',
+  'We design the program with you',
+  'Your sales team gets everything it needs to sell it',
+];
 
 /* The headline carries the 400 and the 200; these are the numbers it
-   doesn't. */
+   doesn't (live page, #9). */
 const PROOF_STATS = [
   { fig: '400', label: 'fifteen minute massages' },
   { fig: '100%', label: 'of slots booked' },
@@ -266,7 +281,60 @@ function SectionHead({ kicker, title, accent, sub, dark = false }: {
   );
 }
 
-function SizzleReel({ bare = false, className = '' }: { bare?: boolean; className?: string }) {
+/* The website heroes' trust line (shortcut repo, TrustRail.vue and the
+   holiday hero): "Trusted by 500+ organizations" at 24px, rising in once it
+   is on screen, the 500 counting up over 1.6s (sc-count.client.js), then the
+   logo marquee. Like the website, the markup always holds the real
+   number, so a skipped animation never shows anything but 500. On this
+   page it sits on the light band, so the text is navy and the logos are
+   the color set. */
+function TrustLine() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  const [n, setN] = useState(500);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let raf = 0;
+    const obs = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return;
+      obs.disconnect();
+      setInView(true);
+      if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+      const t0 = performance.now();
+      const step = (now: number) => {
+        const p = Math.min(1, (now - t0) / 1600);
+        setN(Math.round(500 * (1 - Math.pow(1 - p, 3))));
+        if (p < 1) raf = requestAnimationFrame(step);
+      };
+      raf = requestAnimationFrame(step);
+    }, { rootMargin: '0px 0px -15% 0px' });
+    obs.observe(el);
+    return () => { obs.disconnect(); cancelAnimationFrame(raf); };
+  }, []);
+  return (
+    <div ref={ref} className={`sp-trust mt-16 md:mt-24 flex flex-col items-center gap-9 ${inView ? 'is-in' : ''}`}>
+      <p className="m-0 text-center text-[20px] md:text-[24px] font-extrabold leading-[1.25] tracking-[-.02em] text-shortcut-blue">
+        Trusted by <span className="tabular-nums">{n}</span><span className="text-shortcut-coral">+</span> organizations
+      </p>
+      <div className="sp-logos w-full">
+        <div className="sp-logo-track">
+          {[...CLIENT_LOGOS, ...CLIENT_LOGOS].map((l, i) => (
+            <img
+              key={`${l.alt}-${i}`}
+              src={l.src}
+              alt={i < CLIENT_LOGOS.length ? l.alt : ''}
+              aria-hidden={i >= CLIENT_LOGOS.length ? true : undefined}
+              className={`block flex-none w-[112px] object-contain ${l.tall ? 'h-10' : 'h-8'}`}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SizzleReel() {
   const [playing, setPlaying] = useState(false);
   const ref = useRef<HTMLVideoElement>(null);
 
@@ -276,8 +344,8 @@ function SizzleReel({ bare = false, className = '' }: { bare?: boolean; classNam
   };
 
   return (
-    <div className={bare ? className : `mx-auto w-full max-w-[900px] rounded-[28px] bg-white p-3 md:p-4 shadow-[0_30px_70px_rgba(0,0,0,.25)] ${className}`}>
-      <div className={`relative overflow-hidden rounded-[20px] bg-shortcut-blue ${bare ? 'h-full min-h-[220px]' : 'aspect-video'}`}>
+    <div className="mx-auto w-full max-w-[900px] rounded-[28px] bg-white p-4 shadow-[0_30px_70px_rgba(3,34,50,.28)]">
+      <div className="relative aspect-video overflow-hidden rounded-[20px] bg-shortcut-blue">
         <video
           ref={ref}
           src={SIZZLE_VIDEO}
@@ -293,17 +361,162 @@ function SizzleReel({ bare = false, className = '' }: { bare?: boolean; classNam
           <button
             type="button"
             onClick={start}
-            aria-label="Play the TradeStation event reel"
-            className="absolute inset-0 flex flex-col items-center justify-center gap-3 md:gap-5 bg-shortcut-blue/45 transition-colors hover:bg-shortcut-blue/35"
+            aria-label="Play a Shortcut event reel"
+            className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-shortcut-blue/45 transition-colors hover:bg-shortcut-blue/35"
           >
-            <span className="flex h-[56px] w-[56px] md:h-[76px] md:w-[76px] items-center justify-center rounded-full bg-shortcut-coral shadow-[0_10px_30px_rgba(255,80,80,.45)]">
+            <span className="flex h-[76px] w-[76px] items-center justify-center rounded-full bg-shortcut-coral shadow-[0_10px_30px_rgba(255,80,80,.45)]">
               <Play size={30} className="ml-1 text-white" fill="currentColor" strokeWidth={0} />
             </span>
-            <span className="max-w-[calc(100%-32px)] rounded-full bg-white/[.94] px-4 md:px-5 py-2 md:py-2.5 text-[13px] md:text-[15px] font-extrabold leading-tight tracking-[-.012em] text-shortcut-blue">
-              Watch the day
+            <span className="rounded-full bg-white/[.94] px-5 py-2.5 text-[15px] font-extrabold tracking-[-.012em] text-shortcut-blue">
+              A Shortcut event day
             </span>
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** The visual on top of each how-it-works slide. */
+function HowVisualBlock({ step, confName }: { step: (typeof HOW_STEPS)[number]; confName: string }) {
+  if (step.visual === 'photo') {
+    return (
+      <div
+        role="img"
+        aria-label={step.cap}
+        className={`relative aspect-[4/3] bg-cover bg-no-repeat bg-[#E2E9E8] ${step.pos ?? 'bg-center'}`}
+        style={{ backgroundImage: `url('${step.img}')` }}
+      >
+        <span className="absolute left-3.5 bottom-3.5 inline-flex h-[30px] items-center rounded-full bg-white/[.92] px-3 text-[12.5px] font-extrabold text-shortcut-blue">
+          {step.cap}
+        </span>
+      </div>
+    );
+  }
+  return (
+    <div className={`aspect-[4/3] ${step.tint} flex items-center justify-center p-5 sm:p-6`} aria-hidden="true">
+      {step.visual === 'invoice' && (
+        /* The V2 proposal's pricing summary card (.pv-price): navy, white
+           rows, aqua total. Illustrative numbers (Will, 2026-10-15). */
+        <div className="w-full rounded-[20px] bg-shortcut-blue p-5 shadow-[0_20px_50px_rgba(3,34,50,.28)]">
+          <div className="flex items-baseline justify-between gap-2 mb-3.5">
+            <span className="text-[17px] font-bold tracking-[-.02em] text-white">Sponsorship summary</span>
+            <span className="text-[10.5px] font-bold uppercase tracking-[.08em] text-white/55">Example</span>
+          </div>
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-[13px] font-semibold text-white">Massage Zen Zone sponsorship</span>
+            <span className="text-[13px] font-bold text-white whitespace-nowrap">$50,000</span>
+          </div>
+          <div className="h-px bg-white/[.12] my-2.5" />
+          <div className="flex justify-between gap-2 text-[12.5px] text-white/75">
+            <span>Shortcut costs</span>
+            <span className="text-white">&minus;$10,000</span>
+          </div>
+          <div className="mt-2.5 pt-2.5 border-t border-white/[.12] flex items-baseline justify-between gap-2">
+            <span className="text-[14px] font-bold text-white whitespace-nowrap">Conference net</span>
+            <span className="text-[26px] font-extrabold leading-none tracking-[-.02em] text-shortcut-teal tabular-nums">$40,000</span>
+          </div>
+        </div>
+      )}
+      {step.visual === 'leads' && (
+        <div className="w-full rounded-[18px] bg-white p-4 shadow-[0_12px_36px_rgba(3,34,50,.16)]">
+          <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-[#E2E9E8]">
+            <span className="text-[13.5px] font-extrabold text-shortcut-blue">Your sponsor&rsquo;s leads</span>
+            <span className="h-6 inline-flex items-center px-2.5 rounded-full bg-[#E6F6EF] text-[10.5px] font-extrabold uppercase tracking-[.06em] text-[#137A52]">Live</span>
+          </div>
+          <div className="mt-1">
+            {DEMO_LEADS.map((l) => (
+              <div key={l.ini} className="flex items-center gap-2.5 py-2 border-b border-[#E2E9E8] last:border-b-0">
+                <span className={`w-8 h-8 flex-none rounded-full ${l.av} grid place-items-center text-[10.5px] font-extrabold text-shortcut-blue`}>{l.ini}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13px] font-bold leading-tight text-shortcut-blue">{l.name}</span>
+                  <span className={`block text-[11.5px] font-semibold leading-tight ${INK_META}`}>{l.role} · {confName}</span>
+                </span>
+                <span className="flex-none text-[10.5px] font-bold text-[#137A52]">Opted in</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** How it works as a horizontal rail: swipe, scroll or step with the arrows.
+ *  The rail bleeds to the page edge (Apple style) and snaps to each card. */
+function HowRail({ confName }: { confName: string }) {
+  const ref = useRef<HTMLOListElement>(null);
+  const [atStart, setAtStart] = useState(true);
+  const [atEnd, setAtEnd] = useState(false);
+  const [active, setActive] = useState(0);
+
+  const sync = () => {
+    const el = ref.current;
+    if (!el) return;
+    const card = el.querySelector<HTMLElement>('[data-slide]');
+    const step = card ? card.offsetWidth + 20 : 1;
+    const end = el.scrollLeft >= el.scrollWidth - el.clientWidth - 2;
+    setAtStart(el.scrollLeft <= 2);
+    setAtEnd(end);
+    setActive(end ? HOW_STEPS.length - 1 : Math.round(el.scrollLeft / step));
+  };
+  useEffect(() => {
+    sync();
+    window.addEventListener('resize', sync);
+    return () => window.removeEventListener('resize', sync);
+  }, []);
+
+  /* Scroll to an exact card, not by a relative amount: relative smooth
+     scrolls get dropped while scroll snap is settling. */
+  const go = (dir: number) => {
+    const el = ref.current;
+    const card = el?.querySelector<HTMLElement>('[data-slide]');
+    if (!el || !card) return;
+    const step = card.offsetWidth + 20;
+    const max = el.scrollWidth - el.clientWidth;
+    // At the end the last stop is shorter than a full card, so count it as its own step.
+    const current = el.scrollLeft >= max - 2 ? Math.ceil(max / step) : Math.round(el.scrollLeft / step);
+    el.scrollTo({ left: Math.min(max, Math.max(0, (current + dir) * step)), behavior: 'smooth' });
+  };
+
+  const arrow = 'grid h-12 w-12 place-items-center rounded-full bg-shortcut-blue text-white shadow-[0_4px_14px_rgba(3,34,50,.24)] transition-opacity disabled:opacity-30 disabled:cursor-default';
+
+  return (
+    <div>
+      <div className="-mx-6 md:-mx-10 lg:-mx-[100px]">
+        <ol
+          ref={ref}
+          onScroll={sync}
+          className="sp-rail m-0 list-none flex gap-5 overflow-x-auto snap-x snap-mandatory px-6 md:px-10 lg:px-[100px] scroll-px-6 md:scroll-px-10 lg:scroll-px-[100px] pb-4"
+        >
+          {HOW_STEPS.map((step, i) => (
+            <li key={step.title} data-slide className="snap-start flex-none w-[82vw] sm:w-[380px] xl:w-[400px] flex">
+              <article className={`${CARD_SHELL} flex flex-1 flex-col overflow-hidden`}>
+                <HowVisualBlock step={step} confName={confName} />
+                <div className="flex flex-1 flex-col px-7 pt-6 pb-7">
+                  <p className={`m-0 text-[12px] font-extrabold uppercase tracking-[.09em] ${INK_META}`}>
+                    {String(i + 1).padStart(2, '0')} · {step.who}
+                  </p>
+                  <h3 className="m-0 mt-2.5 text-[23px] font-bold leading-[1.15] tracking-[-.025em] text-shortcut-blue">{step.title}</h3>
+                  <p className={`m-0 mt-2.5 text-[15.5px] font-medium leading-[1.55] ${INK}`}>{step.body}</p>
+                </div>
+              </article>
+            </li>
+          ))}
+        </ol>
+      </div>
+      <div className="mt-6 flex items-center justify-center gap-5">
+        <button type="button" aria-label="Previous step" onClick={() => go(-1)} disabled={atStart} className={arrow}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 12H6M11.5 6l-6 6 6 6" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
+        <div className="flex items-center gap-2" aria-hidden="true">
+          {HOW_STEPS.map((step, i) => (
+            <span key={step.title} className={`h-2 rounded-full transition-all duration-300 ${i === active ? 'w-6 bg-shortcut-blue' : 'w-2 bg-shortcut-blue/20'}`} />
+          ))}
+        </div>
+        <button type="button" aria-label="Next step" onClick={() => go(1)} disabled={atEnd} className={arrow}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h13M12.5 6l6 6-6 6" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
       </div>
     </div>
   );
@@ -331,14 +544,14 @@ function StationCard({ s, onOpen }: { s: SponsorServiceDef; onOpen: () => void }
           loading="lazy"
           className={`absolute inset-0 h-full w-full object-cover transition-transform duration-500 ${s.cropArt ? 'scale-110 group-hover:scale-[1.14]' : 'group-hover:scale-[1.04]'}`}
         />
-        <span className="absolute right-2.5 top-2.5 sm:right-3.5 sm:top-3.5 z-[2] grid h-8 w-8 sm:h-9 sm:w-9 place-items-center rounded-full bg-white text-[24px] font-medium leading-none text-shortcut-blue shadow-[0_2px_10px_rgba(3,34,50,.18)] transition-transform duration-300 group-hover:scale-110">
+        <span className="absolute right-3.5 top-3.5 z-[2] grid h-9 w-9 place-items-center rounded-full bg-white text-[24px] font-medium leading-none text-shortcut-blue shadow-[0_2px_10px_rgba(3,34,50,.18)] transition-transform duration-300 group-hover:scale-110">
           +
         </span>
       </span>
-      <span className="flex flex-col gap-1.5 px-0.5 pt-3.5 sm:pt-[18px]">
-        <span className="text-[17px] sm:text-[20px] font-semibold leading-[1.2] tracking-[-.015em] text-shortcut-blue">{s.name}</span>
-        <span className={`text-[13px] sm:text-[14px] font-semibold leading-[1.4] ${INK_META}`}>{s.meta}</span>
-        <span className={`mt-1 hidden sm:block text-[15.5px] font-medium leading-[1.55] ${INK}`}>{s.body}</span>
+      <span className="flex flex-col gap-1.5 px-0.5 pt-[18px]">
+        <span className="text-[20px] font-semibold leading-[1.2] tracking-[-.015em] text-shortcut-blue">{s.name}</span>
+        <span className={`text-[14px] font-semibold leading-[1.4] ${INK_META}`}>{s.meta}</span>
+        <span className={`mt-1 text-[15.5px] font-medium leading-[1.55] ${INK}`}>{s.body}</span>
       </span>
     </button>
   );
@@ -450,12 +663,24 @@ export default function SponsorOnePager() {
   const authenticated = !!cfg;
   const [activeSection, setActiveSection] = useState('');
   const [openIdx, setOpenIdx] = useState<number | null>(null);
+  const [heroGo, setHeroGo] = useState(false);
   const gallery = useGalleryByKey();
 
   const services = useMemo(
     () => (cfg?.services ? cfg.services.map(serviceById) : SPONSOR_SERVICES),
     [cfg]
   );
+
+  /* The pills wait for fonts (at most 0.7s, 1.2s on phones), like the
+     holiday page's heroGo. */
+  useEffect(() => {
+    if (!authenticated) return;
+    let done = false;
+    const go = () => { if (!done) { done = true; setHeroGo(true); } };
+    const t = window.setTimeout(go, window.innerWidth <= 767 ? 1200 : 700);
+    document.fonts?.ready.then(() => window.setTimeout(go, 60)).catch(() => {});
+    return () => window.clearTimeout(t);
+  }, [authenticated]);
 
   useEffect(() => {
     if (!authenticated) return;
@@ -489,10 +714,14 @@ export default function SponsorOnePager() {
   const mailto = `mailto:${contact.email}?subject=${encodeURIComponent(`A call about the wellness lounge at ${conf.name}`)}`;
 
   const tocItems = [
+    { id: 'how-it-works', label: 'How it works' },
+    { id: 'about', label: 'About' },
+    { id: 'how', label: 'What sets us apart' },
     { id: 'stations', label: 'Services' },
-    { id: 'how', label: 'How it works' },
+    { id: 'pricing', label: 'Pricing' },
     { id: 'gets', label: 'Step by step' },
     { id: 'proof', label: 'Proof' },
+    { id: 'next', label: 'Next steps' },
   ];
 
   return (
@@ -506,7 +735,7 @@ export default function SponsorOnePager() {
             <div className="h-4 w-px bg-shortcut-blue/15" aria-hidden="true" />
             <img src="/shortcut-logo-blue.svg" alt="Shortcut" className="h-4 w-auto" />
           </div>
-          <div className="hidden lg:flex items-center gap-7">
+          <div className="hidden xl:flex items-center gap-7">
             {tocItems.map((t) => (
               <a
                 key={t.id}
@@ -528,128 +757,157 @@ export default function SponsorOnePager() {
 
       <main className="pt-14">
 
-        {/* ══════════ HERO ══════════ */}
-        <section className="relative bg-shortcut-blue pt-14 md:pt-24 lg:pt-[120px] pb-20 md:pb-28 lg:pb-[146px]">
+        {/* ══════════ HERO ══════════
+            Laid out like the getshortcut.co holiday hero (shortcut repo,
+            frontend/components/HolidayDesktop.vue): headline, line and buttons
+            on the left; on the right a chip on top and the service pills at
+            the bottom; the image module full width underneath. Pill motion is
+            in src/styles/sponsor-page.css. */}
+        <section className="sp-hero relative overflow-hidden bg-shortcut-blue pt-14 md:pt-24 lg:pt-[120px] pb-20 md:pb-28 lg:pb-[146px]">
           <div className={`${GUT} ${COL} relative z-10`}>
-            <div className="flex items-center gap-5 md:gap-7 mb-10 md:mb-14 pb-7 border-b border-white/15">
-              <PartnerMark mark={organizer.mark} logoUrl={organizer.logoUrl} size="hero" onDark />
-              <div className="h-7 md:h-10 w-px bg-white/25" aria-hidden="true" />
-              <img src="/conference/shortcut-logo-white.svg" alt="Shortcut" className="h-6 md:h-8 w-auto" />
-            </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,620px)_minmax(380px,1fr)] gap-10 xl:gap-16 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto] gap-10 items-stretch">
               <div className="min-w-0">
-                <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-teal mb-6">
-                  A premium sponsorship for {conf.name}
-                </p>
-
-                <h1 className="m-0 text-[34px] md:text-[48px] lg:text-[56px] font-semibold leading-[1.08] tracking-[-.03em] text-white max-w-[18ch] text-balance">
-                  A wellness lounge in your sponsor&rsquo;s name.
+                <h1 className="sp-rise [animation-delay:.05s] m-0 text-[40px] md:text-[56px] lg:text-[64px] xl:text-[72px] font-semibold leading-[1.02] tracking-[-.04em] text-white text-balance">
+                  Sell your sponsors a branded wellness lounge.
                   <span className="block text-shortcut-teal">You sell it. We run it.</span>
                 </h1>
 
-                <p className="m-0 mt-[22px] text-[17px] md:text-[19px] font-medium leading-[1.5] text-white/[.86] max-w-[46ch]">
-                  Offer massage, headshots, manicures and more on the conference floor. You set
-                  the price, and we handle the rest.
+                <p className="sp-rise [animation-delay:.12s] m-0 mt-8 text-[18px] md:text-[22px] font-medium leading-[1.5] text-white/[.88] max-w-[34ch] text-pretty">
+                  Add a powerful new sponsorship opportunity that delivers traffic for your
+                  sponsors and sells at a premium.
                 </p>
 
-                <div className="flex flex-wrap items-center gap-6 mt-8">
+                <div className="sp-rise [animation-delay:.2s] mt-11 flex flex-wrap items-center gap-3.5">
                   <a
-                    href="#stations"
-                    className="h-[52px] inline-flex items-center px-8 rounded-full bg-shortcut-coral text-white text-[17px] font-bold tracking-[-.01em] shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform duration-500 hover:-translate-y-[3px]"
+                    href="#how-it-works"
+                    className="h-[52px] inline-flex items-center px-[30px] rounded-full bg-shortcut-coral text-white text-[17px] font-bold tracking-[-.01em] whitespace-nowrap shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-[transform,box-shadow] duration-300 hover:-translate-y-[3px] hover:shadow-[0_12px_30px_rgba(255,80,80,.42)]"
                   >
-                    See the services
+                    See how it works
                   </a>
-                  <a href="#gets" className="text-[15px] font-bold tracking-[-.012em] text-white hover:text-shortcut-teal transition-colors">
-                    How it runs &rarr;
+                  <a
+                    href="#gets"
+                    className="text-[16px] font-bold text-white underline underline-offset-4 decoration-white/50 hover:text-shortcut-teal transition-colors"
+                  >
+                    What you need to do
                   </a>
-                </div>
-
-                <div className="pv-root !bg-transparent mt-9 flex max-w-[620px] flex-wrap gap-2.5">
-                  {HERO_PILLS.map((p) => (
-                    <a
-                      key={p.label}
-                      href="#stations"
-                      className="pv-hero-pill"
-                      style={{ ['--tilt' as string]: `${p.tilt}deg`, ['--dx' as string]: '0px', background: p.fill, animationDelay: `${p.delay}s` } as React.CSSProperties}
-                    >
-                      {p.label}
-                    </a>
-                  ))}
                 </div>
               </div>
 
-              <div className="rounded-[28px] bg-white p-4 shadow-[0_30px_70px_rgba(3,34,50,.28)]">
-                <div className="relative aspect-[3/2] overflow-hidden rounded-[20px] bg-shortcut-teal">
-                  <img src={hero.src} alt={hero.alt} className="h-full w-full object-cover" />
-                  <span className="absolute left-[18px] bottom-[18px] h-10 inline-flex items-center rounded-full bg-white/[.94] px-4">
-                    <span className="text-[14px] font-extrabold tracking-[-.012em] text-shortcut-blue">
-                      University of Cincinnati @ AACSB 2026
+              <div className="flex flex-col items-start justify-between gap-7">
+                <div className="sp-rise [animation-delay:.16s] lg:pt-2.5">
+                  <span className="inline-flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-2.5 min-h-[38px] py-2 sm:py-[7px] pl-2 pr-4 sm:pr-[18px] rounded-[18px] sm:rounded-[22px] bg-[rgba(254,220,100,.14)] border border-[rgba(254,220,100,.5)] text-white text-[14px] font-bold tracking-[-.01em]">
+                    <span className="h-6 inline-flex flex-none items-center px-2.5 rounded-full bg-[#FEDC64] text-shortcut-blue text-[11px] font-extrabold tracking-[.07em] uppercase">
+                      {conf.name}
                     </span>
+                    {conf.dateLabel && <span className="leading-[1.3] pl-1 sm:pl-0">{conf.dateLabel}</span>}
                   </span>
                 </div>
+
+                <div className={`hb-pile flex flex-col items-start gap-2 pb-0.5 ${heroGo ? 'hb-go' : ''}`} aria-label="Services">
+                  {HERO_PILLS.map((row, r) => (
+                    <div key={r} className="flex flex-wrap gap-2">
+                      {row.map((p) => (
+                        <a
+                          key={p.label}
+                          href="#stations"
+                          className={`hb-pill inline-flex items-center gap-2 h-10 px-[18px] rounded-full text-[15px] font-bold tracking-[-.01em] whitespace-nowrap no-underline text-shortcut-blue shadow-[0_6px_16px_rgba(3,34,50,.18)] ${p.cls}`}
+                        >
+                          <span className="hb-pill-in inline-flex items-center gap-2">
+                            <span className="hb-w">
+                              <span className="hb-w1">{p.label}</span>
+                              <span className={`hb-w2${p.emoji ? ' is-emoji' : ''}`} aria-hidden="true">{p.alt}</span>
+                            </span>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                              <path d="M5 12h13M12.5 6l6 6-6 6" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </span>
+                        </a>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="sp-rise [animation-delay:.24s] mt-11 rounded-[28px] bg-neutral-light-gray p-4 shadow-[0_30px_70px_rgba(3,34,50,.28)]">
+              <div className="relative aspect-[4/3] md:aspect-[2/1] overflow-hidden rounded-[20px] bg-shortcut-teal">
+                <img src={hero.src} alt={hero.alt} className="h-full w-full object-cover" />
+                <span className="absolute left-[18px] bottom-[18px] h-10 inline-flex items-center rounded-full bg-white/[.94] px-4">
+                  <span className="text-[14px] font-extrabold tracking-[-.012em] text-shortcut-blue">
+                    A lounge built in the sponsor&rsquo;s brand
+                  </span>
+                </span>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ══════════ STATIONS ══════════ */}
-        <Panel id="stations">
+        {/* ══════════ HOW IT WORKS ══════════
+            One section, talking to the sales team: the steps from the sale
+            to the floor as a horizontal rail. */}
+        <Panel id="how-it-works">
           <SectionHead
-            kicker="What goes in the lounge"
-            title="Services attendees line up for."
-            sub="Sponsors can pick one or multiple services."
+            kicker="How it works"
+            title="How your sales team turns the lounge into revenue"
+            sub="At your conference, we give your sales team a new sponsorship to sell, and we work with your events team to run it from load-in to teardown."
           />
-          <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:gap-x-5 sm:gap-y-10 xl:grid-cols-4">
+          <HowRail confName={conf.name} />
+
+        </Panel>
+
+        {/* ══════════ ABOUT SHORTCUT ══════════
+            Who we are, below How it works (Will, 2026-10-16): the website's
+            "In the room" reel of real office visits, then the website
+            heroes' trust line. */}
+        <Panel id="about" tone="tint">
+          <SectionHead
+            kicker="About Shortcut"
+            title="The premier on-site corporate wellness partner in the US"
+          />
+          <div className="-mx-6 md:-mx-10 lg:-mx-[100px]">
+            <SponsorReels />
+          </div>
+          <TrustLine />
+        </Panel>
+
+        {/* ══════════ WHAT SETS SHORTCUT APART (the website's bento) ══════════ */}
+        <Panel id="how">
+          <SponsorBento conferenceName={conf.name} dateLabel={conf.dateLabel} />
+        </Panel>
+
+        {/* ══════════ SERVICES ══════════
+            Straight after the bento (Will, 2026-10-16). Selling stations to
+            different sponsors is a revenue lever, so the sub says so. */}
+        <Panel id="stations" tone="tint">
+          <SectionHead
+            kicker="Services"
+            title="Build the lounge from any of our services"
+            sub="Sell it as one sponsorship, or sell each station to a different sponsor. Tap any service for the detail."
+          />
+          <div className="grid grid-cols-1 gap-x-5 gap-y-10 sm:grid-cols-2 xl:grid-cols-4">
             {services.map((s, i) => <StationCard key={s.id} s={s} onOpen={() => setOpenIdx(i)} />)}
           </div>
         </Panel>
 
-        {/* ══════════ THE PROBLEM ══════════ */}
-        <Panel id="problem" tone="tint">
+        {/* ══════════ PRICING ══════════
+            The holiday builder, priced like the approved AACSB proposal. See
+            SponsorPricing.tsx. Above the proof (Will, 2026-10-16). */}
+        <Panel id="pricing">
           <SectionHead
-            kicker="Why it sells"
-            title="Your sponsors win. So do you."
+            kicker="Pricing"
+            title="See how pricing could work"
+            accent="in three steps."
           />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {TWO_SIDES.map((side) => (
-              <div key={side.who} className={`${CARD_ON_TINT} overflow-hidden flex flex-col`}>
-                {side.img ? (
-                  <div className="relative aspect-[4/3] bg-neutral-light-gray">
-                    <img src={side.img} alt={side.alt} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
-                  </div>
-                ) : (
-                  <div className="aspect-[4/3] flex flex-col justify-center gap-7 bg-[#EAF7F8]">
-                    <LogoRow logos={CLIENT_LOGOS.slice(0, 5)} />
-                    <LogoRow logos={CLIENT_LOGOS.slice(5)} reverse />
-                  </div>
-                )}
-                <div className={CARD_PAD}>
-                  <p className={`${CARD_KICKER} ${INK_META}`}>{side.who}</p>
-                  <h3 className={`${CARD_TITLE} mt-3 text-shortcut-blue`}>{side.title}</h3>
-                  <p className={`${CARD_BODY} mt-3 ${INK}`}>{side.body}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <SponsorPricing confName={conf.name} contactEmail={contact.email} />
         </Panel>
 
-        {/* ══════════ HOW IT WORKS (the website's bento) ══════════ */}
-        <Panel id="how">
-          <SectionHead
-            kicker="How it works"
-            title="Their name on everything."
-            accent="Our team behind all of it."
-          />
-          <SponsorBento conferenceName={conf.name} dateLabel={conf.dateLabel} />
-        </Panel>
-
-        {/* ══════════ STEP BY STEP (with who does each step) ══════════ */}
+        {/* ══════════ STEP BY STEP (with who does each step) ══════════
+            Verbatim from the live page (Will, 2026-10-16). It sits after
+            Pricing: price it, then see what happens from there. */}
         <Panel id="gets" tone="tint">
           <SectionHead
             kicker="Step by step"
-            title="How it works, start to finish."
-            accent="You tell us what you need. We handle the rest."
+            title="From the proposal to the follow up."
           />
           <ol className="m-0 p-0 list-none grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
             {PATH.map((p, i) => (
@@ -686,7 +944,10 @@ export default function SponsorOnePager() {
           </div>
         </Panel>
 
-        {/* ══════════ PROOF ══════════ */}
+        {/* ══════════ PROOF ══════════
+            Exactly as it is on the live page (origin/main, #9), Will
+            2026-10-16. The reel sits in its own TradeStation section below,
+            as it does there. */}
         <Panel id="proof" tone="navy">
           <SectionHead
             dark
@@ -724,28 +985,42 @@ export default function SponsorOnePager() {
           <SizzleReel />
         </Panel>
 
-        {/* ══════════ NEXT STEP ══════════ */}
-        <Panel>
-          <div className="flex flex-col items-center text-center">
-            <SectionHead
-              kicker="Next step"
-              title="Let’s talk through the details."
-              sub={`A short call about ${conf.name}: your dates, your sponsors and what you want to offer them. We come back with a proposal your team can sell.`}
-            />
-            <a
-              href={mailto}
-              className="-mt-2 h-[52px] inline-flex items-center gap-2.5 px-8 rounded-full bg-shortcut-coral text-white text-[17px] font-bold tracking-[-.01em] shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform duration-500 hover:-translate-y-[3px]"
-            >
-              Set up a call with {contact.name.split(' ')[0]}
-              <ArrowUpRight size={19} strokeWidth={2.5} />
-            </a>
-            <div className="mt-12 pt-8 w-full border-t border-[#E2E9E8]">
-              <div className={`text-[11px] font-bold uppercase tracking-[.12em] ${INK_META}`}>
+        {/* ══════════ NEXT STEPS ══════════
+            A call to action: set up a call, then the three things we do
+            for the organizer's team after it. */}
+        <section className="relative -mt-[50px] rounded-t-[50px] bg-shortcut-blue py-16 md:py-24">
+          <div data-toc id="next" className="absolute -top-20" />
+          <div className={`${GUT} ${COL}`}>
+            <div className="flex flex-col items-center text-center gap-3.5">
+              <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-teal">Next steps</p>
+              <h2 className="m-0 text-[30px] md:text-[44px] font-bold leading-[1.05] tracking-[-.035em] text-white max-w-[22ch] text-balance">
+                Let&rsquo;s chat about adding the lounge to {conf.name}
+              </h2>
+            </div>
+            <ol className="m-0 mt-12 p-0 list-none grid grid-cols-1 md:grid-cols-3 gap-5">
+              {NEXT_STEPS.map((step, i) => (
+                <li key={step} className="rounded-[28px] bg-white/[.08] border border-white/[.12] p-7 flex flex-col gap-4">
+                  <span className="grid h-10 w-10 place-items-center rounded-full bg-shortcut-teal text-[16px] font-extrabold text-shortcut-blue">{i + 1}</span>
+                  <h3 className="m-0 text-[20px] md:text-[22px] font-bold leading-[1.2] tracking-[-.02em] text-white text-balance">{step}</h3>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-10 flex justify-center">
+              <a
+                href={mailto}
+                className="h-[52px] inline-flex items-center gap-2.5 px-8 rounded-full bg-shortcut-coral text-white text-[17px] font-bold tracking-[-.01em] shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform duration-500 hover:-translate-y-[3px]"
+              >
+                Set up a call with {contact.name}
+                <ArrowUpRight size={19} strokeWidth={2.5} />
+              </a>
+            </div>
+            <div className="mt-12 pt-8 border-t border-white/15 text-center">
+              <div className="text-[11px] font-bold uppercase tracking-[.12em] text-white/40">
                 Prepared for {organizer.name}
               </div>
             </div>
           </div>
-        </Panel>
+        </section>
 
       </main>
 
