@@ -189,8 +189,7 @@ const PATH = [
 ];
 
 /* What a sponsor's brand looks like on the booking page and on the floor.
-   NOTE: YW3 x Netflix Ads is under an MNDA (2026-09-16); clear it before
-   this ships. */
+   The Netflix Ads booking page is cleared to use (Will, 2026-10-16). */
 const BRAND_SHOTS = {
   booking: { cap: 'The booking page · Netflix Ads', img: '/yw3/booking-page.jpg',
     alt: 'A Shortcut booking page branded end to end for Netflix Ads' },
@@ -855,7 +854,7 @@ export default function SponsorOnePager() {
         <Panel id="gets" tone="tint">
           <SectionHead
             kicker="Step by step"
-            title="How it works, start to finish."
+            title="Start to finish."
             accent="You tell us what you need. We handle the rest."
           />
           <ol className="m-0 p-0 list-none grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
