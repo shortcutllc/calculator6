@@ -863,7 +863,6 @@ export default function SponsorOnePager() {
           <SectionHead
             kicker="About Shortcut"
             title="The premier on-site corporate wellness partner in the US"
-            sub="Companies bring us into their offices to give their people a massage, a haircut or a fresh headshot in the middle of the workday, and we bring that same team to your conference."
           />
           <div className="-mx-6 md:-mx-10 lg:-mx-[100px]">
             <SponsorReels />
