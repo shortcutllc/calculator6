@@ -25,7 +25,10 @@ import '../../styles/proposal-refresh.css';
                     was quoted (SPONSOR_HOURLY_RATE)
      headshots      $450 per hour plus $25 per retouched photo (Will)
      group sessions flat per session, from the proposal engine:
-                    mindfulness and sound bath $1,250, chair yoga $650
+                    mindfulness and sound bath $1,250, chair yoga $650.
+                    Mindfulness's shorter conference formats (openings,
+                    resets, the Mindful Thread) are priced at the 30 minute
+                    session rate; the engine has nothing shorter.
      branding       the AACSB proposal's add-on prices
    The banner's sale is real and anonymised (Will, 2026-10-15): two days of
    the Massage Wellness Zone at 64 a day with screens and greenery, $6,830
@@ -46,6 +49,10 @@ interface BuilderService {
   proNoun?: string;
   minutes: number;
   perSession?: number;
+  /** Group services: how long a session runs, when it isn't one length. */
+  lengthLabel?: string;
+  /** Group services: what 1, 2 or 3 sessions a day look like. */
+  sessionDetails?: string[];
 }
 
 const SERVICES: BuilderService[] = [
@@ -53,7 +60,8 @@ const SERVICES: BuilderService[] = [
   { id: 'glow', label: 'Hair, shaves and makeup', kind: 'appt', pros: 2, proNoun: 'stylists and barbers', minutes: 30 },
   { id: 'polish', label: 'Manicures', kind: 'appt', pros: 2, proNoun: 'Nail Pros', minutes: 30 },
   { id: 'studio', label: 'Headshots', kind: 'headshot', pros: 1, proNoun: 'photographer', minutes: 10 },
-  { id: 'mindful', label: 'Mindfulness', kind: 'group', minutes: 30, perSession: 1250 },
+  { id: 'mindful', label: 'Mindfulness', kind: 'group', minutes: 30, perSession: 1250, lengthLabel: 'up to 30 min',
+    sessionDetails: ['A Mindful Opening or a Mindful Reset', 'Open the day and reset after lunch', 'A Mindful Thread across the day'] },
   { id: 'sound', label: 'Sound bath', kind: 'group', minutes: 30, perSession: 1250 },
   { id: 'movement', label: 'Chair yoga', kind: 'group', minutes: 30, perSession: 650 },
 ];
@@ -69,7 +77,7 @@ function optionsFor(s: BuilderService): DayOption[] {
       name: `${n} session${n > 1 ? 's' : ''} a day`,
       perDay: n * (s.perSession || 0),
       apptsPerDay: null,
-      detail: `${s.minutes} min each · everyone joins`,
+      detail: s.sessionDetails?.[n - 1] ?? `${s.minutes} min each · everyone joins`,
     }));
   }
   return [4, 5, 6].map((h) => {
@@ -82,7 +90,7 @@ function optionsFor(s: BuilderService): DayOption[] {
 interface Pack { id: string; name: string; inside: string; services: SponsorServiceId[]; optIn?: boolean }
 const PACKS: Pack[] = [
   { id: 'massage', name: 'Massage Wellness Zone', inside: 'Chair massage', services: ['reset'] },
-  { id: 'mindful', name: 'Mindfulness', inside: 'Meditation + Sound bath', services: ['mindful', 'sound'] },
+  { id: 'mindful', name: 'Mindfulness', inside: 'Guided mindfulness', services: ['mindful'] },
   { id: 'headshots', name: 'Headshots', inside: 'Headshot studio', services: ['studio'] },
   { id: 'glam', name: 'Beauty and Glam', inside: 'Hair, shaves and makeup + Manicures', services: ['glow', 'polish'] },
   { id: 'custom', name: 'Build your own', inside: 'Any mix of our services', services: SERVICES.map((s) => s.id), optIn: true },
@@ -412,7 +420,7 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
                       <div className="pv-svc-metrics">
                         <div>
                           <div className="pv-bignum">{s.kind === 'group' ? sel + 1 : (l.appts ?? l.option.apptsPerDay)}</div>
-                          <div className="pv-metric-sub">{s.kind === 'group' ? `Sessions a day · ${s.minutes} min` : days ? `Appointments over ${days} day${days > 1 ? 's' : ''}` : 'Appointments a day'}</div>
+                          <div className="pv-metric-sub">{s.kind === 'group' ? `Sessions a day · ${s.lengthLabel ?? `${s.minutes} min`}` : days ? `Appointments over ${days} day${days > 1 ? 's' : ''}` : 'Appointments a day'}</div>
                         </div>
                         <div className="pv-cost">
                           <div className="v">{days ? money(l.cost) : money(l.option.perDay)}</div>
