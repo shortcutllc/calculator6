@@ -201,11 +201,16 @@ const BRAND_SHOTS = {
   ],
 };
 
-/* Next steps: the organizer's whole part, in order. */
+/* Next steps: a call, and what we do for the organizer's team after it
+   (Will, 2026-10-16: present to the team, design the program, hand over
+   everything the sales team needs to sell it). */
 const NEXT_STEPS = [
-  'Send us your dates and expected attendance.',
-  'We send our fixed fee and a sponsor-ready page in your brand.',
-  'You sell it, give us a space on the floor, and send your attendees the invitation we write.',
+  { title: 'We present to your team',
+    body: 'We walk your sales and events teams through the lounge: what sponsors get, how attendees book, and how we run it on site.' },
+  { title: 'We design the program with you',
+    body: 'Together we pick the services, days and branding that fit your show and your sponsors, and we quote our fixed fee in writing.' },
+  { title: 'Your sales team gets everything it needs to sell it',
+    body: 'A sponsor-ready page in your brand, photos from past events and a suggested sponsor price, ready to send to sponsors.' },
 ];
 
 /* The headline carries the 400 and the 200; these are the numbers it
@@ -728,7 +733,7 @@ export default function SponsorOnePager() {
                     See how it works
                   </a>
                   <a
-                    href="#work"
+                    href="#gets"
                     className="text-[16px] font-bold text-white underline underline-offset-4 decoration-white/50 hover:text-shortcut-teal transition-colors"
                   >
                     What you need to do
@@ -934,22 +939,23 @@ export default function SponsorOnePager() {
         </Panel>
 
         {/* ══════════ NEXT STEPS ══════════
-            The organizer's own part, which is the answer to "our team would
-            have to manage it": three steps, then the email. */}
+            A call to action: set up a call, then the three things we do
+            for the organizer's team after it. */}
         <section className="relative -mt-[50px] rounded-t-[50px] bg-shortcut-blue py-16 md:py-24">
           <div data-toc id="next" className="absolute -top-20" />
           <div className={`${GUT} ${COL}`}>
             <div className="flex flex-col items-center text-center gap-3.5">
               <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-shortcut-teal">Next steps</p>
               <h2 className="m-0 text-[30px] md:text-[44px] font-bold leading-[1.05] tracking-[-.035em] text-white max-w-[22ch] text-balance">
-                Add the lounge to your {conf.name} sponsorship lineup
+                Let&rsquo;s chat about adding the lounge to {conf.name}
               </h2>
             </div>
             <ol className="m-0 mt-12 p-0 list-none grid grid-cols-1 md:grid-cols-3 gap-5 max-w-[1100px] mx-auto">
               {NEXT_STEPS.map((step, i) => (
-                <li key={step} className="rounded-[28px] bg-white/[.08] border border-white/[.12] p-7 flex flex-col gap-4">
+                <li key={step.title} className="rounded-[28px] bg-white/[.08] border border-white/[.12] p-7 flex flex-col gap-4">
                   <span className="grid h-10 w-10 place-items-center rounded-full bg-shortcut-teal text-[16px] font-extrabold text-shortcut-blue">{i + 1}</span>
-                  <p className="m-0 text-[18px] font-semibold leading-[1.4] text-white">{step}</p>
+                  <h3 className="m-0 text-[20px] md:text-[22px] font-bold leading-[1.2] tracking-[-.02em] text-white text-balance">{step.title}</h3>
+                  <p className="m-0 text-[16px] font-medium leading-[1.55] text-white/80">{step.body}</p>
                 </li>
               ))}
             </ol>
@@ -958,7 +964,7 @@ export default function SponsorOnePager() {
                 href={mailto}
                 className="h-[52px] inline-flex items-center gap-2.5 px-8 rounded-full bg-shortcut-coral text-white text-[17px] font-bold tracking-[-.01em] shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform duration-500 hover:-translate-y-[3px]"
               >
-                Email {contact.name}
+                Set up a call with {contact.name}
                 <ArrowUpRight size={19} strokeWidth={2.5} />
               </a>
             </div>
