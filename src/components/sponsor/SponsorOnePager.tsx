@@ -142,12 +142,16 @@ const PROOF_GALLERY = [
 ];
 
 /** Photo tile with the caption pill (the live page's Shot). */
-function Shot({ cap, img, alt, className = '', pos = 'center' }: {
-  cap: string; img: string; alt?: string; className?: string; pos?: string;
+function Shot({ cap, img, alt, className = '', pos = 'center', inset = false }: {
+  cap: string; img: string; alt?: string; className?: string; pos?: string; inset?: boolean;
 }) {
   return (
-    <div className={`relative overflow-hidden rounded-[20px] bg-neutral-light-gray ${className}`}>
-      <img src={img} alt={alt ?? cap} loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: pos }} />
+    <div className={`relative overflow-hidden rounded-[20px] ${inset ? 'bg-shortcut-teal/40' : 'bg-neutral-light-gray'} ${className}`}>
+      {inset ? (
+        <img src={img} alt={alt ?? cap} loading="lazy" className="absolute left-6 right-6 top-6 md:left-10 md:right-10 md:top-10 w-[calc(100%-48px)] md:w-[calc(100%-80px)] rounded-t-[14px] shadow-[0_12px_36px_rgba(3,34,50,.18)]" />
+      ) : (
+        <img src={img} alt={alt ?? cap} loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: pos }} />
+      )}
       <span className="absolute bottom-3 left-3 max-w-[calc(100%-24px)] inline-flex min-h-[30px] items-center rounded-full bg-white/[.92] px-3 py-1 text-[12px] md:text-[12.5px] font-extrabold leading-tight text-shortcut-blue">
         {cap}
       </span>
@@ -157,7 +161,46 @@ function Shot({ cap, img, alt, className = '', pos = 'center' }: {
 
 const FRAME = 'rounded-[28px] bg-white p-3 md:p-4';
 
+/* Step by step, brought back verbatim from the live page (origin/main)
+   at Will's request, 2026-10-16. Card tokens are the live page's. */
+const CARD_R = 'rounded-[28px]';
+const CARD_TITLE = 'm-0 text-[22px] md:text-[24px] font-bold leading-[1.15] tracking-[-.025em]';
+const CARD_KICKER = 'm-0 text-[12px] font-extrabold uppercase tracking-[.09em]';
+const CARD_BODY = 'm-0 text-[16px] font-medium leading-[1.55]';
 
+/* What the sponsor gets: one attendee's visit, told in order, with the
+   sponsor as the host at every step and the list as the payoff. Each card
+   is the next beat of the same story; nothing goes in that isn't a beat.
+   Rendered as the website's numbered step cards (shortcut/frontend/pages/
+   solutions/conferences.vue, .sw-step). */
+const PATH = [
+  { k: 'Before the show', who: 'You and Shortcut', title: 'A custom proposal.', fill: '#9EFAFF', ink: '#003756',
+    body: 'We work with your sales team to design a package for your sponsors.' },
+  { k: 'Before the show', who: 'You', title: 'Sold at your price.', fill: '#FEDC64', ink: '#003756',
+    body: 'Your team offers it to sponsors. The sponsor sends us their logo and colors.' },
+  { k: 'Before the show', who: 'You', title: 'In every invite.', fill: '#F7BBFF', ink: '#003756',
+    body: 'The booking link goes into your conference emails and app.' },
+  { k: 'Before the show', who: 'Shortcut', title: 'Booked and reminded.', fill: '#C7CBFB', ink: '#003756',
+    body: 'Attendees pick their slot, and every confirmed appointment gets a custom reminder.' },
+  { k: 'At the show', who: 'Shortcut and the sponsor', title: 'Welcomed.', fill: '#FF5050', ink: '#ffffff',
+    body: 'A lounge in the sponsor’s colors, their team at the door, and a massage, blowout or headshot.' },
+  { k: 'After the show', who: 'Shortcut', title: 'Followed up.', fill: '#003756', ink: '#ffffff',
+    body: 'The sponsor gets every name. You get a results report.' },
+];
+
+/* What a sponsor's brand looks like on the booking page and on the floor.
+   NOTE: YW3 x Netflix Ads is under an MNDA (2026-09-16); clear it before
+   this ships. */
+const BRAND_SHOTS = {
+  booking: { cap: 'The booking page · Netflix Ads', img: '/yw3/booking-page.jpg',
+    alt: 'A Shortcut booking page branded end to end for Netflix Ads' },
+  side: [
+    { cap: 'The signage · TradeStation', img: '/ds-assets/conference/glam-station.jpg',
+      alt: 'A TradeStation banner reading Get a fresh look at TradeStation' },
+    { cap: 'The uniforms · TradeStation', img: '/ds-assets/conference/massage-floor.jpg',
+      alt: 'A stylist in a TradeStation apron styling an attendee’s hair' },
+  ],
+};
 
 /* Next steps: the organizer's whole part, in order. */
 const NEXT_STEPS = [
@@ -620,6 +663,7 @@ export default function SponsorOnePager() {
     { id: 'how', label: 'What sets us apart' },
     { id: 'stations', label: 'Services' },
     { id: 'pricing', label: 'Pricing' },
+    { id: 'gets', label: 'Step by step' },
     { id: 'proof', label: 'Proof' },
     { id: 'next', label: 'Next steps' },
   ];
@@ -803,6 +847,50 @@ export default function SponsorOnePager() {
             accent="in three steps."
           />
           <SponsorPricing confName={conf.name} contactEmail={contact.email} />
+        </Panel>
+
+        {/* ══════════ STEP BY STEP (with who does each step) ══════════
+            Verbatim from the live page (Will, 2026-10-16). It sits after
+            Pricing: price it, then see what happens from there. */}
+        <Panel id="gets" tone="tint">
+          <SectionHead
+            kicker="Step by step"
+            title="How it works, start to finish."
+            accent="You tell us what you need. We handle the rest."
+          />
+          <ol className="m-0 p-0 list-none grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+            {PATH.map((p, i) => (
+              <li
+                key={p.title}
+                className={`relative flex min-h-[240px] flex-col overflow-hidden ${CARD_R} px-7 md:px-8 pt-7 md:pt-8 pb-[104px]`}
+                style={{ background: p.fill, color: p.ink }}
+              >
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -bottom-[46px] -right-1 text-[132px] font-extrabold leading-none tracking-[-.06em] opacity-[.14]"
+                >
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <p className={`${CARD_KICKER} relative opacity-70`}>{p.k}</p>
+                <h3 className={`${CARD_TITLE} relative mt-3 [color:inherit]`}>{p.title}</h3>
+                <p className={`${CARD_BODY} relative mt-3 opacity-90`}>{p.body}</p>
+                <span className="absolute bottom-7 left-7 md:left-8 inline-flex h-7 items-center rounded-full bg-white/90 px-3 text-[12px] font-extrabold text-shortcut-blue">
+                  {p.who}
+                </span>
+              </li>
+            ))}
+          </ol>
+
+          <div className={`${FRAME} mt-5 shadow-[0_1px_2px_rgba(3,34,50,.05),0_10px_30px_rgba(3,34,50,.06)]`}>
+            <div className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-2">
+              <Shot {...BRAND_SHOTS.booking} inset className="h-[300px] md:h-[440px] lg:h-full lg:min-h-[480px]" />
+              <div className="grid grid-cols-1 gap-3 md:gap-4">
+                {BRAND_SHOTS.side.map((sh) => (
+                  <Shot key={sh.cap} {...sh} className="h-[220px] md:h-[232px]" />
+                ))}
+              </div>
+            </div>
+          </div>
         </Panel>
 
         {/* ══════════ PROOF ══════════
