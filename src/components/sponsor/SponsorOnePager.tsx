@@ -799,7 +799,7 @@ export default function SponsorOnePager() {
         <Panel id="pricing">
           <SectionHead
             kicker="Pricing"
-            title="Price your sponsorship"
+            title="See how pricing could work"
             accent="in three steps."
           />
           <SponsorPricing confName={conf.name} contactEmail={contact.email} />

@@ -47,7 +47,7 @@ interface BuilderService {
 
 const SERVICES: BuilderService[] = [
   { id: 'reset', label: 'Chair massage', kind: 'appt', pros: 4, proNoun: 'Massage Pros', minutes: 15 },
-  { id: 'glow', label: 'Hair and makeup', kind: 'appt', pros: 2, proNoun: 'stylists', minutes: 30 },
+  { id: 'glow', label: 'Hair, shaves and makeup', kind: 'appt', pros: 2, proNoun: 'stylists and barbers', minutes: 30 },
   { id: 'polish', label: 'Manicures', kind: 'appt', pros: 2, proNoun: 'Nail Pros', minutes: 30 },
   { id: 'studio', label: 'Headshots', kind: 'headshot', pros: 1, proNoun: 'photographer', minutes: 10 },
   { id: 'mindful', label: 'Mindfulness', kind: 'group', minutes: 30, perSession: 1250 },
@@ -81,16 +81,18 @@ const PACKS: Pack[] = [
   { id: 'massage', name: 'Massage Wellness Zone', inside: 'Chair massage', services: ['reset'] },
   { id: 'mindful', name: 'Mindfulness', inside: 'Meditation + Sound bath', services: ['mindful', 'sound'] },
   { id: 'headshots', name: 'Headshots', inside: 'Headshot studio', services: ['studio'] },
-  { id: 'glam', name: 'Beauty and Glam', inside: 'Hair and makeup + Manicures', services: ['glow', 'polish'] },
+  { id: 'glam', name: 'Beauty and Glam', inside: 'Hair, shaves and makeup + Manicures', services: ['glow', 'polish'] },
   { id: 'custom', name: 'Build your own', inside: 'Any mix of our services', services: SERVICES.map((s) => s.id), optIn: true },
 ];
 
-/* Branding, from the approved AACSB proposal's add-ons. */
+/* Branding, as estimates (Will, 2026-10-16: keep add-ons vague). Ranges are
+   the /aacsb page's sourced estimates; the builder adds the midpoint, which
+   is what the AACSB proposal charged. */
 const ADD_ONS = [
-  { id: 'counter', name: 'Branded welcome counter', basis: 'A printed counter with the sponsor’s graphic', amount: 500 },
-  { id: 'screens', name: 'Branded privacy screens', basis: 'Four screens at $150 each', amount: 600 },
-  { id: 'apparel', name: 'Custom apparel', basis: 'Shirts for the Pros in the sponsor’s brand', amount: 175 },
-  { id: 'greenery', name: 'Greenery', basis: 'Six boxwood planters', amount: 950 },
+  { id: 'counter', name: 'Branded welcome counter', basis: 'A printed counter with the sponsor’s graphic', est: '$400 to $600', amount: 500 },
+  { id: 'screens', name: 'Branded privacy screens', basis: 'Screens in the sponsor’s brand', est: 'About $600', amount: 600 },
+  { id: 'apparel', name: 'Custom apparel', basis: 'Shirts for the Pros in the sponsor’s brand', est: '$150 to $200', amount: 175 },
+  { id: 'greenery', name: 'Greenery', basis: 'Planters to frame the lounge', est: '$800 to $1,100', amount: 950 },
 ];
 
 const PRICE_POINTS = [25000, 35000, 50000];
@@ -182,8 +184,8 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
     pkg ? `Package: ${pkg.name}` : '',
     days ? `Days: ${days}` : '',
     ...lines.map((l) => `${l.label}: ${l.option.name}${days ? ` (${money(l.cost)})` : ''}`),
-    addOnLines.length ? `Branding: ${addOnLines.map((a) => a.name).join(', ')}` : '',
-    fee ? `Shortcut fee (estimate): ${money(fee)}` : '',
+    addOnLines.length ? `Branding (estimated): ${addOnLines.map((a) => a.name).join(', ')}` : '',
+    fee ? `Estimated Shortcut fee: ${money(fee)}` : '',
     sponsorPrice ? `Our sponsor price: ${money(sponsorPrice)}` : '',
   ].filter(Boolean).join('\n');
   const mailto = `mailto:${contactEmail}?subject=${encodeURIComponent(`Wellness lounge sponsorship at ${confName}`)}&body=${encodeURIComponent(mailBody)}`;
@@ -227,7 +229,7 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
               A business school conference sold the Massage Wellness Zone to its sponsor for $35,000.
             </p>
             <p className={`m-0 text-[15px] font-semibold leading-[1.45] ${META}`}>
-              Two days at 64 appointments a day, with branded screens and greenery. Our fee was $6,830.
+              Two days at 64 appointments a day, with branded screens and greenery. The conference kept about $28,000.
             </p>
           </div>
 
@@ -365,13 +367,13 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
                   <p className={`m-0 text-[12px] font-extrabold uppercase tracking-[.09em] ${META}`}>{pkg.name} · {lines.length} {lines.length === 1 ? 'service' : 'services'}</p>
                   <p className="m-0 text-[15px] font-semibold leading-[1.45] text-[#003756]">
                     {days
-                      ? `${lines.map((l) => `${l.label} ${money(l.cost)}`).join(' + ')}${addOnLines.length ? `, plus ${money(addOnLines.reduce((t, a) => t + a.amount, 0))} of branding` : ''}, over ${days} day${days > 1 ? 's' : ''}.`
+                      ? `${lines.map((l) => `${l.label} ${money(l.cost)}`).join(' + ')}${addOnLines.length ? `, plus about ${money(addOnLines.reduce((t, a) => t + a.amount, 0))} of branding` : ''}, over ${days} day${days > 1 ? 's' : ''}.`
                       : `${lines.map((l) => l.label).join(' + ')}. Pick your days in step 1 to price it.`}
                   </p>
                 </div>
                 <div className="flex-none text-right">
                   <div className="whitespace-nowrap text-[28px] font-extrabold leading-none tracking-[-.03em] text-[#003756]">{fee ? money(fee) : '$0'}</div>
-                  <div className={`mt-1.5 text-[11.5px] font-extrabold uppercase tracking-[.08em] ${META}`}>Shortcut fee</div>
+                  <div className={`mt-1.5 text-[11.5px] font-extrabold uppercase tracking-[.08em] ${META}`}>Estimated Shortcut fee</div>
                 </div>
               </div>
             )}
@@ -444,7 +446,7 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
             {/* Branding add-ons, from the AACSB proposal. */}
             {pkg && lines.length > 0 && (
               <div className="mt-4 flex flex-col gap-3">
-                <p className={`m-0 text-[12px] font-extrabold uppercase tracking-[.09em] ${META}`}>Branding</p>
+                <p className={`m-0 text-[12px] font-extrabold uppercase tracking-[.09em] ${META}`}>Branding, estimated</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {ADD_ONS.map((a) => {
                     const on = !!addOns[a.id];
@@ -460,7 +462,7 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
                         <span className="min-w-0 flex-1">
                           <span className="block text-[16px] font-bold tracking-[-.015em] text-[#003756]">{a.name}</span>
                           <span className={`block text-[13px] font-medium leading-[1.4] ${META}`}>{a.basis}</span>
-                          <span className="mt-0.5 block text-[13px] font-bold text-[#003756]">{money(a.amount)}</span>
+                          <span className="mt-0.5 block text-[13px] font-bold text-[#003756]">{a.est}</span>
                         </span>
                         <span className={`grid h-[26px] w-[26px] flex-none place-items-center rounded-[8px] ${on ? 'bg-[#003756]' : 'bg-white border-2 border-[#C9D6D4]'}`}>
                           {on && <Check stroke="#fff" size={14} />}
@@ -474,14 +476,14 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
           </section>
 
           <p className={`m-0 -mt-8 text-[14px] font-semibold leading-[1.5] ${META}`}>
-            Our standard conference rates. Setup, cleanup and certificates of insurance are included, and we confirm a fixed fee for your show in writing.
+            A sample of how pricing could work, from our standard conference rates, with branding estimated. Setup, cleanup and certificates of insurance are included, and we quote a fixed fee for your show in writing.
           </p>
         </div>
 
         {/* ── The summary, the holiday builder's navy card ── */}
         <aside className="lg:sticky lg:top-24">
           <div className="rounded-[24px] bg-[#003756] p-7 text-white shadow-[0_20px_50px_rgba(3,34,50,.22)]">
-            <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-[#FEDC64]">Your sponsorship</p>
+            <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-[#FEDC64]">Sample sponsorship</p>
             <h3 className="m-0 mt-2 text-[22px] font-bold leading-[1.15] tracking-[-.025em] text-white">{pkg ? pkg.name : 'Nothing picked yet'}</h3>
             <p className="m-0 mt-1.5 text-[14px] font-semibold text-white/[.72]">
               {days && lines.length ? `${days} day${days > 1 ? 's' : ''}${appts ? ` · ${appts} appointments` : ''}` : !pkg ? 'Pick your days and a package to start' : !lines.length ? 'Pick a service to price it' : 'Pick your days to price it'}
@@ -494,17 +496,17 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
                   <span className="whitespace-nowrap text-[14.5px] font-bold">{days ? money(l.cost) : 'Add days'}</span>
                 </div>
               ))}
-              {addOnLines.map((a) => (
-                <div key={a.id} className="flex items-baseline justify-between gap-3">
-                  <span className="text-[14.5px] font-semibold">{a.name}</span>
-                  <span className="whitespace-nowrap text-[14.5px] font-bold">{money(a.amount)}</span>
+              {addOnLines.length > 0 && (
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-[14.5px] font-semibold">Branding, estimated</span>
+                  <span className="whitespace-nowrap text-[14.5px] font-bold">{money(addOnLines.reduce((t, a) => t + a.amount, 0))}</span>
                 </div>
-              ))}
+              )}
               {pkg && !lines.length && <p className="m-0 text-[14.5px] font-semibold text-white/[.72]">Switch a service on to start.</p>}
             </div>
 
             <div className="mt-[18px] flex items-baseline justify-between gap-3 border-t border-white/[.16] pt-4">
-              <span className="text-[15px] font-bold">Shortcut fee</span>
+              <span className="text-[15px] font-bold">Estimated Shortcut fee</span>
               <span className="text-[20px] font-extrabold tracking-[-.02em] tabular-nums">{money(fee)}</span>
             </div>
 
