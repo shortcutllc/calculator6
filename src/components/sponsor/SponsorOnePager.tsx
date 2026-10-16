@@ -205,12 +205,9 @@ const BRAND_SHOTS = {
    (Will, 2026-10-16: present to the team, design the program, hand over
    everything the sales team needs to sell it). */
 const NEXT_STEPS = [
-  { title: 'We present to your team',
-    body: 'We walk your sales and events teams through the lounge: what sponsors get, how attendees book, and how we run it on site.' },
-  { title: 'We design the program with you',
-    body: 'Together we pick the services, days and branding that fit your show and your sponsors, and we quote our fixed fee in writing.' },
-  { title: 'Your sales team gets everything it needs to sell it',
-    body: 'A sponsor-ready page in your brand, photos from past events and a suggested sponsor price, ready to send to sponsors.' },
+  'We present to your team',
+  'We design the program with you',
+  'Your sales team gets everything it needs to sell it',
 ];
 
 /* The headline carries the 400 and the 200; these are the numbers it
@@ -952,10 +949,9 @@ export default function SponsorOnePager() {
             </div>
             <ol className="m-0 mt-12 p-0 list-none grid grid-cols-1 md:grid-cols-3 gap-5 max-w-[1100px] mx-auto">
               {NEXT_STEPS.map((step, i) => (
-                <li key={step.title} className="rounded-[28px] bg-white/[.08] border border-white/[.12] p-7 flex flex-col gap-4">
+                <li key={step} className="rounded-[28px] bg-white/[.08] border border-white/[.12] p-7 flex flex-col gap-4">
                   <span className="grid h-10 w-10 place-items-center rounded-full bg-shortcut-teal text-[16px] font-extrabold text-shortcut-blue">{i + 1}</span>
-                  <h3 className="m-0 text-[20px] md:text-[22px] font-bold leading-[1.2] tracking-[-.02em] text-white text-balance">{step.title}</h3>
-                  <p className="m-0 text-[16px] font-medium leading-[1.55] text-white/80">{step.body}</p>
+                  <h3 className="m-0 text-[20px] md:text-[22px] font-bold leading-[1.2] tracking-[-.02em] text-white text-balance">{step}</h3>
                 </li>
               ))}
             </ol>
