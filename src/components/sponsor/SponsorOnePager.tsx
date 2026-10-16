@@ -863,7 +863,7 @@ export default function SponsorOnePager() {
           <SectionHead
             kicker="About Shortcut"
             title="The premier on-site corporate wellness partner in the US"
-            sub="We bring massage, grooming, beauty, headshots and mindfulness into the workplace. BCG and DraftKings use us in all of their US offices, and 87% of our clients book us again. Your lounge gets the same team and our network of 200+ Pros."
+            sub="Companies bring us into their offices to give their people a massage, a haircut or a fresh headshot in the middle of the workday, and we bring that same team to your conference."
           />
           <div className="-mx-6 md:-mx-10 lg:-mx-[100px]">
             <SponsorReels />
