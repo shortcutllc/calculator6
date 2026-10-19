@@ -6,7 +6,7 @@ import '../../styles/proposal-refresh.css';
    "See how pricing could work": the conference partner page's pricing
    builder. Steps: pick a package, pick your days, make it yours (Will,
    2026-10-16: package first). It is a SAMPLE and never defines our costs:
-   the fee reads as an estimate and branding as ranges.
+   the fee reads as an estimate, and add-ons show no price.
 
    LAYOUT is the getshortcut.co holiday builder (shortcut repo,
    frontend/components/HolidayDesktop.vue, the "Packages" section): the
@@ -29,7 +29,8 @@ import '../../styles/proposal-refresh.css';
                     Mindfulness's shorter conference formats (openings,
                     resets, the Mindful Thread) are priced at the 30 minute
                     session rate; the engine has nothing shorter.
-     branding       the AACSB proposal's add-on prices
+     add-ons        no price on the page (Will, 2026-10-19); they are picked
+                    here and priced in the written quote
    The banner's sale is real and anonymised (Will, 2026-10-15): two days of
    the Massage Wellness Zone at 64 a day with screens and greenery, $6,830
    from us, sold to the sponsor for $35,000.
@@ -96,14 +97,16 @@ const PACKS: Pack[] = [
   { id: 'custom', name: 'Build your own', inside: 'Any mix of our services', services: SERVICES.map((s) => s.id), optIn: true },
 ];
 
-/* Branding, as estimates (Will, 2026-10-16: keep add-ons vague). Ranges are
-   the /aacsb page's sourced estimates; the builder adds the midpoint, which
-   is what the AACSB proposal charged. */
+/* Add-ons, as plain categories with no prices (Will, 2026-10-19). The
+   organizer picks them, they go into the quote request, and the fee
+   excludes them. */
 const ADD_ONS = [
-  { id: 'counter', name: 'Branded welcome counter', basis: 'A printed counter with the sponsor’s graphic', est: '$400 to $600', amount: 500 },
-  { id: 'screens', name: 'Branded privacy screens', basis: 'Screens in the sponsor’s brand', est: 'About $600', amount: 600 },
-  { id: 'apparel', name: 'Custom apparel', basis: 'Shirts for the Pros in the sponsor’s brand', est: '$150 to $200', amount: 175 },
-  { id: 'greenery', name: 'Greenery', basis: 'Planters to frame the lounge', est: '$800 to $1,100', amount: 950 },
+  { id: 'signage', name: 'Custom signage' },
+  { id: 'screens', name: 'Privacy screens' },
+  { id: 'chairs', name: 'Salon chairs' },
+  { id: 'gifts', name: 'Custom gifts' },
+  { id: 'uniforms', name: 'Branded uniforms' },
+  { id: 'counter', name: 'Welcome counter' },
 ];
 
 const PRICE_POINTS = [25000, 35000, 50000];
@@ -165,10 +168,10 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
     };
   }), [active.join(','), opt, days]);
 
-  // Branding only counts once there is something to brand.
+  // Add-ons only count once a service is on.
   const addOnLines = lines.length ? ADD_ONS.filter((a) => addOns[a.id]) : [];
   const servicesFee = lines.reduce((t, l) => t + l.cost, 0);
-  const fee = days && lines.length ? servicesFee + addOnLines.reduce((t, a) => t + a.amount, 0) : 0;
+  const fee = days && lines.length ? servicesFee : 0;
   const appts = lines.reduce((t, l) => t + (l.appts || 0), 0);
   const sponsorPrice = priceIsCustom ? (Number(priceCustom) || 0) : (price || 0);
   const net = fee && sponsorPrice ? sponsorPrice - fee : null;
@@ -195,7 +198,7 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
     pkg ? `Package: ${pkg.name}` : '',
     days ? `Days: ${days}` : '',
     ...lines.map((l) => `${l.label}: ${l.option.name}${days ? ` (${money(l.cost)})` : ''}`),
-    addOnLines.length ? `Branding (estimated): ${addOnLines.map((a) => a.name).join(', ')}` : '',
+    addOnLines.length ? `Add-ons: ${addOnLines.map((a) => a.name).join(', ')}` : '',
     fee ? `Estimated Shortcut fee: ${money(fee)}` : '',
     sponsorPrice ? `Our sponsor price: ${money(sponsorPrice)}` : '',
   ].filter(Boolean).join('\n');
@@ -240,7 +243,7 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
               A business school conference sold the Massage Wellness Zone to its sponsor for $35,000.
             </p>
             <p className={`m-0 text-[15px] font-semibold leading-[1.45] ${META}`}>
-              Two days at 64 appointments a day, with branded screens and greenery. The conference kept about $28,000.
+              Two days at 64 appointments a day, with branded privacy screens. The conference kept about $28,000.
             </p>
           </div>
 
@@ -380,7 +383,7 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
                   <p className={`m-0 text-[12px] font-extrabold uppercase tracking-[.09em] ${META}`}>{pkg.name} · {lines.length} {lines.length === 1 ? 'service' : 'services'}</p>
                   <p className="m-0 text-[15px] font-semibold leading-[1.45] text-[#003756]">
                     {days
-                      ? `${lines.map((l) => `${l.label} ${money(l.cost)}`).join(' + ')}${addOnLines.length ? `, plus about ${money(addOnLines.reduce((t, a) => t + a.amount, 0))} of branding` : ''}, over ${days} day${days > 1 ? 's' : ''}.`
+                      ? `${lines.map((l) => `${l.label} ${money(l.cost)}`).join(' + ')}${addOnLines.length ? ', plus add-ons' : ''}, over ${days} day${days > 1 ? 's' : ''}.`
                       : `${lines.map((l) => l.label).join(' + ')}. Pick your days in step 2 to price it.`}
                   </p>
                 </div>
@@ -456,10 +459,10 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
               );
             })}
 
-            {/* Branding add-ons, from the AACSB proposal. */}
+            {/* Add-ons, as plain categories. */}
             {pkg && lines.length > 0 && (
               <div className="mt-4 flex flex-col gap-3">
-                <p className={`m-0 text-[12px] font-extrabold uppercase tracking-[.09em] ${META}`}>Branding, estimated</p>
+                <p className={`m-0 text-[12px] font-extrabold uppercase tracking-[.09em] ${META}`}>Add-ons</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {ADD_ONS.map((a) => {
                     const on = !!addOns[a.id];
@@ -474,8 +477,6 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
                       >
                         <span className="min-w-0 flex-1">
                           <span className="block text-[16px] font-bold tracking-[-.015em] text-[#003756]">{a.name}</span>
-                          <span className={`block text-[13px] font-medium leading-[1.4] ${META}`}>{a.basis}</span>
-                          <span className="mt-0.5 block text-[13px] font-bold text-[#003756]">{a.est}</span>
                         </span>
                         <span className={`grid h-[26px] w-[26px] flex-none place-items-center rounded-[8px] ${on ? 'bg-[#003756]' : 'bg-white border-2 border-[#C9D6D4]'}`}>
                           {on && <Check stroke="#fff" size={14} />}
@@ -489,7 +490,7 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
           </section>
 
           <p className={`m-0 -mt-8 text-[14px] font-semibold leading-[1.5] ${META}`}>
-            A sample of how pricing could work, from our standard conference rates, with branding estimated. Setup, cleanup and certificates of insurance are included, and we quote a fixed fee for your show in writing.
+            A sample of how pricing could work, from our standard conference rates. Setup, cleanup and certificates of insurance are included, and add-ons are priced in the fixed fee we quote for your show in writing.
           </p>
         </div>
 
@@ -511,8 +512,8 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
               ))}
               {addOnLines.length > 0 && (
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-[14.5px] font-semibold">Branding, estimated</span>
-                  <span className="whitespace-nowrap text-[14.5px] font-bold">{money(addOnLines.reduce((t, a) => t + a.amount, 0))}</span>
+                  <span className="text-[14.5px] font-semibold">Add-ons</span>
+                  <span className="whitespace-nowrap text-[14.5px] font-semibold text-white/[.72]">In your quote</span>
                 </div>
               )}
               {pkg && !lines.length && <p className="m-0 text-[14.5px] font-semibold text-white/[.72]">Switch a service on to start.</p>}
