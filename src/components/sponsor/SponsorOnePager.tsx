@@ -9,7 +9,6 @@ import type { SponsorPageConfig } from '../../types/sponsorPage';
 import '../../styles/sponsor-page.css';
 import StationModal, { useGalleryByKey } from './StationModal';
 import SponsorBento from './SponsorBento';
-import SponsorReels from './SponsorReels';
 import SponsorPricing from './SponsorPricing';
 import { SPONSOR_SERVICES, serviceById, type SponsorServiceDef } from '../../utils/sponsorPackages';
 
@@ -87,39 +86,41 @@ const CLIENT_LOGOS = [
   { src: '/conference/onepager/logos/pwc.svg', alt: 'PwC' },
   { src: '/conference/onepager/logos/paramount.svg', alt: 'Paramount' },
   { src: '/conference/onepager/logos/warner-bros.svg', alt: 'Warner Bros.', tall: true },
-  { src: '/conference/onepager/logos/white-case.svg', alt: 'White & Case' },
+  { src: '/conference/onepager/logos/white-case.svg', alt: 'White & Case', short: true },
   { src: '/conference/onepager/logos/mtv.svg', alt: 'MTV' },
 ];
 
-/* How it works, as five slides in the order a sponsorship seller thinks:
-   what they sell (a white labeled experience), what they make, why it draws,
-   why sponsors pay, and who runs it (Will, 2026-10-16: the sales team is the
-   second slide). Who runs it is the bento's job below, so the rail ends at
-   the sponsor (2026-10-16). Each slide is one visual, a step label, a short title and
-   one line. "Turnkey" is used at Will's request: the messaging spine's ban
-   on the word covers HR-buyer pages, not partner pages. */
-type HowVisual = 'invoice' | 'photo' | 'leads';
+/* How it works (Will, 2026-10-16): the Shortcut box from the page before
+   the rebuild (its "Why it sells" first card, logos and copy as they were),
+   then four steps whose titles tell the story on their own: we build it,
+   you sell it, attendees book, the sponsor gets the leads. Each step has
+   one short line under its title. */
+type HowVisual = 'logos' | 'invoice' | 'photo' | 'leads';
 const HOW_STEPS: {
-  who: string; title: string; body: string; visual: HowVisual;
+  label: string; title: string; body: string; visual: HowVisual;
   tint?: string; img?: string; cap?: string; pos?: string;
 }[] = [
   {
-    who: 'Your sponsor\u2019s lounge', title: 'A turnkey, white-labeled wellness experience', visual: 'photo',
+    label: 'Shortcut', title: 'Trusted by 500+ companies.', visual: 'logos',
+    body: 'One team for massage, headshots, beauty and group wellness across the US. We bring the Pros, the setup and the tech.',
+  },
+  {
+    label: '01', title: 'A turnkey, white-labeled lounge', visual: 'photo',
     img: '/conference/tradestation/ts-event-51.jpg', cap: 'TradeStation \u00b7 Fresh Look activation', pos: 'bg-center',
-    body: 'Everything carries your sponsor\u2019s brand: the lounge, the signage, the booking page, the emails and the Pros\u2019 uniforms. We design and build all of it.',
+    body: 'The lounge, signage, booking page, emails and uniforms all carry your sponsor\u2019s brand. We design and build all of it.',
   },
   {
-    who: 'Your sales team', title: 'Sell it at a premium and keep most of it', visual: 'invoice', tint: 'bg-[#9EFAFF]',
-    body: 'You set the sponsor\u2019s price. Our fee is fixed and billed only after your sponsor signs.',
+    label: '02', title: 'You sell it and keep the margin', visual: 'invoice', tint: 'bg-[#9EFAFF]',
+    body: 'You set the price. We bill only after your sponsor signs.',
   },
   {
-    who: 'Your attendees', title: 'Every visit is booked ahead, so no one waits in line', visual: 'photo',
+    label: '03', title: 'An activation attendees love', visual: 'photo',
     img: '/conference/onepager/wh/booth-3.jpeg', cap: 'Workhuman Live 2026', pos: 'bg-[center_35%]',
-    body: 'Attendees pick a time on their phone for a free massage, headshot or manicure. Over 90% of slots get booked.',
+    body: 'A free massage, haircut or headshot between sessions, and nothing for your ops team to manage.',
   },
   {
-    who: 'Your sponsor', title: 'Guaranteed traffic, face time and leads', visual: 'leads', tint: 'bg-[#FEDC64]',
-    body: 'Attendees come to the sponsor by appointment, all day long, and the sponsor gets each one\u2019s name, title, company and email.',
+    label: '04', title: 'Guaranteed traffic and leads', visual: 'leads', tint: 'bg-[#FEDC64]',
+    body: 'A name, title, company and email for every visit.',
   },
 ];
 
@@ -281,59 +282,6 @@ function SectionHead({ kicker, title, accent, sub, dark = false }: {
   );
 }
 
-/* The website heroes' trust line (shortcut repo, TrustRail.vue and the
-   holiday hero): "Trusted by 500+ organizations" at 24px, rising in once it
-   is on screen, the 500 counting up over 1.6s (sc-count.client.js), then the
-   logo marquee. Like the website, the markup always holds the real
-   number, so a skipped animation never shows anything but 500. On this
-   page it sits on the light band, so the text is navy and the logos are
-   the color set. */
-function TrustLine() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [inView, setInView] = useState(false);
-  const [n, setN] = useState(500);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    let raf = 0;
-    const obs = new IntersectionObserver(([e]) => {
-      if (!e.isIntersecting) return;
-      obs.disconnect();
-      setInView(true);
-      if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-      const t0 = performance.now();
-      const step = (now: number) => {
-        const p = Math.min(1, (now - t0) / 1600);
-        setN(Math.round(500 * (1 - Math.pow(1 - p, 3))));
-        if (p < 1) raf = requestAnimationFrame(step);
-      };
-      raf = requestAnimationFrame(step);
-    }, { rootMargin: '0px 0px -15% 0px' });
-    obs.observe(el);
-    return () => { obs.disconnect(); cancelAnimationFrame(raf); };
-  }, []);
-  return (
-    <div ref={ref} className={`sp-trust mt-16 md:mt-24 flex flex-col items-center gap-9 ${inView ? 'is-in' : ''}`}>
-      <p className="m-0 text-center text-[20px] md:text-[24px] font-extrabold leading-[1.25] tracking-[-.02em] text-shortcut-blue">
-        Trusted by <span className="tabular-nums">{n}</span><span className="text-shortcut-coral">+</span> organizations
-      </p>
-      <div className="sp-logos w-full">
-        <div className="sp-logo-track">
-          {[...CLIENT_LOGOS, ...CLIENT_LOGOS].map((l, i) => (
-            <img
-              key={`${l.alt}-${i}`}
-              src={l.src}
-              alt={i < CLIENT_LOGOS.length ? l.alt : ''}
-              aria-hidden={i >= CLIENT_LOGOS.length ? true : undefined}
-              className={`block flex-none w-[112px] object-contain ${l.tall ? 'h-10' : 'h-8'}`}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function SizzleReel() {
   const [playing, setPlaying] = useState(false);
   const ref = useRef<HTMLVideoElement>(null);
@@ -378,7 +326,37 @@ function SizzleReel() {
 }
 
 /** The visual on top of each how-it-works slide. */
+/** One scrolling row of client logos, tinted teal (the Shortcut box). */
+function LogoRow({ logos, reverse = false }: { logos: typeof CLIENT_LOGOS; reverse?: boolean }) {
+  return (
+    <div className="overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)]">
+      <div className={`flex w-max animate-logo-marquee will-change-transform motion-reduce:animate-none ${reverse ? '[animation-direction:reverse]' : ''}`}>
+        {[false, true].map((dup) => (
+          <div key={String(dup)} className="flex items-center gap-10 pr-10" aria-hidden={dup}>
+            {logos.map((logo) => (
+              <img
+                key={`${logo.src}${dup}`}
+                src={logo.src}
+                alt={dup ? '' : logo.alt}
+                className={`${logo.tall ? 'h-[38px]' : 'short' in logo ? 'h-[16px]' : 'h-[28px]'} w-auto flex-none [filter:grayscale(1)_sepia(1)_saturate(4)_hue-rotate(165deg)_brightness(.85)]`}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function HowVisualBlock({ step, confName }: { step: (typeof HOW_STEPS)[number]; confName: string }) {
+  if (step.visual === 'logos') {
+    return (
+      <div className="aspect-[4/3] flex flex-col justify-center gap-7 bg-[#EAF7F8]">
+        <LogoRow logos={CLIENT_LOGOS.slice(0, 5)} />
+        <LogoRow logos={CLIENT_LOGOS.slice(5)} reverse />
+      </div>
+    );
+  }
   if (step.visual === 'photo') {
     return (
       <div
@@ -404,7 +382,7 @@ function HowVisualBlock({ step, confName }: { step: (typeof HOW_STEPS)[number]; 
             <span className="text-[10.5px] font-bold uppercase tracking-[.08em] text-white/55">Example</span>
           </div>
           <div className="flex items-baseline justify-between gap-2">
-            <span className="text-[13px] font-semibold text-white">Massage Zen Zone sponsorship</span>
+            <span className="text-[13px] font-semibold text-white">Massage Wellness Zone sponsorship</span>
             <span className="text-[13px] font-bold text-white whitespace-nowrap">$50,000</span>
           </div>
           <div className="h-px bg-white/[.12] my-2.5" />
@@ -489,13 +467,13 @@ function HowRail({ confName }: { confName: string }) {
           onScroll={sync}
           className="sp-rail m-0 list-none flex gap-5 overflow-x-auto snap-x snap-mandatory px-6 md:px-10 lg:px-[100px] scroll-px-6 md:scroll-px-10 lg:scroll-px-[100px] pb-4"
         >
-          {HOW_STEPS.map((step, i) => (
+          {HOW_STEPS.map((step) => (
             <li key={step.title} data-slide className="snap-start flex-none w-[82vw] sm:w-[380px] xl:w-[400px] flex">
               <article className={`${CARD_SHELL} flex flex-1 flex-col overflow-hidden`}>
                 <HowVisualBlock step={step} confName={confName} />
                 <div className="flex flex-1 flex-col px-7 pt-6 pb-7">
                   <p className={`m-0 text-[12px] font-extrabold uppercase tracking-[.09em] ${INK_META}`}>
-                    {String(i + 1).padStart(2, '0')} · {step.who}
+                    {step.label}
                   </p>
                   <h3 className="m-0 mt-2.5 text-[23px] font-bold leading-[1.15] tracking-[-.025em] text-shortcut-blue">{step.title}</h3>
                   <p className={`m-0 mt-2.5 text-[15.5px] font-medium leading-[1.55] ${INK}`}>{step.body}</p>
@@ -715,7 +693,6 @@ export default function SponsorOnePager() {
 
   const tocItems = [
     { id: 'how-it-works', label: 'How it works' },
-    { id: 'about', label: 'About' },
     { id: 'how', label: 'What sets us apart' },
     { id: 'stations', label: 'Services' },
     { id: 'pricing', label: 'Pricing' },
@@ -848,26 +825,11 @@ export default function SponsorOnePager() {
         <Panel id="how-it-works">
           <SectionHead
             kicker="How it works"
-            title="How your sales team turns the lounge into revenue"
-            sub="At your conference, we give your sales team a new sponsorship to sell, and we work with your events team to run it from load-in to teardown."
+            title="How the lounge makes you money"
+            sub="Your sales team gets a premium sponsorship to sell. Your events team gets a partner that runs it with them, from start to finish."
           />
           <HowRail confName={conf.name} />
 
-        </Panel>
-
-        {/* ══════════ ABOUT SHORTCUT ══════════
-            Who we are, below How it works (Will, 2026-10-16): the website's
-            "In the room" reel of real office visits, then the website
-            heroes' trust line. */}
-        <Panel id="about" tone="tint">
-          <SectionHead
-            kicker="About Shortcut"
-            title="The premier on-site corporate wellness partner in the US"
-          />
-          <div className="-mx-6 md:-mx-10 lg:-mx-[100px]">
-            <SponsorReels />
-          </div>
-          <TrustLine />
         </Panel>
 
         {/* ══════════ WHAT SETS SHORTCUT APART (the website's bento) ══════════ */}

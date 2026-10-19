@@ -93,7 +93,7 @@ const G = '/conference/onepager';
 
 export const SPONSOR_SERVICES: SponsorServiceDef[] = [
   {
-    id: 'reset', name: 'The Reset Zone', lower: 'the Reset Zone',
+    id: 'reset', name: 'The Massage Wellness Zone', lower: 'the Massage Wellness Zone',
     image: `${S}/massage.png`, cropArt: true, tint: '#9EFAFF',
     meta: 'Chair massage · 15 to 20 min',
     body: 'We turn any space into a spa for the day. Chairs, screens, scents and setup, all ours.',
