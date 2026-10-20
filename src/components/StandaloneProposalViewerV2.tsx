@@ -4,7 +4,8 @@ import { format } from 'date-fns';
 import { ChevronDown, ChevronRight, ChevronLeft, ArrowLeft, X, Download, History as HistoryIcon, HelpCircle, MapPin, Calendar, Users, Check, Play, FileText, Image as ImageIcon, Sparkles, CheckCircle2, MoreHorizontal, Pencil } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { LoadingSpinner } from './LoadingSpinner';
-import { generatePDF } from '../utils/pdf';
+import { flushSync } from 'react-dom';
+import { PdfModeContext } from './proposal/shared/pdfMode';
 import { parseLocalDate } from '../utils/dateHelpers';
 import {
   calculateServiceResults,
@@ -179,9 +180,15 @@ const HeaderMenuItem: React.FC<{
 const StandaloneProposalViewerV2: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
+  // PDF mode: see handleDownloadPdf. Declared up here because it overrides
+  // the responsive flags: the PDF is always the desktop layout, whatever
+  // screen it is downloaded from (and print re-runs width queries too late
+  // for React to switch trees back).
+  const forcedPdf = new URLSearchParams(location.search).has('pdf');
+  const [pdfMode, setPdfMode] = useState(forcedPdf);
   // Responsive flags drive inline-style switches for the major layout
   // surfaces (body grid columns, hero type scale, card padding).
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobile() && !pdfMode;
   // Website nav: transparent over the navy hero at the top of the page,
   // frosted white with a hairline once the client scrolls.
   const [navScrolled, setNavScrolled] = useState(false);
@@ -194,7 +201,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
-  const isCompact = useIsCompact();
+  const isCompact = useIsCompact() && !pdfMode;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [proposal, setProposal] = useState<any>(null);
@@ -980,24 +987,58 @@ const StandaloneProposalViewerV2: React.FC = () => {
     [id, proposal, isApproved]
   );
 
-  // ---- PDF download — same flow as V1: html2canvas on #proposal-content
+  // ---- PDF download: the browser's own print engine, in PDF mode.
+  // PDF mode (`pdfMode`, the `pv-static` class) renders the page as a still
+  // document for a client to review (Will, 2026-10-20): photos only (no
+  // video frames), every animation in its final state, and no controls
+  // (approve, request changes, help, download, demo). The print stylesheet
+  // in proposal-refresh.css sizes pages to the 1440px desktop layout and
+  // keeps cards whole across page breaks.
+  //
+  // Print, not html2canvas: html2canvas re-implements layout and got it
+  // wrong here (object-fit images stretched, button text off center, and
+  // a client logo from a host without CORS dropped). The print engine is the
+  // browser's own renderer, so the PDF matches the page, text stays real
+  // text, and cross-origin images print. Ctrl+P gets the same document via
+  // beforeprint. `?pdf=1` holds PDF mode on, for headless rendering.
   const [isDownloading, setIsDownloading] = useState(false);
+  useEffect(() => {
+    const before = () => flushSync(() => setPdfMode(true));
+    const after = () => { if (!forcedPdf) setPdfMode(false); };
+    window.addEventListener('beforeprint', before);
+    window.addEventListener('afterprint', after);
+    return () => {
+      window.removeEventListener('beforeprint', before);
+      window.removeEventListener('afterprint', after);
+    };
+  }, [forcedPdf]);
   const handleDownloadPdf = useCallback(async () => {
     if (!displayData || isDownloading) return;
+    const prevTitle = document.title;
     try {
       setIsDownloading(true);
-      const safeName = (displayData.clientName || 'proposal')
-        .replace(/\s+/g, '-')
-        .toLowerCase();
-      const filename = `${safeName}-proposal.pdf`;
-      await generatePDF('proposal-content', filename);
+      flushSync(() => setPdfMode(true));
+      // The still version swaps videos for photos: let those load first.
+      const root = document.getElementById('proposal-content');
+      if (root) {
+        const pending = Array.from(root.querySelectorAll('img')).filter((img) => !img.complete);
+        await Promise.race([
+          Promise.all(pending.map((img) => new Promise((r) => { img.addEventListener('load', r, { once: true }); img.addEventListener('error', r, { once: true }); }))),
+          new Promise((r) => setTimeout(r, 5000)),
+        ]);
+      }
+      // The print dialog names the file after the page title.
+      document.title = `${(displayData.clientName || 'Shortcut')} proposal`;
+      window.print();
     } catch (err) {
       console.error('PDF download failed:', err);
       alert('We hit a snag generating the PDF. Please try again.');
     } finally {
+      document.title = prevTitle;
+      if (!forcedPdf) setPdfMode(false);
       setIsDownloading(false);
     }
-  }, [displayData, isDownloading]);
+  }, [displayData, isDownloading, forcedPdf]);
 
   // ---- Survey response check — hide the CTA if we already have a response
   const [hasSurveyResponse, setHasSurveyResponse] = useState(false);
@@ -1134,7 +1175,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
     const mPhotos = dbPerService;
     // Real event photo first; never the flat-background cover — fall straight
     // to curated office stock when there's no event photo.
-    const heroSrc = mPhotos[0]?.src || '/proposal-refresh/massage-office.png';
+    const heroPhoto = mPhotos.find((p) => !isVideoSrc(p.src))?.src || '/proposal-refresh/massage-office.png';
+    const heroSrc = pdfMode ? heroPhoto : mPhotos[0]?.src || '/proposal-refresh/massage-office.png';
     const openLightbox = (images: string[], start = 0, caps?: string[]) =>
       setMLightbox(images.length ? { images, caps, index: start } : null);
     const lbStep = (d: number) =>
@@ -1210,7 +1252,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
     ];
 
     return (
-      <div className="pv-root pvm-page" id="proposal-content">
+      <div className={`pv-root pvm-page${pdfMode ? ' pv-static' : ''}`} id="proposal-content">
         {/* HERO */}
         <div className="pvm-hero">
           {isVideoSrc(heroSrc) ? (
@@ -1726,12 +1768,13 @@ const StandaloneProposalViewerV2: React.FC = () => {
                     ) : (
                       <button
                         type="button"
-                        className="lt-btn lt-btn-coral lt-btn-sm"
+                        className="lt-btn lt-btn-coral lt-btn-sm pv-pdf-keep"
                         disabled={isApproved}
                         onClick={() => setAddOnSelected(a.id, true)}
                         style={{ flex: 'none', cursor: isApproved ? 'default' : 'pointer' }}
                       >
-                        + Add
+                        <span className="pv-live-only">+ Add</span>
+                        <span className="pv-pdf-only">Optional</span>
                       </button>
                     )}
                     </span>
@@ -1928,13 +1971,15 @@ const StandaloneProposalViewerV2: React.FC = () => {
 
   // ---- Main render -------------------------------------------------------
   return (
+    <PdfModeContext.Provider value={pdfMode}>
     <div
-      className="pv-page pv-page--client pv-root"
+      className={`pv-page pv-page--client pv-root${pdfMode ? ' pv-static' : ''}`}
       id="proposal-content"
       style={{ minHeight: '100vh', background: '#fff' }}
     >
       {/* ===== Sticky header ===== */}
       <header
+        className="pv-topbar"
         style={{
           // Desktop: fixed like the design's .pv-bar, so its padding change
           // on scroll never reflows the page beneath it.
@@ -2089,6 +2134,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   <>
                     <button
                       type="button"
+                      data-pdf-hide
                       onClick={() => setMenuOpen((v) => !v)}
                       aria-haspopup="menu"
                       aria-expanded={menuOpen}
@@ -2337,6 +2383,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
       >
         <div style={{ maxWidth: 1232, margin: isCompact ? '-120px auto 0' : '-220px auto 0' }}>
         <ProposalGallery
+          staticMode={pdfMode}
           photos={(() => {
             // Prefer photos explicitly tagged 'hero' in the gallery admin (the
             // top-of-proposal mosaic). If none are set, fall back to THIS
@@ -3444,12 +3491,13 @@ const StandaloneProposalViewerV2: React.FC = () => {
                         ) : (
                           <button
                             type="button"
-                            className="lt-btn lt-btn-coral lt-btn-sm"
+                            className="lt-btn lt-btn-coral lt-btn-sm pv-pdf-keep"
                             disabled={isApproved}
                             onClick={() => setAddOnSelected(a.id, true)}
                             style={{ cursor: isApproved ? 'default' : 'pointer' }}
                           >
-                            + Add to proposal
+                            <span className="pv-live-only">+ Add to proposal</span>
+                            <span className="pv-pdf-only">Optional</span>
                           </button>
                         )}
                         </span>
@@ -3583,6 +3631,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 </div>
               </div>
               <p
+                data-pdf-hide
                 style={{
                   fontFamily: T.fontD,
                   fontSize: 14,
@@ -4150,6 +4199,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
               Request changes
             </button>
             <div
+              data-pdf-hide
               style={{
                 fontFamily: T.fontD,
                 fontSize: 13,
@@ -4203,6 +4253,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
               Replaces the old MP4 SignupLinkCard. */}
           <div
             ref={demoRef}
+            data-pdf-hide
             style={{
               transition: 'opacity .5s ease, transform .5s ease',
               opacity: isMobile || demoRevealed ? 1 : 0,
@@ -4284,6 +4335,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
         previousNote=""
       />
     </div>
+    </PdfModeContext.Provider>
   );
 };
 

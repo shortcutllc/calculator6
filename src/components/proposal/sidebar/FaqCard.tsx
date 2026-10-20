@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePdfMode } from '../shared/pdfMode';
 import { ChevronDown, ArrowUpRight } from 'lucide-react';
 import { Eyebrow, T } from '../shared/primitives';
 
@@ -27,6 +28,7 @@ const FAQ_ITEMS: { q: string; a: string }[] = [
 
 const FaqCard: React.FC = () => {
   const [openIdx, setOpenIdx] = useState<number | null>(0);
+  const pdf = usePdfMode();
   return (
     <div
       style={{
@@ -41,7 +43,8 @@ const FaqCard: React.FC = () => {
 
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {FAQ_ITEMS.map((item, i) => {
-          const open = openIdx === i;
+          // The PDF opens every answer.
+          const open = pdf || openIdx === i;
           return (
             <div
               key={item.q}
@@ -102,7 +105,7 @@ const FaqCard: React.FC = () => {
         })}
       </div>
 
-      <a
+      {!pdf && <a
         href="mailto:hello@getshortcut.co?subject=Question%20about%20my%20proposal"
         style={{
           display: 'inline-flex',
@@ -118,7 +121,7 @@ const FaqCard: React.FC = () => {
       >
         Ask us anything
         <ArrowUpRight size={14} />
-      </a>
+      </a>}
     </div>
   );
 };

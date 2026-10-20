@@ -64,9 +64,12 @@ interface ProposalGalleryProps {
   photos: GalleryPhoto[];
   /** Fill out to 5 tiles from curated stock when the real set is thin. Default true. */
   topUp?: boolean;
+  /** PDF mode: stills only (videos are left out, the curated stock tops the
+   *  mosaic back up) and no "Show all photos" control. */
+  staticMode?: boolean;
 }
 
-const ProposalGallery: React.FC<ProposalGalleryProps> = ({ photos, topUp = true }) => {
+const ProposalGallery: React.FC<ProposalGalleryProps> = ({ photos, topUp = true, staticMode = false }) => {
   const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(0);
 
@@ -74,7 +77,7 @@ const ProposalGallery: React.FC<ProposalGalleryProps> = ({ photos, topUp = true 
   const seen = new Set<string>();
   const merged: GalleryPhoto[] = [];
   for (const p of [...photos, ...(topUp ? FALLBACK : [])]) {
-    if (!p.src || seen.has(p.src)) continue;
+    if (!p.src || seen.has(p.src) || (staticMode && isVideo(p.src))) continue;
     seen.add(p.src);
     merged.push(p);
   }
@@ -157,10 +160,10 @@ const ProposalGallery: React.FC<ProposalGalleryProps> = ({ photos, topUp = true 
           </button>
         ))}
 
-        <button className="pv-show-all" onClick={() => openAt(0)}>
+        {!staticMode && <button className="pv-show-all" onClick={() => openAt(0)}>
           {GRID_ICON}
           Show all photos
-        </button>
+        </button>}
       </div>
 
       {/* Lightbox */}

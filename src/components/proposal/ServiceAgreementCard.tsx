@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { usePdfMode } from './shared/pdfMode';
 import { FileText, ChevronDown, X } from 'lucide-react';
 import { Eyebrow, CardHeading, T } from './shared/primitives';
 import ServiceAgreement from '../ServiceAgreement';
@@ -14,7 +15,10 @@ interface ServiceAgreementCardProps {
 }
 
 const ServiceAgreementCard: React.FC<ServiceAgreementCardProps> = ({ clientName }) => {
-  const [expanded, setExpanded] = useState(false);
+  const pdf = usePdfMode();
+  const [expandedState, setExpanded] = useState(false);
+  // The PDF shows the terms summary open.
+  const expanded = expandedState || pdf;
   const [showFullModal, setShowFullModal] = useState(false);
 
   // Close modal on Esc
@@ -42,7 +46,7 @@ const ServiceAgreementCard: React.FC<ServiceAgreementCardProps> = ({ clientName 
           <h4>Service agreement</h4>
           <p>Payment, cancellation, on-site logistics</p>
         </div>
-        <span className="qv">
+        <span className="qv" data-pdf-hide>
           {expanded ? 'Hide' : 'Quick view'}
           <ChevronDown
             size={15}
@@ -65,6 +69,7 @@ const ServiceAgreementCard: React.FC<ServiceAgreementCardProps> = ({ clientName 
         </p>
         <button
           type="button"
+          data-pdf-hide
           onClick={() => setShowFullModal(true)}
           style={{
             display: 'inline-flex',

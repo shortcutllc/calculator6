@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePdfMode } from '../shared/pdfMode';
 import { Mail, Circle, Sparkles } from 'lucide-react';
 import { Eyebrow, T } from '../shared/primitives';
 
@@ -65,7 +66,10 @@ const NOTE_CLAMP = 150;
 
 const AccountTeamCard: React.FC<AccountTeamCardProps> = ({ email, note }) => {
   const member = resolveTeamMember(email);
-  const [noteExpanded, setNoteExpanded] = useState(false);
+  const pdf = usePdfMode();
+  const [noteExpandedState, setNoteExpanded] = useState(false);
+  // The PDF shows the whole note.
+  const noteExpanded = noteExpandedState || pdf;
   const trimmedNote = (note || '').trim();
   const isLongNote = trimmedNote.length > NOTE_CLAMP;
   const shownNote =
@@ -156,7 +160,7 @@ const AccountTeamCard: React.FC<AccountTeamCardProps> = ({ email, note }) => {
             }}
           >
             {shownNote}
-            {isLongNote && (
+            {isLongNote && !pdf && (
               <>
                 {' '}
                 <button

@@ -569,3 +569,73 @@
     /* Full-bleed width would make the map 526px tall in a 300px well. */
     .pv-bento .wd-map { width: auto; height: 88%; }
   }
+
+/* ── PDF mode ──────────────────────────────────────────────────
+   `.pv-static` is on the viewer root only while the PDF is captured
+   (StandaloneProposalViewerV2 handleDownloadPdf). The page becomes a still
+   document for a client to review (Will, 2026-10-20): no controls, nothing
+   mid-animation, no video. html2canvas restarts CSS animations in its
+   cloned copy of the page, so without this the hero words and bento bars
+   are caught at their first frame. */
+.pv-pdf-only { display: none; }
+.pv-static .pv-pdf-only { display: inline; }
+.pv-static .pv-live-only { display: none !important; }
+
+/* Controls. "+ Add" buttons stay (pv-pdf-keep) and read as a quiet label. */
+.pv-static .lt-btn:not(.pv-pdf-keep),
+.pv-static .pv-hero-cta,
+.pv-static .pv-show-all,
+.pv-static .pv-final,
+.pv-static .pv-demo-pill,
+.pv-static [data-pdf-hide],
+.pv-static .pvm-cta-bar,
+.pv-static .pvm-footer,
+.pv-static .pvm-scrim,
+.pv-static .pvm-pricesheet,
+.pv-static .pvm-lb,
+.pv-static .pvm-pl-btn,
+.pv-static .pvm-agree .chev { display: none !important; }
+.pv-static .lt-btn.pv-pdf-keep { background: #F1F6F5 !important; color: #45596A !important; border-color: transparent !important; box-shadow: none !important; }
+
+/* Motion, in its settled state (the reduced-motion end states above). */
+.pv-static *, .pv-static *::before, .pv-static *::after { transition: none !important; }
+.pv-static .pv-h1-w, .pv-static .pv-hero-pill { animation: none !important; opacity: 1 !important; transform: none !important; }
+.pv-static .pv-bento .mv-bar i, .pv-static .pv-bento .mv-tick,
+.pv-static .pv-bento .wd-mf-bar i, .pv-static .pv-bento .wd-mf-tick,
+.pv-static .pv-bento .wd-pin, .pv-static .pv-bento .wd-pin::after { animation: none !important; opacity: 1 !important; transform: none !important; }
+.pv-static .pv-bento .wd-mf { transform: translate(-50%,-50%) scale(.72) !important; }
+.pv-static .pv-bento .wd-map { transform: translate(-50%,-50%) !important; }
+
+/* The fixed header prints once, at the top, not over every page. */
+.pv-static .pv-topbar { position: absolute !important; background: transparent !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+
+/* ── Print: the PDF ─────────────────────────────────────────────
+   "Download PDF" and Ctrl+P both print the page in PDF mode. Pages are
+   the 1440px desktop layout in letter proportions (8.5 by 11), so the PDF
+   is the page as designed. Colors print as designed, and cards never split
+   across a page break. */
+@media print {
+  /* The default page, not a named one: the viewer picks its desktop or
+     phone layout with matchMedia width queries, and those re-run against
+     the print page's width. A 1440px page keeps the desktop layout. */
+  @page { size: 1440px 1864px; margin: 0; }
+  html, body { background: #fff !important; margin: 0 !important; }
+  .pv-root, .pv-root * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .pv-root .pv-svc,
+  .pv-root .pv-price,
+  .pv-root .pv-bcard,
+  .pv-root .pv-gallery,
+  .pv-root .pv-bento-row,
+  .pv-root .pvm-svc { break-inside: avoid; }
+  .pv-root h1, .pv-root h2, .pv-root h3 { break-after: avoid; }
+  /* Section labels and heads stay with what they introduce. */
+  .pv-root .pv-sec-label, .pv-root .pv-bento-head { break-after: avoid; }
+  .pv-root .pv-bento-head { break-inside: avoid; }
+}
+
+/* PDF mode, layout: the sidebar's sticky wrapper is sized for scrolling,
+   which leaves a gap on paper; the hero service pills lose their link
+   arrows (nothing to click). */
+.pv-static .pv-price-dock { height: auto !important; }
+.pv-static .pv-dock-sticky { position: static !important; }
+.pv-static .pv-hero-pill svg { display: none !important; }

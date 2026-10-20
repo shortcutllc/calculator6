@@ -13,11 +13,17 @@ export const generatePDF = async (elementId: string, filename: string) => {
     const scale = 2; // Higher scale for better quality
     const scaledWidth = width * scale;
 
+    // allowTaint stays false. With it on, html2canvas skips its taint check,
+    // so one cross-origin frame (a gallery video was the case, 2026-10-20)
+    // taints the whole canvas and toDataURL throws "Tainted canvases may not
+    // be exported": no PDF at all. Off, an unreadable asset is left blank and
+    // the rest of the proposal still exports. useCORS reloads images with
+    // CORS. (The V2 viewer no longer uses this: it prints instead.)
     const canvas = await html2canvas(element, {
       scale: scale,
       useCORS: true,
       logging: false,
-      allowTaint: true,
+      allowTaint: false,
       backgroundColor: '#ffffff',
       windowWidth: width,
       windowHeight: element.scrollHeight,
@@ -31,17 +37,21 @@ export const generatePDF = async (elementId: string, filename: string) => {
       }
     });
 
-    const imgData = canvas.toDataURL('image/png');
+    // JPEG, not PNG: a full V2 proposal at 2x is one tall image, and as a PNG
+    // it came out near 150 MB (2026-10-20). High-quality JPEG on the white
+    // page keeps text sharp at a size that can be emailed.
+    const imgData = canvas.toDataURL('image/jpeg', 0.92);
     
     // Use A4 format with proper scaling
     const pdf = new jsPDF({
       orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
       unit: 'px',
-      format: [canvas.width, canvas.height]
+      format: [canvas.width, canvas.height],
+      compress: true
     });
 
     // Add image with proper dimensions
-    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+    pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height, undefined, 'FAST');
     pdf.save(filename);
   } catch (error) {
     console.error('Error generating PDF:', error);

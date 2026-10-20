@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePdfMode } from './shared/pdfMode';
 import { ChevronDown, Image as ImageIcon, RefreshCw } from 'lucide-react';
 import ServiceCard, { ServiceCardProps } from './ServiceCard';
 import { FrequencyPicker } from './shared/primitives';
@@ -57,7 +58,10 @@ const ServiceCardRefresh: React.FC<ServiceCardProps> = (props) => {
     showHours = false,
   } = props;
 
-  const [descExpanded, setDescExpanded] = useState(false);
+  const pdf = usePdfMode();
+  const [descExpandedState, setDescExpanded] = useState(false);
+  // The PDF shows the whole description.
+  const descExpanded = descExpandedState || pdf;
   const [dayOpen, setDayOpen] = useState(false);
 
   const type = service.serviceType;
@@ -133,7 +137,7 @@ const ServiceCardRefresh: React.FC<ServiceCardProps> = (props) => {
         <div className="pv-svc-photo">
           {cover && <img src={cover} alt={displayName} />}
           <span className="pv-photo-label">{displayName}</span>
-          {photoCount > 0 && (
+          {photoCount > 0 && !pdf && (
             <span
               className="pv-photo-badge"
               onClick={() => {
@@ -172,11 +176,13 @@ const ServiceCardRefresh: React.FC<ServiceCardProps> = (props) => {
               ) : (
                 <button
                   type="button"
-                  className="lt-btn lt-btn-coral lt-btn-sm"
+                  className="lt-btn lt-btn-coral lt-btn-sm pv-pdf-keep"
                   onClick={() => onToggleInclude && onToggleInclude(true)}
                   style={{ marginLeft: 'auto', cursor: 'pointer' }}
                 >
-                  + Add to proposal
+                  {/* In the PDF (.pv-static) this reads as a label, not a control. */}
+                  <span className="pv-live-only">+ Add to proposal</span>
+                  <span className="pv-pdf-only">Not included</span>
                 </button>
               ))}
           </div>
@@ -204,7 +210,7 @@ const ServiceCardRefresh: React.FC<ServiceCardProps> = (props) => {
           <p className="pv-desc-label">Description</p>
           <p className="pv-svc-desc">
             {shownDesc}{' '}
-            {isLongDesc && (
+            {isLongDesc && !pdf && (
               <span className="pv-readmore" onClick={() => setDescExpanded((v) => !v)} role="button">
                 {descExpanded ? 'Read less' : 'Read more'}
               </span>
@@ -333,7 +339,7 @@ const ServiceCardRefresh: React.FC<ServiceCardProps> = (props) => {
       )}
 
       {/* "What a … day looks like" collapse */}
-      {(dayContent || photoCount > 0 || isCLE) && (
+      {(dayContent || photoCount > 0 || isCLE) && !pdf && (
         <>
           <div className="pv-collapse" onClick={() => setDayOpen((v) => !v)} role="button">
             <ChevronDown
