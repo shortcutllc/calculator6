@@ -34,6 +34,7 @@ const LEAD_RECORD = [
 const CHECKLIST = [
   'Certificates of insurance to the venue',
   'Show orders and freight',
+  'A layout for your floor plan',
   'Lounge build and signage',
   'Our lead on site',
   'Setup and cleanup',
@@ -43,7 +44,7 @@ export default function SponsorBento({ conferenceName, dateLabel }: {
   conferenceName: string; dateLabel: string;
 }) {
   return (
-    <div className="pv-root !bg-transparent [&_.pv-bento]:mt-0">
+    <div className="pv-root !bg-transparent [&_.pv-bento]:mt-0 [&_.mv-live]:!bg-[#EEF2F1] [&_.mv-live]:!text-[#45596A]">
       <div>
         <WhyShortcutBento
           label="What sets Shortcut apart"
@@ -56,6 +57,7 @@ export default function SponsorBento({ conferenceName, dateLabel }: {
           cityTitle={<>One vendor.<br />Every venue.</>}
           cityBody="Hotels, convention centers and offsites, coast to coast."
           handledTitle="All the logistics, handled."
+          statusLabel="Example"
           checklist={CHECKLIST}
           extraRowFirst
           extraRow={

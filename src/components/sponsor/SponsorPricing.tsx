@@ -199,7 +199,7 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
     days ? `Days: ${days}` : '',
     ...lines.map((l) => `${l.label}: ${l.option.name}${days ? ` (${money(l.cost)})` : ''}`),
     addOnLines.length ? `Add-ons: ${addOnLines.map((a) => a.name).join(', ')}` : '',
-    fee ? `Estimated Shortcut fee: ${money(fee)}` : '',
+    fee ? `Our fee, estimated: ${money(fee)}` : '',
     sponsorPrice ? `Our sponsor price: ${money(sponsorPrice)}` : '',
   ].filter(Boolean).join('\n');
   const mailto = `mailto:${contactEmail}?subject=${encodeURIComponent(`Wellness lounge sponsorship at ${confName}`)}&body=${encodeURIComponent(mailBody)}`;
@@ -389,7 +389,7 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
                 </div>
                 <div className="flex-none text-right">
                   <div className="whitespace-nowrap text-[28px] font-extrabold leading-none tracking-[-.03em] text-[#003756]">{fee ? money(fee) : '$0'}</div>
-                  <div className={`mt-1.5 text-[11.5px] font-extrabold uppercase tracking-[.08em] ${META}`}>Estimated Shortcut fee</div>
+                  <div className={`mt-1.5 text-[11.5px] font-extrabold uppercase tracking-[.08em] ${META}`}>Your cost, estimated</div>
                 </div>
               </div>
             )}
@@ -490,7 +490,7 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
           </section>
 
           <p className={`m-0 -mt-8 text-[14px] font-semibold leading-[1.5] ${META}`}>
-            A sample of how pricing could work, from our standard conference rates. Setup, cleanup and certificates of insurance are included, and add-ons are priced in the fixed fee we quote for your show in writing.
+            A sample of how pricing could work. You set the sponsor price, and our fee is fixed in writing before you sell. Setup, cleanup, certificates of insurance and your add-ons are all inside that fee.
           </p>
         </div>
 
@@ -520,12 +520,12 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
             </div>
 
             <div className="mt-[18px] flex items-baseline justify-between gap-3 border-t border-white/[.16] pt-4">
-              <span className="text-[15px] font-bold">Estimated Shortcut fee</span>
+              <span className="text-[15px] font-bold">Your cost, estimated</span>
               <span className="text-[20px] font-extrabold tracking-[-.02em] tabular-nums">{money(fee)}</span>
             </div>
 
             <div className="mt-5">
-              <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-white/60">Your sponsor price</p>
+              <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-white/60">Your price</p>
               <div className="mt-2.5 grid grid-cols-3 gap-2">
                 {PRICE_POINTS.map((p) => {
                   const on = !priceIsCustom && price === p;
@@ -552,7 +552,7 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
             </div>
 
             <div className="mt-[18px] flex items-baseline justify-between gap-3 border-t border-white/[.16] pt-4">
-              <span className="text-[15px] font-bold">Conference net</span>
+              <span className="text-[15px] font-bold">Your margin</span>
               <span className="text-[34px] font-extrabold leading-none tracking-[-.03em] text-[#9EFAFF] tabular-nums">{net != null ? money(net) : '$0'}</span>
             </div>
             {net != null && appts > 0 && (
@@ -562,7 +562,7 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
             )}
 
             <div className="mt-5 flex flex-col gap-3 rounded-2xl bg-white/[.08] px-4 py-3.5">
-              <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-white/60">What your sponsor gets</p>
+              <p className="m-0 text-[12px] font-extrabold uppercase tracking-[.09em] text-white/60">What your sales team tells sponsors</p>
               {WHAT_THEY_GET.map((t) => (
                 <div key={t} className="flex items-center gap-3">
                   <span className="grid h-6 w-6 flex-none place-items-center rounded-full bg-[#FEDC64]"><Check /></span>

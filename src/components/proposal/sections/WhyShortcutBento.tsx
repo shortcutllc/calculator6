@@ -98,6 +98,8 @@ export interface WhyShortcutBentoProps {
   /** Render `extraRow` straight after the wide card, before the three-across
    *  (the sponsor page groups its tech cards first). */
   extraRowFirst?: boolean;
+  /** The dashboard's status pill. A page showing sample data says so. */
+  statusLabel?: string;
 }
 
 const WhyShortcutBento: React.FC<WhyShortcutBentoProps> = ({
@@ -117,6 +119,7 @@ const WhyShortcutBento: React.FC<WhyShortcutBentoProps> = ({
   checklist = CHECKLIST,
   extraRow,
   extraRowFirst = false,
+  statusLabel = 'Live',
 }) => {
   const ref = useRef<HTMLDivElement | null>(null);
   const [inView, setInView] = useState(false);
@@ -165,7 +168,7 @@ const WhyShortcutBento: React.FC<WhyShortcutBentoProps> = ({
                 <span className="mv-hd-t">{eventName}</span>
                 <span className="mv-hd-s">{eventWhen}</span>
               </span>
-              <span className="mv-live">Live</span>
+              <span className="mv-live">{statusLabel}</span>
             </div>
             <div className="mv-stat">
               <span className="mv-stat-n">

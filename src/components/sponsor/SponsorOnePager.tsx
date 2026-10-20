@@ -111,7 +111,7 @@ const HOW_STEPS: {
   },
   {
     label: '02', title: 'You sell it and keep the margin', visual: 'invoice', tint: 'bg-[#9EFAFF]',
-    body: 'You set the price. We bill only after your sponsor signs.',
+    body: 'You set the price. We bill you only after your sponsor signs.',
   },
   {
     label: '03', title: 'An activation attendees love', visual: 'photo',
@@ -387,11 +387,11 @@ function HowVisualBlock({ step, confName }: { step: (typeof HOW_STEPS)[number]; 
           </div>
           <div className="h-px bg-white/[.12] my-2.5" />
           <div className="flex justify-between gap-2 text-[12.5px] text-white/75">
-            <span>Shortcut costs</span>
+            <span>Your cost</span>
             <span className="text-white">&minus;$10,000</span>
           </div>
           <div className="mt-2.5 pt-2.5 border-t border-white/[.12] flex items-baseline justify-between gap-2">
-            <span className="text-[14px] font-bold text-white whitespace-nowrap">Conference net</span>
+            <span className="text-[14px] font-bold text-white whitespace-nowrap">Your margin</span>
             <span className="text-[26px] font-extrabold leading-none tracking-[-.02em] text-shortcut-teal tabular-nums">$40,000</span>
           </div>
         </div>
@@ -400,7 +400,7 @@ function HowVisualBlock({ step, confName }: { step: (typeof HOW_STEPS)[number]; 
         <div className="w-full rounded-[18px] bg-white p-4 shadow-[0_12px_36px_rgba(3,34,50,.16)]">
           <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-[#E2E9E8]">
             <span className="text-[13.5px] font-extrabold text-shortcut-blue">Your sponsor&rsquo;s leads</span>
-            <span className="h-6 inline-flex items-center px-2.5 rounded-full bg-[#E6F6EF] text-[10.5px] font-extrabold uppercase tracking-[.06em] text-[#137A52]">Live</span>
+            <span className="h-6 inline-flex items-center px-2.5 rounded-full bg-[#EEF2F1] text-[10.5px] font-extrabold uppercase tracking-[.06em] text-[#45596A]">Example</span>
           </div>
           <div className="mt-1">
             {DEMO_LEADS.map((l) => (
@@ -825,7 +825,7 @@ export default function SponsorOnePager() {
         <Panel id="how-it-works">
           <SectionHead
             kicker="How it works"
-            title="How the lounge makes you money"
+            title="A new sponsorship, ready to sell"
             sub="Your sales team gets a premium sponsorship to sell. Your events team gets a partner that runs it with them, from start to finish."
           />
           <HowRail confName={conf.name} />
