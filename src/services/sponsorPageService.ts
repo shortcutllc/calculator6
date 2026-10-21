@@ -183,7 +183,11 @@ export async function updateSponsorPage(id: string, input: SponsorPageInput): Pr
 export async function uploadSponsorLogo(file: File): Promise<string> {
   const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '');
   const path = `sponsor-logos/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const bucket = 'generic-landing-page-assets';
+  // client-logos, where proposal logos go: public, 10 MB, and any signed-in
+  // staff user may upload. The 'generic-landing-page-assets' bucket this used
+  // to name was never created, so every upload failed with "Bucket not
+  // found" (2026-10-21).
+  const bucket = 'client-logos';
   const { error } = await supabase.storage.from(bucket).upload(path, file, { contentType: file.type || undefined });
   if (error) throw new SponsorPageError(`Could not upload the logo: ${error.message}`);
   return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;
