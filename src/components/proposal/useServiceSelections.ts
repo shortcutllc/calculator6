@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { summaryShape } from './summaryGroups';
 
 // Per-service selection state used by the redesigned viewers.
 // Keyed by `${location}|${date}|${serviceIndex}` so the same proposal data
@@ -17,6 +18,9 @@ export interface ServiceSelectionRow {
   date: string;
   unitCost: number;
   lineCost: number;
+  /** Per-unit price before any discount (per-service, recurring or
+   *  conference), so summary rows add up to the Subtotal line. */
+  originalUnitCost: number;
   frequency: number;
   included: boolean;
 }
@@ -256,6 +260,7 @@ export function useServiceSelections({
             date,
             unitCost: unit,
             lineCost,
+            originalUnitCost: originalUnit,
             frequency: st.frequency,
             included: st.included,
           });
@@ -321,7 +326,13 @@ export function resolveVolumeDiscount(data: any): number | null {
   // Staff explicitly turned it off: no discount, full stop.
   if (data.isAutoRecurring === false) return 0;
   const v = data.autoRecurringDiscount;
-  if (typeof v !== 'number' || !Number.isFinite(v)) return null; // no opinion -> auto tiers
+  if (typeof v !== 'number' || !Number.isFinite(v)) {
+    // No staff opinion. A conference or multi-day event gets a flat 10%
+    // (Will, 2026-10-21): its days are one event, so the 4+/9+ tiers, which
+    // count each service-day as an event, would hand a three-day,
+    // three-service conference 15%. Everything else uses the auto tiers.
+    return summaryShape(data.services, data.eventType).multiDay ? 10 : null;
+  }
   // CRITICAL: recalculateServiceTotals BAKES the staff discount into each
   // service cost and records the delta as autoRecurringSavings. The hook sums
   // those already-discounted costs, so re-applying the percentage here charges

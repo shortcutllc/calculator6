@@ -4521,6 +4521,7 @@ const ProposalViewerV2: React.FC = () => {
               date: r.date,
               unitCost: r.lineCost,
               lineCost: r.lineCost,
+              originalUnitCost: r.lineCost,
               frequency: 1,
               included: true,
             }))}

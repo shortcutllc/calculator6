@@ -160,6 +160,8 @@ export interface ProposalData {
   clientLogoUrl?: string;
   officeLocation?: string; // Legacy support
   officeLocations?: { [location: string]: string }; // New: multiple office locations
+  /** 'conference' = days of one event (summary by day, flat 10%); unset = office. */
+  eventType?: 'conference';
   eventDates: string[];
   locations: string[];
   services: {

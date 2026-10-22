@@ -568,6 +568,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
   const isKirstenOnly =
     serviceTypes.length > 0 && serviceTypes.every(isKirstenService);
 
+  // A conference or multi-day event (proposal/summaryGroups): its discount is
+  // a flat 10% on one event, not a yearly volume tier.
+  const isMultiDayEvent = summaryShape(displayData?.services, displayData?.eventType).multiDay;
+
   // ---- Derived stats ------------------------------------------------------
   const stats = useMemo(() => {
     const services = displayData?.services || {};
@@ -1245,7 +1249,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
     const mSummaryGroups = buildSummaryGroups(
       summary.rows, mShape, formatShortDate,
       (t) => SERVICE_DISPLAY[t] || t,
-      (r) => r.lineCost
+      (r) => r.originalUnitCost * r.frequency
     );
     const MOBILE_LOGOS = [
       'DraftKings',
@@ -1719,7 +1723,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 {row.frequency > 1 ? ` · ×${row.frequency}/yr` : ''}{' '}
                 <small>· {row.location}</small>
               </span>
-              <span className="v">{formatCurrency(row.lineCost)}</span>
+              <span className="v">{formatCurrency(row.originalUnitCost * row.frequency)}</span>
             </div>
           ))}
           {customLineItems
@@ -1832,7 +1836,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
           )}
           {summary.discountPercent > 0 && (
             <div className="pvm-pl discount">
-              <span className="k">Volume discount · {summary.discountPercent}%</span>
+              <span className="k">{isMultiDayEvent ? 'Conference discount' : 'Volume discount'} · {summary.discountPercent}%</span>
               <span className="v">−{formatCurrency(summary.discountAmount)}</span>
             </div>
           )}
@@ -1842,7 +1846,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
             displayData.autoRecurringSavings > 0 && (
               <div className="pvm-pl discount">
                 <span className="k">
-                  Recurring discount · {displayData.autoRecurringDiscount}%
+                  {isMultiDayEvent ? 'Conference discount' : 'Recurring discount'} · {displayData.autoRecurringDiscount}%
                 </span>
                 <span className="v">
                   −{formatCurrency(displayData.autoRecurringSavings)}
@@ -3289,7 +3293,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                     color: T.aqua,
                   }}
                 >
-                  <span>Volume discount · {summary.discountPercent}%</span>
+                  <span>{isMultiDayEvent ? 'Conference discount' : 'Volume discount'} · {summary.discountPercent}%</span>
                   <span>−{formatCurrency(summary.discountAmount)}</span>
                 </div>
               )}
@@ -3307,7 +3311,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                     }}
                   >
                     <span>
-                      Recurring discount · {displayData.autoRecurringDiscount}%
+                      {isMultiDayEvent ? 'Conference discount' : 'Recurring discount'} · {displayData.autoRecurringDiscount}%
                     </span>
                     <span>−{formatCurrency(displayData.autoRecurringSavings)}</span>
                   </div>
@@ -3936,7 +3940,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
               const summaryGroups = buildSummaryGroups(
                 summary.rows, shape, formatShortDate,
                 (t) => SERVICE_DISPLAY[t] || t,
-                (r) => r.unitCost
+                (r) => r.originalUnitCost
               );
               const unit = unitWord(shape);
               const apptText = includedAppointments.hasUnlimited
@@ -4078,7 +4082,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                                 textDecoration: row.included ? 'none' : 'line-through',
                               }}
                             >
-                              {formatCurrency(row.unitCost)}
+                              {formatCurrency(row.originalUnitCost)}
                             </span>
                           </div>
                         ))}
@@ -4118,7 +4122,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                         {perEventRecurringDiscount > 0.01 && (
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: T.fontD, fontSize: 13, color: T.aqua }}>
                             <span>
-                              Recurring discount
+                              {isMultiDayEvent ? 'Conference discount' : 'Recurring discount'}
                               {typeof displayData?.autoRecurringDiscount === 'number' &&
                               displayData.autoRecurringDiscount > 0
                                 ? ` · ${displayData.autoRecurringDiscount}%`
@@ -4132,7 +4136,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                             4+ (10%) / 9+ (15%) threshold is met. */}
                         {summary.discountPercent > 0 && perEventVolumeDiscount > 0 && (
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: T.fontD, fontSize: 13, color: T.aqua }}>
-                            <span>Volume discount · {summary.discountPercent}%</span>
+                            <span>{isMultiDayEvent ? 'Conference discount' : 'Volume discount'} · {summary.discountPercent}%</span>
                             <span>−{formatCurrency(perEventVolumeDiscount)}</span>
                           </div>
                         )}
@@ -4223,7 +4227,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            {summary.discountPercent}% volume discount
+                            {summary.discountPercent}% {isMultiDayEvent ? 'conference' : 'volume'} discount
                           </span>
                           <span
                             style={{
@@ -4234,7 +4238,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            You save {formatCurrency(summary.discountAmount)}/yr
+                            You save {formatCurrency(summary.discountAmount)}{isMultiDayEvent ? '' : '/yr'}
                           </span>
                         </div>
                       )}

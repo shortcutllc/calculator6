@@ -281,6 +281,15 @@ function calculateServiceResults(service) {
  * Simplified port of proposalGenerator.ts recalculateServiceTotals (lines 439-775)
  * Handles the standard { [location]: { [date]: { services, totalCost, totalAppointments } } } structure.
  */
+
+/** A conference or multi-day event: data.eventType 'conference', or every
+ *  location named "..., Day N". Mirrors src/components/proposal/summaryGroups.ts. */
+function isMultiDayEvent(proposalData) {
+  if (proposalData && proposalData.eventType === 'conference') return true;
+  const locations = Object.keys((proposalData && proposalData.services) || {});
+  return locations.length > 1 && locations.every((l) => /(?:^|[,·|–-]\s*|\s)day\s*(\d+)\s*$/i.test(l));
+}
+
 function recalculateProposalSummary(proposalData) {
   const summary = {
     totalAppointments: 0,
@@ -402,6 +411,10 @@ function recalculateProposalSummary(proposalData) {
     autoRecurringDiscount = undefined;
   } else if (hasManualAutoRecurring) {
     autoRecurringDiscount = proposalData.autoRecurringDiscount;
+  } else if (!hasManualRecurring && isMultiDayEvent(proposalData)) {
+    // Conference or multi-day event: flat 10%, the same rule as the client
+    // viewer (src/utils/proposalGenerator.ts, proposal/summaryGroups.ts).
+    autoRecurringDiscount = 10;
   } else if (uniqueDateCount >= 4 && !hasManualRecurring) {
     autoRecurringDiscount = uniqueDateCount >= 9 ? 15 : 10;
   }

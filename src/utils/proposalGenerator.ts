@@ -5,6 +5,7 @@ import { MINDFULNESS_CATALOG_BY_ID, MINDFULNESS_CATALOG } from './mindfulnessCat
 import { SOUND_BATH_CATALOG_BY_ID, SOUND_BATH_CATALOG } from './soundBathCatalog';
 import { YOGA_CATALOG_BY_ID, YOGA_CATALOG } from './yogaCatalog';
 import { MOVEMENT_CATALOG_BY_ID, MOVEMENT_CATALOG, resolveMovementEntry, isMovementServiceType } from './movementCatalog';
+import { summaryShape } from '../components/proposal/summaryGroups';
 
 // Helper function to calculate recurring discount based on occurrences
 export const calculateRecurringDiscount = (frequency: RecurringFrequency | undefined): number => {
@@ -983,6 +984,11 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
   } else if (hasManualAutoRecurring) {
     // Use manually set value
     autoRecurringDiscount = updatedData.autoRecurringDiscount;
+  } else if (!hasManualRecurring && summaryShape(updatedData.services, updatedData.eventType).multiDay) {
+    // A conference or multi-day event gets a flat 10% (Will, 2026-10-21).
+    // Its days are usually TBD or close together, so the date count below
+    // would give it nothing, or 15% for a long one.
+    autoRecurringDiscount = 10;
   } else if (uniqueDateCount >= 4 && !hasManualRecurring) {
     // Auto-calculate: 10% for 4-8 dates, 15% for 9+ dates
     autoRecurringDiscount = uniqueDateCount >= 9 ? 15 : 10;
