@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 
 // Per-service selection state used by the redesigned viewers.
 // Keyed by `${location}|${date}|${serviceIndex}` so the same proposal data
@@ -163,12 +163,28 @@ export function useServiceSelections({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(computedInitial)]);
 
-  // Fire onChange whenever local state shifts (debounced lightly via setTimeout
-  // to coalesce rapid changes like dragging a slider). The caller is responsible
-  // for persisting to DB.
+  // Fire onChange when the CLIENT changes something (debounced lightly via
+  // setTimeout to coalesce rapid changes like dragging a slider). The caller
+  // persists to the DB.
+  //
+  // Never on load: the effect used to run for the initial state too, so
+  // merely opening a shared proposal wrote proposals.data, which bumps
+  // updated_at and makes the proposals_track_changes trigger flag the
+  // proposal changed and pending review (found 2026-10-21). `lastSent` holds
+  // the state as loaded (or as last sent), and only a difference saves.
+  const lastSent = useRef(JSON.stringify(computedInitial));
+  useEffect(() => {
+    lastSent.current = JSON.stringify(computedInitial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(computedInitial)]);
   useEffect(() => {
     if (!onChange) return;
-    const handle = window.setTimeout(() => onChange(state), 200);
+    const serialized = JSON.stringify(state);
+    if (serialized === lastSent.current) return;
+    const handle = window.setTimeout(() => {
+      lastSent.current = serialized;
+      onChange(state);
+    }, 200);
     return () => window.clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);

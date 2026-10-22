@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 
 // Optional add-ons: production extras a client opts into, kept deliberately
 // separate from services.
@@ -80,9 +80,22 @@ export function useAddOnSelections({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(computedInitial)]);
 
+  // Save only what the client changes, never the state as loaded: saving on
+  // load wrote proposals.data on every visit, which bumps updated_at and
+  // flags the proposal changed and pending review (found 2026-10-21).
+  const lastSent = useRef(JSON.stringify(computedInitial));
+  useEffect(() => {
+    lastSent.current = JSON.stringify(computedInitial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(computedInitial)]);
   useEffect(() => {
     if (!onChange) return;
-    const handle = window.setTimeout(() => onChange(state), 200);
+    const serialized = JSON.stringify(state);
+    if (serialized === lastSent.current) return;
+    const handle = window.setTimeout(() => {
+      lastSent.current = serialized;
+      onChange(state);
+    }, 200);
     return () => window.clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
