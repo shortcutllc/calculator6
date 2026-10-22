@@ -1,4 +1,5 @@
 import React from 'react';
+import { summaryShape } from './summaryGroups';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { Eyebrow, T } from './shared/primitives';
@@ -144,6 +145,9 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({
           const names = optionServiceNames(opt);
           const visits = Math.max(1, m.dateCount);
           const perVisit = visits > 1 ? displayCost / visits : null;
+          // A multi-day event (locations "..., Day 1" to "Day N") is days of
+          // one program, not repeat visits (proposal/summaryGroups).
+          const unit = summaryShape(opt.data?.services).multiDay ? 'day' : 'visit';
           const letter = String.fromCharCode(65 + (typeof opt.option_order === 'number' && opt.option_order > 0 ? opt.option_order - 1 : i));
           const ink = active ? '#fff' : T.navy;
           return (
@@ -261,7 +265,7 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({
                   opacity: 0.82,
                 }}
               >
-                {[...names, `${visits} visit${visits === 1 ? '' : 's'}`].join(' · ')}
+                {[...names, `${visits} ${unit}${visits === 1 ? '' : 's'}`].join(' · ')}
               </span>
 
               {/* Bottom block, pinned to the foot of the card */}
@@ -311,7 +315,7 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({
                   }}
                 >
                   {perVisit !== null
-                    ? `${formatCurrency(perVisit)} per visit`
+                    ? `${formatCurrency(perVisit)} per ${unit}`
                     : `${m.appointmentCount.toLocaleString('en-US')} appointments · ${m.locationCount} location${m.locationCount === 1 ? '' : 's'}`}
                 </span>
               </span>

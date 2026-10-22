@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabaseClient';
 import { LoadingSpinner } from './LoadingSpinner';
 import { flushSync } from 'react-dom';
 import { PdfModeContext } from './proposal/shared/pdfMode';
+import { summaryShape, unitWord, buildSummaryGroups } from './proposal/summaryGroups';
 import { parseLocalDate } from '../utils/dateHelpers';
 import {
   calculateServiceResults,
@@ -109,6 +110,16 @@ const formatDateLabel = (raw: string): string => {
     const parsed = parseLocalDate(raw);
     if (Number.isNaN(parsed.getTime())) return raw;
     return format(parsed, 'EEE, MMM d, yyyy');
+  } catch {
+    return raw;
+  }
+};
+
+/** "Tue, Oct 27" for a summary group; TBD and unparseable keys pass through. */
+const formatShortDate = (raw: string): string => {
+  try {
+    const d = parseLocalDate(raw);
+    return Number.isNaN(d.getTime()) ? raw : format(d, 'EEE, MMM d');
   } catch {
     return raw;
   }
@@ -1228,6 +1239,14 @@ const StandaloneProposalViewerV2: React.FC = () => {
 
     const team = resolveTeamMember(displayData?.accountTeamMemberEmail);
     const includedRows = summary.rows.filter((r: any) => r.included);
+    // Day, date or location rows for the phone sheet (proposal/summaryGroups).
+    const mShape = summaryShape(displayData?.services);
+    const mUnit = unitWord(mShape);
+    const mSummaryGroups = buildSummaryGroups(
+      summary.rows, mShape, formatShortDate,
+      (t) => SERVICE_DISPLAY[t] || t,
+      (r) => r.lineCost
+    );
     const MOBILE_LOGOS = [
       'DraftKings',
       'NFL',
@@ -1678,7 +1697,22 @@ const StandaloneProposalViewerV2: React.FC = () => {
         <div className={'pvm-pricesheet' + (mSheetOpen ? ' open' : '')}>
           <div className="pvm-grab" />
           <h3>Pricing summary</h3>
-          {includedRows.map((row: any) => (
+          {mSummaryGroups.length > 1 && (
+            <p style={{ margin: '-6px 0 10px', fontFamily: T.fontD, fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>
+              {mSummaryGroups.length} {mUnit}s
+              {includedAppointments.count > 0 ? ` · ${includedAppointments.count} appointments` : ''}
+            </p>
+          )}
+          {mSummaryGroups.length > 1 ? mSummaryGroups.map((g) => (
+            <div className="pvm-pl" key={g.key}>
+              <span className="k">
+                {g.label}
+                {g.repeat > 1 ? ` · ×${g.repeat}/yr` : ''}{' '}
+                <small>· {g.names.join(' · ')}</small>
+              </span>
+              <span className="v">{formatCurrency(g.cost)}</span>
+            </div>
+          )) : includedRows.map((row: any) => (
             <div className="pvm-pl" key={row.key}>
               <span className="k">
                 {serviceLineLabel(row.serviceType)}
@@ -3895,24 +3929,59 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 summary.perEventOriginalSubtotal -
                 summary.perEventSubtotal -
                 summary.perEventServiceDiscount;
+              // Grouping (proposal/summaryGroups): a row per day, date or
+              // location when there is more than one, instead of a run of
+              // unlabeled "Massage event" rows (Will, 2026-10-21).
+              const shape = summaryShape(displayData?.services);
+              const summaryGroups = buildSummaryGroups(
+                summary.rows, shape, formatShortDate,
+                (t) => SERVICE_DISPLAY[t] || t,
+                (r) => r.unitCost
+              );
+              const unit = unitWord(shape);
+              const apptText = includedAppointments.hasUnlimited
+                ? 'unlimited appointments'
+                : includedAppointments.count > 0
+                  ? `${includedAppointments.count} appointment${includedAppointments.count === 1 ? '' : 's'}`
+                  : '';
+              const countLine = [
+                summaryGroups.length > 1
+                  ? `${summaryGroups.length} ${unit}s`
+                  : `${includedCount} service${includedCount === 1 ? '' : 's'}`,
+                apptText,
+              ].filter(Boolean).join(' · ');
+              // Multi-option proposals name the option being viewed.
+              const optIdx = proposalOptions.findIndex((o: any) => o.id === id);
+              const currentOpt = optIdx >= 0 ? proposalOptions[optIdx] : null;
+              const optionLabel =
+                proposalOptions.length > 1 && currentOpt
+                  ? [
+                      `Option ${String.fromCharCode(65 + (typeof currentOpt.option_order === 'number' && currentOpt.option_order > 0 ? currentOpt.option_order - 1 : optIdx))}`,
+                      currentOpt.option_name,
+                    ].filter(Boolean).join(' · ')
+                  : '';
+              // Every add-on is listed: switched-on ones are priced and
+              // counted, the rest sit muted as "+ $600" so the client can see
+              // what is available (Will, 2026-10-21: the card left them out).
+              const unselectedAddOns = addOnSummary.rows.filter((r) => !r.selected);
+              const addOnMuted = { ...addOnLine, color: 'rgba(255,255,255,0.6)' } as const;
               return (
                 <>
                   {/* Heading — mirrors the bottom Pricing summary card, compact */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'baseline',
-                      justifyContent: 'space-between',
-                      gap: 8,
-                      marginBottom: 16,
-                    }}
-                  >
+                  <div style={{ marginBottom: 16 }}>
                     <CardHeading size="item" style={{ color: '#fff', fontSize: 19 }}>
                       {nothingSelected ? 'Build your proposal' : 'Pricing summary'}
                     </CardHeading>
-                    <Eyebrow color="rgba(255,255,255,0.55)">
-                      {includedCount} of {summary.rows.length}
-                    </Eyebrow>
+                    {optionLabel && (
+                      <div style={{ fontFamily: T.fontD, fontSize: 13, fontWeight: 700, color: T.aqua, marginTop: 5 }}>
+                        {optionLabel}
+                      </div>
+                    )}
+                    {!nothingSelected && countLine && (
+                      <div style={{ fontFamily: T.fontD, fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 4 }}>
+                        {countLine}
+                      </div>
+                    )}
                   </div>
 
                   {nothingSelected ? (
@@ -3931,7 +4000,20 @@ const StandaloneProposalViewerV2: React.FC = () => {
                     <>
                       {/* Per-event line items (same layout as the bottom card) */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 14 }}>
-                        {summary.rows.filter((row) => row.included).map((row) => (
+                        {summaryGroups.length > 1 ? summaryGroups.map((g) => (
+                          <div key={g.key} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontFamily: T.fontD, fontWeight: 600, fontSize: 13.5, color: '#fff' }}>{g.label}</div>
+                              <div style={{ fontFamily: T.fontD, fontSize: 12.5, color: 'rgba(255,255,255,0.75)', marginTop: 1 }}>
+                                {g.names.join(' · ')}
+                                {g.repeat > 1 && ` · ×${g.repeat} / yr`}
+                              </div>
+                            </div>
+                            <span style={{ fontFamily: T.fontD, fontWeight: 700, fontSize: 13.5, color: '#fff', whiteSpace: 'nowrap' }}>
+                              {formatCurrency(g.cost)}
+                            </span>
+                          </div>
+                        )) : summary.rows.filter((row) => row.included).map((row) => (
                           <div
                             key={row.key}
                             style={{
@@ -4060,13 +4142,25 @@ const StandaloneProposalViewerV2: React.FC = () => {
                             <span style={{ color: '#fff' }}>{formatCurrency(gratuity.amount)}</span>
                           </div>
                         )}
-                        {!hasRepeats &&
-                          selectedAddOns.map((a) => (
-                            <div key={a.id} style={addOnLine}>
-                              <span style={{ minWidth: 0 }}>{a.name || 'Add-on'}</span>
-                              <span style={{ color: '#fff', whiteSpace: 'nowrap' }}>{formatCurrency(a.amount)}</span>
-                            </div>
-                          ))}
+                        {!hasRepeats && addOnSummary.rows.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 6 }}>
+                            <span style={{ fontFamily: T.fontD, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>
+                              {unselectedAddOns.length > 0 ? 'Optional add-ons' : 'Add-ons'}
+                            </span>
+                            {selectedAddOns.map((a) => (
+                              <div key={a.id} style={addOnLine}>
+                                <span style={{ minWidth: 0, color: '#fff' }}>{a.name || 'Add-on'}</span>
+                                <span style={{ color: '#fff', whiteSpace: 'nowrap' }}>{formatCurrency(a.amount)}</span>
+                              </div>
+                            ))}
+                            {unselectedAddOns.map((a) => (
+                              <div key={a.id} style={addOnMuted}>
+                                <span style={{ minWidth: 0 }}>{a.name || 'Add-on'}</span>
+                                <span style={{ whiteSpace: 'nowrap' }}>+ {formatCurrency(a.amount)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 8, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.12)' }}>
                           <span style={{ fontFamily: T.fontD, fontWeight: 700, fontSize: 15, color: '#fff' }}>
                             {hasRepeats ? 'Per event' : 'Total'}
@@ -4075,15 +4169,21 @@ const StandaloneProposalViewerV2: React.FC = () => {
                             {formatCurrency(sidebarTotal)}
                           </span>
                         </div>
-                        {hasRepeats && selectedAddOns.length > 0 && (
+                        {hasRepeats && addOnSummary.rows.length > 0 && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 8 }}>
-                            <span style={{ fontFamily: T.fontD, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)' }}>
-                              One-time add-ons
+                            <span style={{ fontFamily: T.fontD, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>
+                              {unselectedAddOns.length > 0 ? 'Optional one-time add-ons' : 'One-time add-ons'}
                             </span>
                             {selectedAddOns.map((a) => (
                               <div key={a.id} style={addOnLine}>
-                                <span style={{ minWidth: 0 }}>{a.name || 'Add-on'}</span>
+                                <span style={{ minWidth: 0, color: '#fff' }}>{a.name || 'Add-on'}</span>
                                 <span style={{ color: '#fff', whiteSpace: 'nowrap' }}>+{formatCurrency(a.amount)}</span>
+                              </div>
+                            ))}
+                            {unselectedAddOns.map((a) => (
+                              <div key={a.id} style={addOnMuted}>
+                                <span style={{ minWidth: 0 }}>{a.name || 'Add-on'}</span>
+                                <span style={{ whiteSpace: 'nowrap' }}>+ {formatCurrency(a.amount)}</span>
                               </div>
                             ))}
                           </div>
