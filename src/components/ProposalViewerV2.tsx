@@ -832,6 +832,18 @@ const ProposalViewerV2: React.FC = () => {
     setDisplayData({ ...updated });
   };
 
+  // Toggle "Conference or multi-day event" (data.eventType = 'conference').
+  // The client view then treats the days as one event: the pricing summary
+  // lists Day 1, Day 2..., option cards say days, and the repeat-visit
+  // discount banner is hidden (proposal/summaryGroups).
+  const handleSetEventType = (conference: boolean) => {
+    if (!editedData || !isEditing) return;
+    const updated: any = { ...editedData };
+    updated.eventType = conference ? 'conference' : undefined;
+    setEditedData({ ...updated });
+    setDisplayData({ ...updated });
+  };
+
   const handleSetOptionsSelectedDefault = (
     loc: string,
     date: string,
@@ -3438,6 +3450,99 @@ const ProposalViewerV2: React.FC = () => {
                 }}
               >
                 Each service card and every pricing option shows <strong>Pros and hours</strong> on the client view, next to the appointment count. Off by default so clients compare appointments and price.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* "Conference or multi-day event" toggle (data.eventType). */}
+        {isEditing && (
+          <div
+            style={{
+              marginTop: 20,
+              padding: '14px 16px',
+              background: '#fff',
+              border: '1.5px dashed rgba(0,0,0,0.12)',
+              borderRadius: 12,
+              maxWidth: 720,
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 14,
+            }}
+          >
+            <label
+              htmlFor="event-type-toggle"
+              style={{
+                position: 'relative',
+                display: 'inline-block',
+                width: 38,
+                height: 22,
+                flexShrink: 0,
+                marginTop: 2,
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                id="event-type-toggle"
+                type="checkbox"
+                checked={editedData?.eventType === 'conference'}
+                onChange={(e) => handleSetEventType(e.target.checked)}
+                style={{
+                  opacity: 0,
+                  width: 0,
+                  height: 0,
+                  position: 'absolute',
+                }}
+              />
+              <span
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background:
+                    editedData?.eventType === 'conference'
+                      ? T.success
+                      : 'rgba(0,0,0,0.2)',
+                  borderRadius: 22,
+                  transition: 'background .15s',
+                }}
+              />
+              <span
+                style={{
+                  position: 'absolute',
+                  top: 2,
+                  left: editedData?.eventType === 'conference' ? 18 : 2,
+                  width: 18,
+                  height: 18,
+                  background: '#fff',
+                  borderRadius: '50%',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                  transition: 'left .15s',
+                }}
+              />
+            </label>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div
+                style={{
+                  fontFamily: T.fontUi,
+                  fontWeight: 700,
+                  fontSize: 11,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  color: T.fgMuted,
+                  marginBottom: 4,
+                }}
+              >
+                Conference or multi-day event
+              </div>
+              <div
+                style={{
+                  fontFamily: T.fontD,
+                  fontSize: 13,
+                  color: T.navy,
+                  lineHeight: 1.45,
+                }}
+              >
+                Treats the days as <strong>one event</strong> on the client view: the pricing summary lists each day, option cards say days instead of visits, and the banner about booking more events a year is hidden. Leave off for a regular office client.
               </div>
             </div>
           </div>

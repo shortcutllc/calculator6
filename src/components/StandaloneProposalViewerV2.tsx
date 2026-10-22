@@ -1240,7 +1240,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
     const team = resolveTeamMember(displayData?.accountTeamMemberEmail);
     const includedRows = summary.rows.filter((r: any) => r.included);
     // Day, date or location rows for the phone sheet (proposal/summaryGroups).
-    const mShape = summaryShape(displayData?.services);
+    const mShape = summaryShape(displayData?.services, displayData?.eventType);
     const mUnit = unitWord(mShape);
     const mSummaryGroups = buildSummaryGroups(
       summary.rows, mShape, formatShortDate,
@@ -1347,7 +1347,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
               </span>
             )}
           </div>
-          {!displayData?.customization?.hideVolumeDiscountBanner && (
+          {!displayData?.customization?.hideVolumeDiscountBanner && !summaryShape(displayData?.services, displayData?.eventType).multiDay && (
           <div className="pvm-savings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
               <path d="m17 2 4 4-4 4" />
@@ -2734,7 +2734,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 </span>
               )}
             </div>
-            {!displayData?.customization?.hideVolumeDiscountBanner && (
+            {!displayData?.customization?.hideVolumeDiscountBanner && !summaryShape(displayData?.services, displayData?.eventType).multiDay && (
             <div className="pv-savings" style={{ marginBottom: 0 }}>
               <svg
                 viewBox="0 0 24 24"
@@ -3932,7 +3932,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
               // Grouping (proposal/summaryGroups): a row per day, date or
               // location when there is more than one, instead of a run of
               // unlabeled "Massage event" rows (Will, 2026-10-21).
-              const shape = summaryShape(displayData?.services);
+              const shape = summaryShape(displayData?.services, displayData?.eventType);
               const summaryGroups = buildSummaryGroups(
                 summary.rows, shape, formatShortDate,
                 (t) => SERVICE_DISPLAY[t] || t,

@@ -742,6 +742,10 @@ async function handleCreateProposal(params, supabase, userId) {
   };
 
   const { proposalData, customization, proposalType } = assembleProposal(paramsWithCustomization);
+  // A conference's days read as one event on the client view (Day 1, Day 2...).
+  if (String(params.eventType || '').toLowerCase() === 'conference') {
+    proposalData.eventType = 'conference';
+  }
 
   // Handle logo
   if (params.clientLogoUrl) {

@@ -252,7 +252,7 @@ When editing proposals, use these operations:
 - change_date: Move all services from one date to another at a location (location, oldDate, newDate)
 - set_status: Change status (draft, pending, approved)
 - update_customization: Update proposal display settings (legacy customization keys only)
-- set_proposal_field: Set proposal-wide fields not covered by other ops. Required: field (one of "startUnselected", "signupLink", "signupLinkTitle", "signupLinkDescription", "heroTitle", "accountTeamMemberEmail") and value. Pass empty string or null to clear the field.
+- set_proposal_field: Set proposal-wide fields not covered by other ops. Required: field (one of "startUnselected", "signupLink", "signupLinkTitle", "signupLinkDescription", "heroTitle", "accountTeamMemberEmail", "eventType") and value. Pass empty string or null to clear the field.
 
 Field aliases for update_service: appointmentTime→appTime, hours→totalHours, pros→numPros, rate→hourlyRate, discount→discountPercent
 update_service also accepts: massageType ("chair"|"table"|"massage"), nailsType ("nails"|"nails-hand-massage"), headshotTier ("basic"|"premium"|"executive"), mindfulnessType ("intro"|"drop-in"|"mindful-movement"), optionsSelectedDefault (false → service starts unchecked on the client view), optionsFrequency (default frequency on the "X per year" picker)
@@ -274,6 +274,12 @@ The redesigned client viewer lets staff shape how the proposal lands for the pro
 
 ### Hero title override
 - Default hero reads "{ClientName} wellness proposal". To override, set \`{ op: "set_proposal_field", field: "heroTitle", value: "..." }\`. Empty string clears back to the default.
+
+### Conference or multi-day event
+- A conference, trade show or summit is several days of ONE event, not repeat office visits. Mark it so the client view lists Day 1, Day 2..., the option cards say days instead of visits, and the "commit to 4 events a year" banner is hidden.
+- When creating: pass \`eventType: "conference"\` to create_proposal, and name each day as its own location: "<Event name>, Day 1", "<Event name>, Day 2".
+- On an existing proposal: \`{ op: "set_proposal_field", field: "eventType", value: "conference" }\`. Value "office" (or empty) switches it back to a regular office proposal.
+- If the rep says conference, expo, summit, offsite program, booth or "multi-day", it is a conference. A client's office on several dates is still "office".
 
 ### Account team override
 - Default account-team card shows Jaimie. To switch, set \`{ op: "set_proposal_field", field: "accountTeamMemberEmail", value: "caren@getshortcut.co" }\` (or whichever team member's email).
@@ -364,6 +370,7 @@ const TOOLS = [
           }
         },
         notes: { type: 'string', description: 'Internal notes about this proposal' },
+        eventType: { type: 'string', enum: ['office', 'conference'], description: 'Use "conference" for a conference, trade show, summit or any multi-day event where the days are one program (the client view then lists Day 1, Day 2..., says days instead of visits, and hides the book-more-events-a-year banner). For a conference, name each day as its own location: "<Event name>, Day 1", "<Event name>, Day 2". Default "office" for services at a client\'s office, once or recurring.' },
         cleState: { type: 'string', enum: ['NY', 'PA', 'CA', 'TX', 'FL'], description: 'For CLE proposals: which state\'s CLE accreditation applies. Inferred from office address if not set. Defaults to NY.' }
       },
       required: ['clientName', 'events']
@@ -405,7 +412,7 @@ const TOOLS = [
               cleState: { type: 'string', enum: ['NY', 'PA', 'CA', 'TX', 'FL'], description: 'For set_cle_state: which state\'s CLE accreditation applies' },
               direction: { type: 'integer', enum: [-1, 1], description: 'For move_service: -1 to move up, 1 to move down. Service swaps with its neighbour.' },
               optionIndex: { type: 'integer', description: 'For select_pricing_option: zero-based index of the pricing option to select.' },
-              field: { type: 'string', enum: ['startUnselected', 'signupLink', 'signupLinkTitle', 'signupLinkDescription', 'heroTitle', 'accountTeamMemberEmail'], description: 'For set_proposal_field: which proposal-wide field to write.' }
+              field: { type: 'string', enum: ['startUnselected', 'signupLink', 'signupLinkTitle', 'signupLinkDescription', 'heroTitle', 'accountTeamMemberEmail', 'eventType'], description: 'For set_proposal_field: which proposal-wide field to write.' }
             },
             required: ['op']
           }

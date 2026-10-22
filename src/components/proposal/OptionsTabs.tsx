@@ -147,7 +147,7 @@ const OptionsTabs: React.FC<OptionsTabsProps> = ({
           const perVisit = visits > 1 ? displayCost / visits : null;
           // A multi-day event (locations "..., Day 1" to "Day N") is days of
           // one program, not repeat visits (proposal/summaryGroups).
-          const unit = summaryShape(opt.data?.services).multiDay ? 'day' : 'visit';
+          const unit = summaryShape(opt.data?.services, opt.data?.eventType).multiDay ? 'day' : 'visit';
           const letter = String.fromCharCode(65 + (typeof opt.option_order === 'number' && opt.option_order > 0 ? opt.option_order - 1 : i));
           const ink = active ? '#fff' : T.navy;
           return (

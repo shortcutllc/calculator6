@@ -858,6 +858,8 @@ function handleMoveService(proposalData, customization, proposalRecord, op) {
  *   - signupLinkDescription (string)  → optional copy override for card body
  *   - heroTitle (string)              → custom hero h1 override
  *   - accountTeamMemberEmail (string) → switch which account-team card shows
+ *   - eventType ('conference' | unset) → multi-day event: the client view
+ *                                       lists Day 1, Day 2... (summaryGroups)
  */
 function handleSetProposalField(proposalData, customization, proposalRecord, op) {
   const allowed = new Set([
@@ -866,7 +868,8 @@ function handleSetProposalField(proposalData, customization, proposalRecord, op)
     'signupLinkTitle',
     'signupLinkDescription',
     'heroTitle',
-    'accountTeamMemberEmail'
+    'accountTeamMemberEmail',
+    'eventType'
   ]);
   if (!op.field || !allowed.has(op.field)) {
     throw new Error(
@@ -880,6 +883,10 @@ function handleSetProposalField(proposalData, customization, proposalRecord, op)
   // Normalise common types
   if (field === 'startUnselected') {
     value = value === true || value === 'true' ? true : undefined;
+  } else if (field === 'eventType') {
+    // 'conference' marks a multi-day event (the client view lists Day 1,
+    // Day 2...); anything else is a regular office proposal, stored as unset.
+    value = String(value || '').toLowerCase() === 'conference' ? 'conference' : undefined;
   } else if (
     field === 'signupLink' ||
     field === 'signupLinkTitle' ||

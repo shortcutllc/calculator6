@@ -381,6 +381,11 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
   const { createProposal } = useProposal();
   const [clientName, setClientName] = useState('');
+  // Office visit or a conference / multi-day event (data.eventType). A ref
+  // too, because handleGenerateProposal runs from a modal callback.
+  const [eventType, setEventType] = useState<'office' | 'conference'>('office');
+  const eventTypeRef = useRef(eventType);
+  eventTypeRef.current = eventType;
   const [locations, setLocations] = useState(['']);
   const [showDashboard, setShowDashboard] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
@@ -793,6 +798,11 @@ const Home: React.FC = () => {
       if (options.clientLogoUrl) {
         proposalData.clientLogoUrl = options.clientLogoUrl;
       }
+      // A conference's days read as one event on the client view
+      // (proposal/summaryGroups): Day 1, Day 2... and no repeat-visit banner.
+      if (eventTypeRef.current === 'conference') {
+        (proposalData as any).eventType = 'conference';
+      }
       // Handle office locations - support both new (multiple) and legacy (single) formats
       if (options.officeLocations && Object.keys(options.officeLocations).length > 0) {
         proposalData.officeLocations = options.officeLocations;
@@ -1114,6 +1124,28 @@ const Home: React.FC = () => {
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal text-base"
                   placeholder="Enter client name"
                 />
+              </div>
+
+              <div>
+                <span className="block text-shortcut-blue text-sm font-bold mb-2">Event type</span>
+                <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Event type">
+                  {([
+                    ['office', 'Office visit', 'Services at a client office, once or on repeat'],
+                    ['conference', 'Conference or multi-day event', 'Several days of one event. Name locations Day 1, Day 2, and so on'],
+                  ] as const).map(([value, label, hint]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      role="radio"
+                      aria-checked={eventType === value}
+                      onClick={() => setEventType(value)}
+                      className={`text-left px-4 py-3 rounded-lg border-2 transition-colors ${eventType === value ? 'border-shortcut-blue bg-shortcut-blue text-white' : 'border-gray-200 bg-white text-shortcut-blue hover:border-shortcut-teal'}`}
+                    >
+                      <span className="block text-sm font-bold">{label}</span>
+                      <span className={`block text-xs mt-0.5 ${eventType === value ? 'text-white/80' : 'text-text-dark-60'}`}>{hint}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
               
               <div>

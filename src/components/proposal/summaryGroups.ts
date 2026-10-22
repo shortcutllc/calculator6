@@ -9,9 +9,11 @@
 //   several locations           → a row per location, with its date if set
 //   a multi-day event           → a row per day ("Day 1", "Day 2 · Oct 28")
 //
-// There is no conference flag in the data. A multi-day event is a proposal
-// whose locations are all named "..., Day N", which is how staff build one
-// (e.g. "LegalOps Conference, Day 1" to "Day 3").
+// A proposal is a multi-day event when staff mark it one (data.eventType =
+// 'conference': the calculator's Event type, the admin toggle, or the Pro
+// bot's eventType), or, for proposals made before that existed, when its
+// locations are all named "..., Day N" (e.g. "LegalOps Conference, Day 1").
+// Anything else is a regular office proposal.
 
 const DAY_SUFFIX = /(?:^|[,·|–-]\s*|\s)day\s*(\d+)\s*$/i;
 
@@ -22,10 +24,13 @@ export interface SummaryShape {
   byLocation: boolean;
 }
 
-export function summaryShape(services: Record<string, unknown> | undefined): SummaryShape {
+export const isConferenceType = (eventType: unknown): boolean => eventType === 'conference';
+
+export function summaryShape(services: Record<string, unknown> | undefined, eventType?: unknown): SummaryShape {
   const locations = Object.keys(services || {});
+  const dayNamed = locations.length > 1 && locations.every((l) => DAY_SUFFIX.test(l));
   return {
-    multiDay: locations.length > 1 && locations.every((l) => DAY_SUFFIX.test(l)),
+    multiDay: isConferenceType(eventType) || dayNamed,
     byLocation: locations.length > 1,
   };
 }
@@ -43,10 +48,10 @@ export function groupLabel(
   shortDate: (raw: string) => string
 ): string {
   const d = date && date !== 'TBD' ? shortDate(date) : '';
-  if (shape.multiDay) {
-    const n = location.match(DAY_SUFFIX)?.[1];
-    return [n ? `Day ${n}` : location, d].filter(Boolean).join(' · ');
-  }
+  // "Day N" when the location says so; a conference named otherwise falls
+  // through to its location and date.
+  const n = shape.multiDay ? location.match(DAY_SUFFIX)?.[1] : undefined;
+  if (n) return [`Day ${n}`, d].filter(Boolean).join(' · ');
   return [shape.byLocation ? location : '', d].filter(Boolean).join(' · ') || 'Date TBD';
 }
 
