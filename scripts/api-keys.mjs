@@ -2,7 +2,8 @@
 /**
  * Issue, list and revoke the personal API keys a teammate's AI uses to
  * create proposals, landing pages, sponsor pages and QR signs as them.
- * See docs/AI_INTEGRATION.md for what the key unlocks and how to connect it.
+ * Teammates set up from the guide page (https://claude.ai/artifact/L6ayMmMArbqhQUhpm1QU43); the technical
+ * reference is docs/AI_INTEGRATION.md.
  *
  * USAGE
  *   node scripts/api-keys.mjs issue <email> "<label>"   e.g. issue marc@getshortcut.co "Marc, Claude desktop"
@@ -74,7 +75,7 @@ async function issue(email, label) {
 
   console.log(`\nKey for ${user.email} (${label.trim()}). Shown once, so send it to them now:\n`);
   console.log(`  ${key}\n`);
-  console.log('Setup steps: docs/AI_INTEGRATION.md');
+  console.log('Send it privately with the setup guide (share the page with them first): https://claude.ai/artifact/L6ayMmMArbqhQUhpm1QU43');
 }
 
 async function list() {

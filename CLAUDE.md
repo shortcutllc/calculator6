@@ -222,7 +222,7 @@ supabase/            # Database migrations and config
 | Teammates' own AIs | Pro's proposal, landing page, sponsor page and QR sign tools, via a personal API key |
 
 ### Team AI integration (MCP + HTTP API)
-Teammates connect their own AI (Claude, ChatGPT, Cursor, scripts) with a personal key from `scripts/api-keys.mjs`. Setup and payloads: [docs/AI_INTEGRATION.md](docs/AI_INTEGRATION.md).
+Teammates connect their own AI (Muse, Claude, ChatGPT, Cursor, scripts) with a personal key from `scripts/api-keys.mjs`. Teammate setup lives on the guide page (https://claude.ai/artifact/L6ayMmMArbqhQUhpm1QU43), in plain language; change steps there. Technical reference and payloads: [docs/AI_INTEGRATION.md](docs/AI_INTEGRATION.md).
 - `netlify/functions/mcp.js` serves Pro's own tool definitions and handlers, filtered by `EXPOSED`. **When you teach Pro a new tool, decide whether it belongs in `EXPOSED`** (yes for building pages and proposals; no for anything that sends, bills or touches leads).
 - `netlify/functions/lib/sponsor-pages.js` is the only server code that writes `sponsor_pages`; Pro, the API and MCP all call it.
 - `lib/staff-auth.js` takes a key or a staff sign-in token. Keys are issued by hand because email signup is open: a signed-in account is not proof of staff.
