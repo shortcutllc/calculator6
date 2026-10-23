@@ -19,31 +19,31 @@ import { getAccessToken, listInboundSince, lc } from './lib/gmail.js';
 import { resolveLeadOwner, shouldPing, sendPingDM } from './lib/slack-event-ping.js';
 import { buildReplyPingBlocks } from './lib/slack-blocks.js';
 
-const ok = (b = 'ok') => ({ statusCode: 200, body: b });   // 200 so Pub/Sub doesn't redeliver
+const ok = (b = 'ok') => new Response(b, { status: 200 });   // 200 so Pub/Sub doesn't redeliver
 const GMAIL_CAMPAIGN = 'gmail-direct';
 
 export function pushToken(secret) {
   return crypto.createHmac('sha256', secret).update('gmail-pubsub').digest('hex').slice(0, 32);
 }
 
-export const handler = async (event) => {
-  if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method not allowed' };
+export default async (req) => {
+  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
 
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return ok('misconfigured');
 
-  const got = (event.queryStringParameters || {}).token || '';
+  const got = new URL(req.url).searchParams.get('token') || '';
   const want = pushToken(key);
   if (got.length !== want.length
     || !crypto.timingSafeEqual(Buffer.from(got), Buffer.from(want))) {
-    return { statusCode: 403, body: 'forbidden' };
+    return new Response('forbidden', { status: 403 });
   }
 
   // Decode the Pub/Sub envelope -> { emailAddress, historyId }
   let notif;
   try {
-    const body = JSON.parse(event.body || '{}');
+    const body = JSON.parse((await req.text()) || '{}');
     const data = body?.message?.data;
     if (!data) return ok('no-data');
     notif = JSON.parse(Buffer.from(data, 'base64').toString('utf-8'));

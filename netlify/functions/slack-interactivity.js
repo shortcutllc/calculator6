@@ -12,8 +12,10 @@
  *        - view_closed        → cleanup (no-op for now)
  *        - slash command      → /sales mute/unmute/muted
  *
- * Slack expects a 200 within 3 seconds. We do all writes synchronously
- * since they're single supabase upserts (fast).
+ * Slack expects a 200 within 3 seconds. Slash commands and the settings
+ * modal answer in the response body, so they run inline (single supabase
+ * reads and upserts, fast). Button clicks report back through chat.update and
+ * the response_url, so they ack at once and run in context.waitUntil().
  *
  * Env: PRO_SLACK_SIGNING_SECRET, PRO_SLACK_BOT_TOKEN, SUPABASE_*
  */
@@ -26,15 +28,15 @@ import { preflight } from './lib/preflight.js';
 
 const SLACK_API = 'https://slack.com/api';
 
-function verifySlackSignature(event) {
+function verifySlackSignature(req, rawBody) {
   const signingSecret = process.env.PRO_SLACK_SIGNING_SECRET;
   if (!signingSecret) return false;
-  const timestamp = event.headers['x-slack-request-timestamp'];
-  const signature = event.headers['x-slack-signature'];
+  const timestamp = req.headers.get('x-slack-request-timestamp');
+  const signature = req.headers.get('x-slack-signature');
   if (!timestamp || !signature) return false;
   const now = Math.floor(Date.now() / 1000);
   if (Math.abs(now - Number(timestamp)) > 300) return false;
-  const sigBasestring = `v0:${timestamp}:${event.body}`;
+  const sigBasestring = `v0:${timestamp}:${rawBody}`;
   const hmac = crypto.createHmac('sha256', signingSecret);
   hmac.update(sigBasestring);
   const expected = `v0=${hmac.digest('hex')}`;
@@ -455,25 +457,108 @@ async function handleViewSubmission(sb, payload) {
   return { response_action: 'clear' };
 }
 
+// --- Block actions (digest buttons + modal buttons) ---
+// Runs after Slack has its 200: results land via chat.update or as an
+// ephemeral through the response_url.
+
+async function handleBlockActions(sb, payload) {
+  const rep = await repFromSlack(sb, payload.user?.id);
+  // Can't write without a rep mapping; the click was acked anyway.
+  if (!rep) return;
+  const action = payload.actions?.[0];
+  const responseUrl = payload.response_url;
+  if (!action) return;
+
+  const [op, arg, arg2] = (action.action_id || '').split(':');
+  let confirmation = null;
+  try {
+    if (op === 'snooze_1d') confirmation = await handleSnoozeButton(sb, rep, arg, 1);
+    else if (op === 'snooze_7d') confirmation = await handleSnoozeButton(sb, rep, arg, 7);
+    else if (op === 'mute') confirmation = await handleMuteButton(sb, rep, arg);
+    else if (op === 'restore') confirmation = await handleRestoreButton(sb, rep, arg);
+    else if (op === 'unsnooze') confirmation = await handleUnsnoozeButton(sb, rep, arg);
+    else if (op === 'open_settings') {
+      await openSettingsModal(rep, payload.trigger_id);
+      return;
+    }
+    else if (op === 'draft_pro') {
+      // Returns null on success (placeholder posted, background fires);
+      // returns a string on failure for the ephemeral confirmation.
+      const fail = await handleDraftButton(sb, rep, action);
+      if (fail) confirmation = fail;
+    }
+    else if (op === 'send_pro' || op === 'send_pro_dir') {
+      // arg = draftId; arg2 (for send_pro_dir) = direction label override
+      const result = await handleSendDraft(sb, rep, arg, arg2);
+      if (result.ok) {
+        // Update the ORIGINAL preview message in place: pull the message ts
+        // from saved_drafts.target_ref before delete, or use the message
+        // from the action payload.
+        const draftCtx = payload.message;
+        const blocks = buildDraftSentBlocks(
+          { who: draftCtx?.text || arg, email: '', tz: rep.tz },
+          result.sent, rep.email,
+        );
+        await slackPost('chat.update', {
+          channel: payload.channel?.id, ts: payload.message?.ts, blocks, text: 'Sent ✓',
+        });
+      } else {
+        confirmation = result.error;
+        const blocks = buildDraftErrorBlocks({ who: 'lead', email: '' }, result.error);
+        await slackPost('chat.update', {
+          channel: payload.channel?.id, ts: payload.message?.ts, blocks, text: 'Send failed',
+        });
+      }
+    }
+    else if (op === 'cancel_draft') {
+      await handleCancelDraft(sb, arg);
+      const blocks = buildDraftCancelledBlocks({ who: 'this lead' });
+      await slackPost('chat.update', {
+        channel: payload.channel?.id, ts: payload.message?.ts, blocks, text: 'Draft cancelled',
+      });
+    }
+    else if (op === 'show_angles') {
+      const result = await handleShowAngles(sb, rep, arg, payload);
+      if (!result.ok) confirmation = result.error;
+    }
+    else if (op === 'chat_pro') {
+      const result = await handleChatWithPro(sb, rep, action.value);
+      if (!result.ok) confirmation = result.error;
+    }
+  } catch (e) {
+    confirmation = `Failed: ${e.message}`;
+  }
+
+  // Send an ephemeral confirmation back to the same DM (visible only to the rep)
+  if (confirmation && responseUrl) {
+    await fetch(responseUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ response_type: 'ephemeral', replace_original: false, text: confirmation }),
+    });
+  }
+}
+
 // --- Main handler ---
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, body: '' };
-  if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method not allowed' };
+export default async (req, context) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204 });
+  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
 
-  if (!verifySlackSignature(event)) {
-    return { statusCode: 401, body: 'Invalid signature' };
+  const rawBody = await req.text();
+  if (!verifySlackSignature(req, rawBody)) {
+    return new Response('Invalid signature', { status: 401 });
   }
 
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return { statusCode: 500, body: 'misconfigured' };
+  if (!url || !key) return new Response('misconfigured', { status: 500 });
   const sb = createClient(url, key, { auth: { persistSession: false } });
 
   // Slack sends form-urlencoded for both interactivity payloads and slash
   // commands. Interactivity has a single `payload` field (JSON-stringified).
   // Slash commands have flat fields (command, text, user_id, etc).
-  const params = new URLSearchParams(event.body || '');
+  const params = new URLSearchParams(rawBody);
   const payloadStr = params.get('payload');
 
   // --- Slash command path ---
@@ -482,105 +567,26 @@ export const handler = async (event) => {
     const flat = Object.fromEntries(params);
     if (flat.command) {
       const reply = await handleSlashCommand(sb, flat);
-      return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reply) };
+      return Response.json(reply, { status: 200 });
     }
-    return { statusCode: 400, body: 'No payload or command' };
+    return new Response('No payload or command', { status: 400 });
   }
 
   let payload;
   try { payload = JSON.parse(payloadStr); }
-  catch { return { statusCode: 400, body: 'Bad JSON payload' }; }
+  catch { return new Response('Bad JSON payload', { status: 400 }); }
 
   // --- View submission (Settings modal save) ---
   if (payload.type === 'view_submission') {
     const reply = await handleViewSubmission(sb, payload);
-    return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reply) };
+    return Response.json(reply, { status: 200 });
   }
 
-  // --- Block actions (digest buttons + modal buttons) ---
+  // --- Block actions: ack within 3s, do the work after the response ---
   if (payload.type === 'block_actions') {
-    const rep = await repFromSlack(sb, payload.user?.id);
-    if (!rep) {
-      // Ack the click anyway, can't write without a rep mapping.
-      return { statusCode: 200, body: '' };
-    }
-    // We always ack first (200 within 3s) — Slack shows the action UI as
-    // confirmed regardless. Any follow-up confirmation is sent as an
-    // ephemeral via the response_url.
-    const action = payload.actions?.[0];
-    const responseUrl = payload.response_url;
-    if (!action) return { statusCode: 200, body: '' };
-
-    const [op, arg, arg2] = (action.action_id || '').split(':');
-    let confirmation = null;
-    try {
-      if (op === 'snooze_1d') confirmation = await handleSnoozeButton(sb, rep, arg, 1);
-      else if (op === 'snooze_7d') confirmation = await handleSnoozeButton(sb, rep, arg, 7);
-      else if (op === 'mute') confirmation = await handleMuteButton(sb, rep, arg);
-      else if (op === 'restore') confirmation = await handleRestoreButton(sb, rep, arg);
-      else if (op === 'unsnooze') confirmation = await handleUnsnoozeButton(sb, rep, arg);
-      else if (op === 'open_settings') {
-        await openSettingsModal(rep, payload.trigger_id);
-        return { statusCode: 200, body: '' };
-      }
-      else if (op === 'draft_pro') {
-        // Returns null on success (placeholder posted, background fires);
-        // returns a string on failure for the ephemeral confirmation.
-        const fail = await handleDraftButton(sb, rep, action);
-        if (fail) confirmation = fail;
-      }
-      else if (op === 'send_pro' || op === 'send_pro_dir') {
-        // arg = draftId; arg2 (for send_pro_dir) = direction label override
-        const result = await handleSendDraft(sb, rep, arg, arg2);
-        if (result.ok) {
-          // Update the ORIGINAL preview message in place: pull the message ts
-          // from saved_drafts.target_ref before delete, or use the message
-          // from the action payload.
-          const draftCtx = payload.message;
-          const blocks = buildDraftSentBlocks(
-            { who: draftCtx?.text || arg, email: '', tz: rep.tz },
-            result.sent, rep.email,
-          );
-          await slackPost('chat.update', {
-            channel: payload.channel?.id, ts: payload.message?.ts, blocks, text: 'Sent ✓',
-          });
-        } else {
-          confirmation = result.error;
-          const blocks = buildDraftErrorBlocks({ who: 'lead', email: '' }, result.error);
-          await slackPost('chat.update', {
-            channel: payload.channel?.id, ts: payload.message?.ts, blocks, text: 'Send failed',
-          });
-        }
-      }
-      else if (op === 'cancel_draft') {
-        await handleCancelDraft(sb, arg);
-        const blocks = buildDraftCancelledBlocks({ who: 'this lead' });
-        await slackPost('chat.update', {
-          channel: payload.channel?.id, ts: payload.message?.ts, blocks, text: 'Draft cancelled',
-        });
-      }
-      else if (op === 'show_angles') {
-        const result = await handleShowAngles(sb, rep, arg, payload);
-        if (!result.ok) confirmation = result.error;
-      }
-      else if (op === 'chat_pro') {
-        const result = await handleChatWithPro(sb, rep, action.value);
-        if (!result.ok) confirmation = result.error;
-      }
-    } catch (e) {
-      confirmation = `Failed: ${e.message}`;
-    }
-
-    // Send an ephemeral confirmation back to the same DM (visible only to the rep)
-    if (confirmation && responseUrl) {
-      await fetch(responseUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ response_type: 'ephemeral', replace_original: false, text: confirmation }),
-      });
-    }
-    return { statusCode: 200, body: '' };
+    context.waitUntil(handleBlockActions(sb, payload).catch((e) => console.error('block action failed:', e)));
+    return new Response(null, { status: 200 });
   }
 
-  return { statusCode: 200, body: '' };
+  return new Response(null, { status: 200 });
 };

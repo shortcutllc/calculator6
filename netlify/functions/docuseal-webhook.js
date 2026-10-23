@@ -25,33 +25,35 @@ async function notifyEventOps(text, blocks) {
   }
 }
 
-export const handler = async (event) => {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method not allowed' };
+export default async (req) => {
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405 });
   }
+
+  const rawBody = await req.text();
 
   // Verify webhook signature (HMAC-SHA256)
   const webhookSecret = process.env.DOCUSEAL_WEBHOOK_SECRET;
   if (webhookSecret) {
-    const signature = event.headers['x-docuseal-signature'];
+    const signature = req.headers.get('x-docuseal-signature');
     if (signature) {
       const expectedSig = crypto
         .createHmac('sha256', webhookSecret)
-        .update(event.body)
+        .update(rawBody)
         .digest('hex');
 
       if (signature !== expectedSig) {
         console.error('DocuSeal webhook signature verification failed');
-        return { statusCode: 400, body: 'Invalid signature' };
+        return new Response('Invalid signature', { status: 400 });
       }
     }
   }
 
   let payload;
   try {
-    payload = JSON.parse(event.body);
+    payload = JSON.parse(rawBody);
   } catch {
-    return { statusCode: 400, body: 'Invalid JSON' };
+    return new Response('Invalid JSON', { status: 400 });
   }
 
   const eventType = payload.event_type;
@@ -59,7 +61,7 @@ export const handler = async (event) => {
 
   if (!eventType || !submissionData) {
     console.log('Unrecognized webhook payload:', JSON.stringify(payload).slice(0, 500));
-    return { statusCode: 200, body: JSON.stringify({ received: true, skipped: true }) };
+    return new Response(JSON.stringify({ received: true, skipped: true }), { status: 200 });
   }
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -67,7 +69,7 @@ export const handler = async (event) => {
 
   if (!supabaseUrl || !serviceRoleKey) {
     console.error('Missing Supabase config');
-    return { statusCode: 500, body: 'Server misconfigured' };
+    return new Response('Server misconfigured', { status: 500 });
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -83,7 +85,7 @@ export const handler = async (event) => {
   if (findError || !agreement) {
     console.log('Agreement not found for submission:', submissionId);
     // Return 200 so DocuSeal doesn't retry
-    return { statusCode: 200, body: JSON.stringify({ received: true, matched: false }) };
+    return new Response(JSON.stringify({ received: true, matched: false }), { status: 200 });
   }
 
   // Handle completion events
@@ -159,5 +161,5 @@ export const handler = async (event) => {
   }
 
   // Always return 200 to acknowledge receipt
-  return { statusCode: 200, body: JSON.stringify({ received: true }) };
+  return new Response(JSON.stringify({ received: true }), { status: 200 });
 };

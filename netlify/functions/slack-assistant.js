@@ -1,14 +1,15 @@
 /**
  * Pro — Shortcut's Slack proposal assistant.
  *
- * Netlify Function (26-second timeout). Returns 200 immediately for Slack,
- * then processes the message. Slack retries are ignored via x-slack-retry-num.
+ * Netlify Function. Verifies and triages the event, returns 200 to Slack at
+ * once, then processes the message in context.waitUntil(). Slack retries are
+ * ignored via x-slack-retry-num.
  *
  * Flow:
  * 1. Slack sends event via HTTP webhook
- * 2. This function returns 200 immediately (Slack is happy)
- * 3. Verifies the signature, parses the event, and calls Claude
- * 4. Claude processes the message (possibly calling tools) and generates a response
+ * 2. Verifies the signature and drops events Pro doesn't answer
+ * 3. Returns 200 immediately (Slack wants it within 3 seconds)
+ * 4. In waitUntil: Claude processes the message (possibly calling tools)
  * 5. Response is posted back to Slack via chat.postMessage
  *
  * Environment variables required:
@@ -26,15 +27,15 @@ import { processSlackMessage } from './lib/slack-ai.js';
 
 // --- Slack Signature Verification ---
 
-function verifySlackSignature(event) {
+function verifySlackSignature(req, rawBody) {
   const signingSecret = process.env.PRO_SLACK_SIGNING_SECRET;
   if (!signingSecret) {
     console.error('PRO_SLACK_SIGNING_SECRET not configured');
     return false;
   }
 
-  const timestamp = event.headers['x-slack-request-timestamp'];
-  const signature = event.headers['x-slack-signature'];
+  const timestamp = req.headers.get('x-slack-request-timestamp');
+  const signature = req.headers.get('x-slack-signature');
 
   if (!timestamp || !signature) return false;
 
@@ -42,15 +43,16 @@ function verifySlackSignature(event) {
   const now = Math.floor(Date.now() / 1000);
   if (Math.abs(now - Number(timestamp)) > 300) return false;
 
-  const sigBasestring = `v0:${timestamp}:${event.body}`;
+  const sigBasestring = `v0:${timestamp}:${rawBody}`;
   const hmac = crypto.createHmac('sha256', signingSecret);
   hmac.update(sigBasestring);
   const expectedSignature = `v0=${hmac.digest('hex')}`;
 
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expectedSignature)
-  );
+  // timingSafeEqual throws on a length mismatch; a malformed signature is
+  // simply invalid.
+  const got = Buffer.from(signature);
+  const want = Buffer.from(expectedSignature);
+  return got.length === want.length && crypto.timingSafeEqual(got, want);
 }
 
 // --- Slack API Helpers ---
@@ -141,67 +143,15 @@ function createSupabaseClient() {
   return createClient(supabaseUrl, serviceRoleKey);
 }
 
-// --- Main Handler ---
+// --- Message Processing (runs after Slack has its 200) ---
 
-export const handler = async (event) => {
-  // Background functions still receive the event — Netlify has already returned 202 to the caller
+async function answerMessage(slackEvent, userMessage) {
+  const channelId = slackEvent.channel;
+  const threadTs = slackEvent.thread_ts || slackEvent.ts; // Use thread_ts if replying, otherwise start new thread
+  const messageTs = slackEvent.ts;
+  const slackUserId = slackEvent.user;
 
   try {
-    const body = JSON.parse(event.body || '{}');
-
-    // 1. Handle url_verification challenge (one-time Slack setup)
-    if (body.type === 'url_verification') {
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ challenge: body.challenge })
-      };
-    }
-
-    // 2. Verify Slack signature
-    if (!verifySlackSignature(event)) {
-      console.error('Invalid Slack signature');
-      return { statusCode: 401, body: 'Invalid signature' };
-    }
-
-    // 3. Ignore retries (Slack sends x-slack-retry-num on retries)
-    if (event.headers['x-slack-retry-num']) {
-      console.log('Ignoring Slack retry');
-      return { statusCode: 200, body: 'OK' };
-    }
-
-    // 4. Extract event data
-    const slackEvent = body.event;
-    if (!slackEvent) {
-      return { statusCode: 200, body: 'No event' };
-    }
-
-    // 5. Ignore bot messages (including our own)
-    if (slackEvent.bot_id || slackEvent.subtype === 'bot_message') {
-      return { statusCode: 200, body: 'OK' };
-    }
-
-    // 6. Only process app_mention and direct messages
-    if (slackEvent.type !== 'app_mention' && slackEvent.type !== 'message') {
-      return { statusCode: 200, body: 'OK' };
-    }
-
-    // For message events, only process DMs (channel type "im")
-    if (slackEvent.type === 'message' && slackEvent.channel_type !== 'im') {
-      return { statusCode: 200, body: 'OK' };
-    }
-
-    // 7. Extract message details
-    const userMessage = (slackEvent.text || '').replace(/<@[A-Z0-9]+>/g, '').trim();
-    const channelId = slackEvent.channel;
-    const threadTs = slackEvent.thread_ts || slackEvent.ts; // Use thread_ts if replying, otherwise start new thread
-    const messageTs = slackEvent.ts;
-    const slackUserId = slackEvent.user;
-
-    if (!userMessage) {
-      return { statusCode: 200, body: 'Empty message' };
-    }
-
     console.log(`Pro: processing message from ${slackUserId} in ${channelId}: "${userMessage.substring(0, 100)}"`);
 
     // 8. Add thinking reaction
@@ -241,19 +191,76 @@ export const handler = async (event) => {
 
     // Try to notify the user something went wrong
     try {
-      const body = JSON.parse(event.body || '{}');
-      const slackEvent = body.event;
-      if (slackEvent) {
-        await postMessage(
-          slackEvent.channel,
-          `Something went wrong processing your request. Error: ${err.message}`,
-          slackEvent.thread_ts || slackEvent.ts
-        );
-      }
+      await postMessage(
+        channelId,
+        `Something went wrong processing your request. Error: ${err.message}`,
+        threadTs
+      );
     } catch (notifyErr) {
       console.error('Failed to notify user of error:', notifyErr);
     }
   }
+}
 
-  return { statusCode: 200, body: 'OK' };
+// --- Main Handler ---
+
+export default async (req, context) => {
+  const rawBody = await req.text();
+
+  let body;
+  try {
+    body = JSON.parse(rawBody || '{}');
+  } catch (err) {
+    console.error('Pro handler error:', err);
+    return new Response('OK', { status: 200 });
+  }
+
+  // 1. Handle url_verification challenge (one-time Slack setup)
+  if (body.type === 'url_verification') {
+    return new Response(JSON.stringify({ challenge: body.challenge }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  // 2. Verify Slack signature
+  if (!verifySlackSignature(req, rawBody)) {
+    console.error('Invalid Slack signature');
+    return new Response('Invalid signature', { status: 401 });
+  }
+
+  // 3. Ignore retries (Slack sends x-slack-retry-num on retries)
+  if (req.headers.get('x-slack-retry-num')) {
+    console.log('Ignoring Slack retry');
+    return new Response('OK', { status: 200 });
+  }
+
+  // 4. Extract event data
+  const slackEvent = body.event;
+  if (!slackEvent) {
+    return new Response('No event', { status: 200 });
+  }
+
+  // 5. Ignore bot messages (including our own)
+  if (slackEvent.bot_id || slackEvent.subtype === 'bot_message') {
+    return new Response('OK', { status: 200 });
+  }
+
+  // 6. Only process app_mention and direct messages
+  if (slackEvent.type !== 'app_mention' && slackEvent.type !== 'message') {
+    return new Response('OK', { status: 200 });
+  }
+
+  // For message events, only process DMs (channel type "im")
+  if (slackEvent.type === 'message' && slackEvent.channel_type !== 'im') {
+    return new Response('OK', { status: 200 });
+  }
+
+  // 7. Extract message details
+  const userMessage = (slackEvent.text || '').replace(/<@[A-Z0-9]+>/g, '').trim();
+  if (!userMessage) {
+    return new Response('Empty message', { status: 200 });
+  }
+
+  // Ack now; the Claude round trip runs after the response is sent, so Slack
+  // never times out and never retries.
+  context.waitUntil(answerMessage(slackEvent, userMessage));
+  return new Response('OK', { status: 200 });
 };

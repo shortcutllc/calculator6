@@ -11,9 +11,9 @@
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
-export const handler = async (event) => {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method not allowed' };
+export default async (req) => {
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405 });
   }
 
   const stripeKey = process.env.STRIPE_SECRET_KEY;
@@ -21,20 +21,21 @@ export const handler = async (event) => {
 
   if (!stripeKey || !webhookSecret) {
     console.error('Missing STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET');
-    return { statusCode: 500, body: 'Server misconfigured' };
+    return new Response('Server misconfigured', { status: 500 });
   }
 
   const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
 
-  // Verify webhook signature
-  const sig = event.headers['stripe-signature'];
+  // Verify webhook signature against the exact bytes Stripe sent
+  const sig = req.headers.get('stripe-signature');
+  const rawBody = Buffer.from(await req.arrayBuffer());
   let stripeEvent;
 
   try {
-    stripeEvent = stripe.webhooks.constructEvent(event.body, sig, webhookSecret);
+    stripeEvent = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
   } catch (err) {
     console.error('Webhook signature verification failed:', err.message);
-    return { statusCode: 400, body: `Webhook Error: ${err.message}` };
+    return new Response(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
   // Handle invoice.paid event
@@ -47,7 +48,7 @@ export const handler = async (event) => {
 
     if (!supabaseUrl || !serviceRoleKey) {
       console.error('Missing Supabase config');
-      return { statusCode: 500, body: 'Server misconfigured' };
+      return new Response('Server misconfigured', { status: 500 });
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -99,5 +100,5 @@ export const handler = async (event) => {
   }
 
   // Always return 200 to acknowledge receipt
-  return { statusCode: 200, body: JSON.stringify({ received: true }) };
+  return new Response(JSON.stringify({ received: true }), { status: 200 });
 };

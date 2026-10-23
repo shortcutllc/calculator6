@@ -38,11 +38,7 @@ const CORS_HEADERS = {
 };
 
 function json(statusCode, body) {
-  return {
-    statusCode,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  };
+  return new Response(JSON.stringify(body), { status: statusCode, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
 }
 
 /**
@@ -95,12 +91,12 @@ function extractPhones(person) {
   return { mobile, work, best, source };
 }
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS_HEADERS, body: '' };
-  if (event.httpMethod !== 'POST') return json(405, { error: 'POST only' });
+export default async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS_HEADERS });
+  if (req.method !== 'POST') return json(405, { error: 'POST only' });
 
   try {
-    const body = JSON.parse(event.body || '{}');
+    const body = JSON.parse((await req.text()) || '{}');
     console.log('[apollo-phone-webhook] payload keys:', Object.keys(body));
 
     // Apollo nests person data a few ways; try both
