@@ -1,6 +1,6 @@
 # Connect your own AI to the proposals site
 
-Your AI (Claude, ChatGPT, Cursor, or a script you wrote) can create and edit proposals, landing pages, sponsor pages and QR signs on proposals.getshortcut.co, the same way Pro does in Slack. It acts as you: what it creates is saved under your name, and every tool hands back the live link.
+Your AI (Claude, ChatGPT, Meta Muse, Cursor, or a script you wrote) can create and edit proposals, landing pages, sponsor pages and QR signs on proposals.getshortcut.co, the same way Pro does in Slack. It acts as you: what it creates is saved under your name, and every tool hands back the live link.
 
 There are two ways in, and both use the same personal key:
 
@@ -36,6 +36,12 @@ claude mcp add --transport http shortcut https://proposals.getshortcut.co/.netli
 ```
 
 **ChatGPT.** Turn on developer mode for connectors (Settings → Apps & Connectors → Advanced; it depends on your plan), then create a connector with the `?key=` URL above and no authentication.
+
+**Meta Muse.** Muse has no form for adding a server. You ask it in a chat to build the connector, and it writes one for you. Send it this, without your key:
+
+> Build a custom connector to Shortcut's proposals MCP server at https://proposals.getshortcut.co/.netlify/functions/mcp. It's a hosted MCP server over streamable HTTP and needs an Authorization: Bearer header. Test every tool, then save it as a skill.
+
+When Muse asks for the credential, enter it in its secure credential prompt, never in the chat. If the prompt asks for the header value, enter `Bearer sk_shortcut_YOUR_KEY`. If it asks for a bearer token or key, enter just `sk_shortcut_YOUR_KEY`. Then, in Muse's settings, set this connector to ask before every action, so it never creates or changes a page without your yes.
 
 **Cursor.** Add this to `~/.cursor/mcp.json`:
 
