@@ -124,17 +124,17 @@ async function bookACallPageFor(sb, company, domain, log = () => {}) {
   return GENERIC_BOOK_A_CALL;
 }
 
-export const handler = async (event) => {
-  if (!process.env.PRO_SLACK_BOT_TOKEN) return { statusCode: 500, body: 'misconfigured (PRO_SLACK_BOT_TOKEN)' };
-  if (!process.env.ANTHROPIC_API_KEY) return { statusCode: 500, body: 'misconfigured (ANTHROPIC_API_KEY)' };
+export default async (req) => {
+  if (!process.env.PRO_SLACK_BOT_TOKEN) return new Response('misconfigured (PRO_SLACK_BOT_TOKEN)', { status: 500 });
+  if (!process.env.ANTHROPIC_API_KEY) return new Response('misconfigured (ANTHROPIC_API_KEY)', { status: 500 });
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return { statusCode: 500, body: 'misconfigured (SUPABASE)' };
+  if (!url || !key) return new Response('misconfigured (SUPABASE)', { status: 500 });
   const sb = createClient(url, key, { auth: { persistSession: false } });
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   let body = {};
-  try { body = JSON.parse(event.body || '{}'); } catch { /* defaults */ }
+  try { body = JSON.parse((await req.text()) || '{}'); } catch { /* defaults */ }
   const confirm = !!body.confirm;
   const max = Number.isFinite(body.max) ? Math.max(1, Math.min(30, body.max)) : DEFAULT_MAX;
   const only = lc(body.only) || null;
@@ -150,7 +150,7 @@ export const handler = async (event) => {
   log(`start · ${confirm ? 'LIVE (will auto-send)' : 'DRY (no sends)'} · max ${max}${only ? ` · only ${only}` : ''}${forceTouch ? ` · force touch ${forceTouch}` : ''}`);
 
   const { data: acct } = await sb.from('gmail_accounts').select('email, slack_user_id, supabase_user_id').eq('email', WILL).maybeSingle();
-  if (!acct) return { statusCode: 500, body: 'will@ not connected' };
+  if (!acct) return new Response('will@ not connected', { status: 500 });
   const token = await getAccessToken(sb, WILL);
 
   // E1 records = founder-note saved_drafts. Only tech-exec + broker founder notes.
@@ -310,7 +310,7 @@ export const handler = async (event) => {
     results,
   };
   log(`done · ${JSON.stringify({ considered: summary.considered, sent, halted: summary.halted })}`);
-  return { statusCode: 200, body: JSON.stringify(summary) };
+  return new Response(JSON.stringify(summary), { status: 200 });
 };
 
 async function markSequence(sb, e1, status) {

@@ -20,10 +20,10 @@ import { graduateReplies } from './lib/graduate-replies.js';
 
 export const config = { schedule: '5 11 * * *' };
 
-export const handler = async () => {
+export default async () => {
   const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
-  if (!url || !key) { console.error('[graduate-replies] missing SUPABASE env'); return { statusCode: 500, body: 'missing SUPABASE env' }; }
+  if (!url || !key) { console.error('[graduate-replies] missing SUPABASE env'); return new Response('missing SUPABASE env', { status: 500 }); }
   const sb = createClient(url, key, { auth: { persistSession: false } });
   const notifyUrl = (process.env.GRADUATION_NOTIFY_URL || 'https://proposals.getshortcut.co/.netlify/functions/graduation-notify-background').trim();
   try {
@@ -35,9 +35,9 @@ export const handler = async () => {
       notifyUrl, host: 'netlify',
       log: (...a) => console.log('[graduate-replies]', ...a),
     });
-    return { statusCode: 200, body: JSON.stringify(r) };
+    return new Response(JSON.stringify(r), { status: 200 });
   } catch (e) {
     console.error('[graduate-replies] ERROR:', e.message);
-    return { statusCode: 500, body: e.message };
+    return new Response(e.message, { status: 500 });
   }
 };

@@ -16,12 +16,12 @@ import { enrichReplies } from './lib/enrich-replies.js';
 
 export const config = { schedule: '30 10 * * *' };
 
-export const handler = async () => {
+export default async () => {
   const sk = (process.env.SMARTLEAD_API_KEY || '').trim();
   const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
-  if (!sk) { console.error('[enrich-replies] missing SMARTLEAD_API_KEY'); return { statusCode: 500, body: 'missing SMARTLEAD_API_KEY' }; }
-  if (!url || !key) { console.error('[enrich-replies] missing SUPABASE env'); return { statusCode: 500, body: 'missing SUPABASE env' }; }
+  if (!sk) { console.error('[enrich-replies] missing SMARTLEAD_API_KEY'); return new Response('missing SMARTLEAD_API_KEY', { status: 500 }); }
+  if (!url || !key) { console.error('[enrich-replies] missing SUPABASE env'); return new Response('missing SUPABASE env', { status: 500 }); }
   const sb = createClient(url, key, { auth: { persistSession: false } });
   const log = (...a) => console.log('[enrich-replies]', ...a);
   try {
@@ -32,9 +32,9 @@ export const handler = async () => {
     if (new Date().getUTCDay() === 0) {
       reclassify = await enrichReplies({ sb, smartleadKey: sk, reclassifyAll: true, dry: false, host: 'netlify', log });
     }
-    return { statusCode: 200, body: JSON.stringify({ backfill, reclassify }) };
+    return new Response(JSON.stringify({ backfill, reclassify }), { status: 200 });
   } catch (e) {
     console.error('[enrich-replies] ERROR:', e.message);
-    return { statusCode: 500, body: e.message };
+    return new Response(e.message, { status: 500 });
   }
 };

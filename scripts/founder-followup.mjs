@@ -44,9 +44,10 @@ const payload = { confirm: CONFIRM, max: MAX, ...(ONLY ? { only: ONLY } : {}), .
   if (CONFIRM && !process.env.PRO_SLACK_BOT_TOKEN) { console.error('LIVE local send needs PRO_SLACK_BOT_TOKEN (or use --remote --confirm)'); process.exit(2); }
   if (!process.env.ANTHROPIC_API_KEY) { console.error('MISSING ANTHROPIC_API_KEY'); process.exit(2); }
 
-  const { handler } = await import('../netlify/functions/founder-followup-background.js');
-  const resp = await handler({ body: JSON.stringify(payload) });
-  let out; try { out = JSON.parse(resp.body); } catch { out = resp.body; }
+  const { default: followup } = await import('../netlify/functions/founder-followup-background.js');
+  const resp = await followup(new Request('http://localhost/.netlify/functions/founder-followup-background', { method: 'POST', body: JSON.stringify(payload) }));
+  const text = await resp.text();
+  let out; try { out = JSON.parse(text); } catch { out = text; }
   console.log('\n================ FOLLOW-UP SUMMARY ================');
   console.log(JSON.stringify({ dry: out.dry, considered: out.considered, sent: out.sent, halted: out.halted }, null, 0));
   for (const r of out.results || []) {

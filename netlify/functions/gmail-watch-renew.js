@@ -15,14 +15,14 @@ import { getAccessToken, startWatch } from './lib/gmail.js';
 
 export const config = { schedule: '0 12 * * *' }; // 12:00 UTC daily — MUST match netlify.toml [functions."gmail-watch-renew"]
 
-export const handler = async () => {
+export default async () => {
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return { statusCode: 500, body: 'misconfigured' };
+  if (!url || !key) return new Response('misconfigured', { status: 500 });
 
   const sb = createClient(url, key, { auth: { persistSession: false } });
   const { data: accounts, error } = await sb.from('gmail_accounts').select('email');
-  if (error) return { statusCode: 500, body: `query failed: ${error.message}` };
+  if (error) return new Response(`query failed: ${error.message}`, { status: 500 });
 
   const results = [];
   for (const a of accounts || []) {
@@ -42,5 +42,5 @@ export const handler = async () => {
   }
 
   console.log(`gmail-watch-renew: ${results.join(' ') || 'no accounts'}`);
-  return { statusCode: 200, body: results.join(' ') || 'no accounts' };
+  return new Response(results.join(' ') || 'no accounts', { status: 200 });
 };

@@ -76,17 +76,17 @@ async function slackPost(method, body) {
   return j;
 }
 
-export const handler = async (event) => {
-  if (!process.env.PRO_SLACK_BOT_TOKEN) return { statusCode: 500, body: 'misconfigured (PRO_SLACK_BOT_TOKEN)' };
-  if (!process.env.ANTHROPIC_API_KEY) return { statusCode: 500, body: 'misconfigured (ANTHROPIC_API_KEY)' };
+export default async (req) => {
+  if (!process.env.PRO_SLACK_BOT_TOKEN) return new Response('misconfigured (PRO_SLACK_BOT_TOKEN)', { status: 500 });
+  if (!process.env.ANTHROPIC_API_KEY) return new Response('misconfigured (ANTHROPIC_API_KEY)', { status: 500 });
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return { statusCode: 500, body: 'misconfigured (SUPABASE)' };
+  if (!url || !key) return new Response('misconfigured (SUPABASE)', { status: 500 });
   const sb = createClient(url, key, { auth: { persistSession: false } });
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   let body = {};
-  try { body = JSON.parse(event.body || '{}'); } catch { /* defaults */ }
+  try { body = JSON.parse((await req.text()) || '{}'); } catch { /* defaults */ }
   const max = Number.isFinite(body.max) ? Math.max(1, Math.min(15, body.max)) : DEFAULT_MAX;
   const dryRun = !!body.dryRun;
   const only = lc(body.only) || null;
@@ -108,7 +108,7 @@ export const handler = async (event) => {
   // Will's account (Slack + Gmail + user id).
   const { data: acct } = await sb.from('gmail_accounts')
     .select('email, slack_user_id, supabase_user_id').eq('email', WILL).maybeSingle();
-  if (!acct?.slack_user_id) return { statusCode: 500, body: 'will@ not connected (gmail_accounts.slack_user_id)' };
+  if (!acct?.slack_user_id) return new Response('will@ not connected (gmail_accounts.slack_user_id)', { status: 500 });
 
   // ---- TARGETS. brokers (v1): priority-ranked broker contacts. tech-execs (v2,
   // 2026-07-06): the founder-personal cohort from find-founder-targets.mjs
@@ -154,9 +154,9 @@ export const handler = async (event) => {
   }
 
   if (dryRun) {
-    return { statusCode: 200, body: JSON.stringify({ dryRun: true, audience, max, candidates: rows.length, today: targets.map((t) => ({ email: t.email, name: t.name, company: t.company, firm: firmById.get(t.broker_firm_id)?.display_name })) }) };
+    return new Response(JSON.stringify({ dryRun: true, audience, max, candidates: rows.length, today: targets.map((t) => ({ email: t.email, name: t.name, company: t.company, firm: firmById.get(t.broker_firm_id)?.display_name })) }), { status: 200 });
   }
-  if (!targets.length) return { statusCode: 200, body: JSON.stringify({ ok: true, note: 'no eligible targets', candidates: rows.length }) };
+  if (!targets.length) return new Response(JSON.stringify({ ok: true, note: 'no eligible targets', candidates: rows.length }), { status: 200 });
 
   // Voice exemplars once per run.
   const tok = await getAccessToken(sb, WILL);
@@ -340,5 +340,5 @@ export const handler = async (event) => {
       }
     }
   }
-  return { statusCode: 200, body: JSON.stringify({ ok: true, audience, drafted: results.filter((r) => r.status === 'drafted').length, results }) };
+  return new Response(JSON.stringify({ ok: true, audience, drafted: results.filter((r) => r.status === 'drafted').length, results }), { status: 200 });
 };

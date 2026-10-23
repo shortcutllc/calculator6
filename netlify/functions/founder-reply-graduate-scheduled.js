@@ -13,10 +13,10 @@ import { graduateFounderReplies } from './lib/founder-reply-graduate.js';
 
 export const config = { schedule: '35 * * * *' };
 
-export const handler = async () => {
+export default async () => {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return { statusCode: 500, body: 'misconfigured (SUPABASE)' };
+  if (!url || !key) return new Response('misconfigured (SUPABASE)', { status: 500 });
   const sb = createClient(url, key, { auth: { persistSession: false } });
   const log = (...a) => console.log('[founder-reply-graduate]', ...a);
   try {
@@ -29,9 +29,9 @@ export const handler = async () => {
       });
       log(`graduated ${res.graduated} → triggered graduation-notify (HTTP ${r.status})`);
     }
-    return { statusCode: 200, body: JSON.stringify(res) };
+    return new Response(JSON.stringify(res), { status: 200 });
   } catch (e) {
     console.error('[founder-reply-graduate] ERROR:', e.message);
-    return { statusCode: 500, body: e.message };
+    return new Response(e.message, { status: 500 });
   }
 };

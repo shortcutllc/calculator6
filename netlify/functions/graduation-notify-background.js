@@ -439,17 +439,17 @@ async function markNotified(sb, email) {
 // No behavior change to the handler path.
 export { draftReply as _draftReply, guardDirections as _guardDirections };
 
-export const handler = async (event) => {
-  if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method not allowed' };
+export default async (req) => {
+  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
 
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return { statusCode: 500, body: 'misconfigured (SUPABASE)' };
-  if (!process.env.ANTHROPIC_API_KEY) return { statusCode: 500, body: 'misconfigured (ANTHROPIC_API_KEY)' };
-  if (!process.env.PRO_SLACK_BOT_TOKEN) return { statusCode: 500, body: 'misconfigured (PRO_SLACK_BOT_TOKEN)' };
+  if (!url || !key) return new Response('misconfigured (SUPABASE)', { status: 500 });
+  if (!process.env.ANTHROPIC_API_KEY) return new Response('misconfigured (ANTHROPIC_API_KEY)', { status: 500 });
+  if (!process.env.PRO_SLACK_BOT_TOKEN) return new Response('misconfigured (PRO_SLACK_BOT_TOKEN)', { status: 500 });
 
   let body = {};
-  try { body = JSON.parse(event.body || '{}'); } catch { /* default {} */ }
+  try { body = JSON.parse((await req.text()) || '{}'); } catch { /* default {} */ }
   const dryRun = !!body.dryRun;
   const force = !!body.force;
   const max = Number.isFinite(body.max) ? Math.max(1, Math.min(200, body.max)) : DEFAULT_MAX;
@@ -473,7 +473,7 @@ export const handler = async (event) => {
   q = q.order('graduated_at', { ascending: true }).limit(max);
 
   const { data: pending, error } = await q;
-  if (error) return { statusCode: 500, body: `query failed: ${error.message}` };
+  if (error) return new Response(`query failed: ${error.message}`, { status: 500 });
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const results = [];
@@ -491,5 +491,5 @@ export const handler = async (event) => {
     skipped: results.filter((r) => r.skipped).length,
   };
   console.log('graduation-notify summary:', JSON.stringify(summary));
-  return { statusCode: 200, body: JSON.stringify({ ok: true, summary, results }) };
+  return new Response(JSON.stringify({ ok: true, summary, results }), { status: 200 });
 };

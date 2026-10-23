@@ -212,12 +212,13 @@ async function slackUpdate(channel, ts, blocks, text) {
   return j;
 }
 
-export const handler = async (event) => {
-  if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method not allowed' };
+export default async (request) => {
+  if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 });
 
+  // `req` is the parsed payload below; the incoming Request is `request`.
   let req;
-  try { req = JSON.parse(event.body || '{}'); }
-  catch { return { statusCode: 400, body: 'Bad JSON' }; }
+  try { req = JSON.parse((await request.text()) || '{}'); }
+  catch { return new Response('Bad JSON', { status: 400 }); }
 
   const {
     repEmail, leadEmail, threadId, firstOutreach, label, slackChannel, placeholderTs,
@@ -231,7 +232,7 @@ export const handler = async (event) => {
     brokerCtx,
   } = req;
   if (!slackChannel || !placeholderTs) {
-    return { statusCode: 400, body: 'Missing slackChannel or placeholderTs' };
+    return new Response('Missing slackChannel or placeholderTs', { status: 400 });
   }
   // Branch into the edit path early — it has a different shape than the
   // full draft-generation pipeline (no lead-picture, no prior-email pull,
@@ -242,7 +243,7 @@ export const handler = async (event) => {
     });
   }
   if (!repEmail || !leadEmail) {
-    return { statusCode: 400, body: 'Missing required fields' };
+    return new Response('Missing required fields', { status: 400 });
   }
 
   const sb = createClient(
@@ -256,7 +257,7 @@ export const handler = async (event) => {
   try { pic = await leadPicture(sb, { email: leadEmail }); }
   catch (e) {
     await slackUpdate(slackChannel, placeholderTs, buildDraftErrorBlocks({ who: label, email: leadEmail }, `lead lookup failed: ${e.message}`));
-    return { statusCode: 200, body: 'ok' };
+    return new Response('ok', { status: 200 });
   }
 
   // ---- 2. Find the latest send by this rep + days_since ---------------
@@ -667,14 +668,14 @@ Notes on the reference:
   } catch (e) {
     console.error('Draft generation failed:', e);
     await slackUpdate(slackChannel, placeholderTs, buildDraftErrorBlocks({ who: label, email: leadEmail }, `draft generation failed: ${e.message}`));
-    return { statusCode: 200, body: 'ok' };
+    return new Response('ok', { status: 200 });
   }
 
   const directions = Array.isArray(result.directions) ? result.directions : [];
   const medium = directions.find((d) => d.label === 'medium') || directions[0];
   if (!medium) {
     await slackUpdate(slackChannel, placeholderTs, buildDraftErrorBlocks({ who: label, email: leadEmail }, 'model returned no usable directions'));
-    return { statusCode: 200, body: 'ok' };
+    return new Response('ok', { status: 200 });
   }
   const fightFor = { label: result.fight_for || 'medium', reason: result.fight_for_reason || null };
 
@@ -683,7 +684,7 @@ Notes on the reference:
   const { data: acct } = await sb.from('gmail_accounts').select('supabase_user_id').eq('email', repEmail).maybeSingle();
   if (!acct?.supabase_user_id) {
     await slackUpdate(slackChannel, placeholderTs, buildDraftErrorBlocks({ who: label, email: leadEmail }, 'rep account missing supabase_user_id'));
-    return { statusCode: 200, body: 'ok' };
+    return new Response('ok', { status: 200 });
   }
   // Build a REAL Gmail draft via drafts.create so the rep's full HTML
   // signature renders when they open it in compose. The Open-in-Gmail URL
@@ -746,7 +747,7 @@ Notes on the reference:
   }).select().single();
   if (saveErr || !saved) {
     await slackUpdate(slackChannel, placeholderTs, buildDraftErrorBlocks({ who: label, email: leadEmail }, `save failed: ${saveErr?.message}`));
-    return { statusCode: 200, body: 'ok' };
+    return new Response('ok', { status: 200 });
   }
 
   // ---- 6. Update the Slack placeholder with the preview ---------------
@@ -765,7 +766,7 @@ Notes on the reference:
     fightFor,
   );
   await slackUpdate(slackChannel, placeholderTs, blocks, `Draft to ${label}`);
-  return { statusCode: 200, body: 'ok' };
+  return new Response('ok', { status: 200 });
 };
 
 // ============================================================
@@ -803,7 +804,7 @@ async function handleEditMode({ draftId, editInstructions, slackChannel, placeho
 
   if (!draftId || !editInstructions) {
     await slackUpdate(slackChannel, placeholderTs, buildDraftErrorBlocks({ who: label, email: leadEmail }, 'edit mode missing draftId or editInstructions'));
-    return { statusCode: 200, body: 'ok' };
+    return new Response('ok', { status: 200 });
   }
 
   // 1. Load current draft
@@ -811,7 +812,7 @@ async function handleEditMode({ draftId, editInstructions, slackChannel, placeho
     .select('id, subject, body, target_ref').eq('id', draftId).maybeSingle();
   if (loadErr || !draft) {
     await slackUpdate(slackChannel, placeholderTs, buildDraftErrorBlocks({ who: label, email: leadEmail }, `could not load draft: ${loadErr?.message || 'not found'}`));
-    return { statusCode: 200, body: 'ok' };
+    return new Response('ok', { status: 200 });
   }
 
   // 2. LLM revision
@@ -843,7 +844,7 @@ Apply ONLY this change. Keep everything else the same. Return JSON only.`;
   } catch (e) {
     console.error('edit_draft LLM failure:', e);
     await slackUpdate(slackChannel, placeholderTs, buildDraftErrorBlocks({ who: label, email: leadEmail }, `edit failed: ${e.message}`));
-    return { statusCode: 200, body: 'ok' };
+    return new Response('ok', { status: 200 });
   }
 
   // 3a. Regenerate the Gmail draft so the compose preview shows the revised
@@ -886,7 +887,7 @@ Apply ONLY this change. Keep everything else the same. Return JSON only.`;
     .eq('id', draftId);
   if (updErr) {
     await slackUpdate(slackChannel, placeholderTs, buildDraftErrorBlocks({ who: label, email: leadEmail }, `save failed: ${updErr.message}`));
-    return { statusCode: 200, body: 'ok' };
+    return new Response('ok', { status: 200 });
   }
 
   // 4. Refresh the preview message in place
@@ -909,5 +910,5 @@ Apply ONLY this change. Keep everything else the same. Return JSON only.`;
     fightFor,
   );
   await slackUpdate(slackChannel, placeholderTs, blocks, `Draft revised`);
-  return { statusCode: 200, body: 'ok' };
+  return new Response('ok', { status: 200 });
 }

@@ -14,19 +14,19 @@ import { syncBounces } from './lib/sync-bounces.js';
 
 export const config = { schedule: '50 10 * * *' };
 
-export const handler = async () => {
+export default async () => {
   const sk = (process.env.SMARTLEAD_API_KEY || '').trim();
   const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
-  if (!sk) { console.error('[sync-bounces] missing SMARTLEAD_API_KEY'); return { statusCode: 500, body: 'missing SMARTLEAD_API_KEY' }; }
-  if (!url || !key) { console.error('[sync-bounces] missing SUPABASE env'); return { statusCode: 500, body: 'missing SUPABASE env' }; }
+  if (!sk) { console.error('[sync-bounces] missing SMARTLEAD_API_KEY'); return new Response('missing SMARTLEAD_API_KEY', { status: 500 }); }
+  if (!url || !key) { console.error('[sync-bounces] missing SUPABASE env'); return new Response('missing SUPABASE env', { status: 500 }); }
   const sb = createClient(url, key, { auth: { persistSession: false } });
   const log = (...a) => console.log('[sync-bounces]', ...a);
   try {
     const r = await syncBounces({ sb, smartleadKey: sk, confirm: true, del: true, host: 'netlify', log });
-    return { statusCode: 200, body: JSON.stringify(r) };
+    return new Response(JSON.stringify(r), { status: 200 });
   } catch (e) {
     console.error('[sync-bounces] ERROR:', e.message);
-    return { statusCode: 500, body: e.message };
+    return new Response(e.message, { status: 500 });
   }
 };

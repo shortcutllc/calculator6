@@ -11,7 +11,7 @@ import { scrapeVisibleLogo } from './create-workhuman-landing-page.js';
 
 const BUDGET_MS = 13 * 60 * 1000;
 
-export const handler = async () => {
+export default async () => {
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const sb = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
   const start = Date.now();
@@ -51,5 +51,5 @@ export const handler = async () => {
     .gte('created_at', '2026-07-01').filter('data->>partnerLogoUrl', 'is', null)
     .filter('data->>logoAttempted', 'is', null);
   console.log(`relogo background done: ${JSON.stringify(tally)} · remaining ${count}`);
-  return { statusCode: 200, body: JSON.stringify({ ...tally, remaining: count ?? -1 }) };
+  return new Response(JSON.stringify({ ...tally, remaining: count ?? -1 }), { status: 200 });
 };

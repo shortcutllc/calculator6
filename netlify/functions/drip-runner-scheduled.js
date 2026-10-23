@@ -23,7 +23,7 @@ const BACKGROUND_URL_PATH = '/.netlify/functions/drip-runner-background';
 
 export const config = { schedule: '*/10 13-20 * * 1-5' };
 
-export const handler = async () => {
+export default async () => {
   const base = (process.env.URL || process.env.DEPLOY_PRIME_URL || 'https://proposals.getshortcut.co').replace(/\/$/, '');
   try {
     const r = await fetch(`${base}${BACKGROUND_URL_PATH}`, {
@@ -33,9 +33,9 @@ export const handler = async () => {
       body: JSON.stringify({ confirm: true, max: 2 }),
     });
     console.log(`[drip-runner-scheduled] dispatched → HTTP ${r.status}`);
-    return { statusCode: 200, body: `dispatched drip-runner-background (HTTP ${r.status})` };
+    return new Response(`dispatched drip-runner-background (HTTP ${r.status})`, { status: 200 });
   } catch (e) {
     console.error('[drip-runner-scheduled] dispatch failed:', e.message);
-    return { statusCode: 500, body: e.message };
+    return new Response(e.message, { status: 500 });
   }
 };

@@ -308,26 +308,26 @@ async function sendDigest(sb, token, acct, repLocalHour, force = false) {
   return { sent: true, email: acct.email, items: totalItems };
 }
 
-export const handler = async (event) => {
+export default async (req) => {
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const token = process.env.PRO_SLACK_BOT_TOKEN;
-  if (!url || !key || !token) return { statusCode: 500, body: 'misconfigured (need SUPABASE + PRO_SLACK_BOT_TOKEN)' };
+  if (!url || !key || !token) return new Response('misconfigured (need SUPABASE + PRO_SLACK_BOT_TOKEN)', { status: 500 });
 
   const sb = createClient(url, key, { auth: { persistSession: false } });
 
   // Manual fire (HTTP POST with { force: true, only?: 'will@...' }) for testing.
   // Useful before tomorrow's first real cron run — lets Will fire one now.
-  const isManual = event?.httpMethod === 'POST';
+  const isManual = req.method === 'POST';
   let manualBody = null;
-  if (isManual) { try { manualBody = JSON.parse(event.body || '{}'); } catch { manualBody = {}; } }
+  if (isManual) { try { manualBody = JSON.parse((await req.text()) || '{}'); } catch { manualBody = {}; } }
 
   let q = sb.from('gmail_accounts')
     .select('email, slack_user_id, tz, digest_enabled, digest_skip_weekends, digest_last_sent_at, muted_until, muted_lead_emails')
     .not('slack_user_id', 'is', null).eq('digest_enabled', true);
   if (manualBody?.only) q = q.eq('email', manualBody.only);
   const { data: accounts, error } = await q;
-  if (error) return { statusCode: 500, body: `query: ${error.message}` };
+  if (error) return new Response(`query: ${error.message}`, { status: 500 });
 
   const now = Date.now();
   const results = [];
@@ -355,5 +355,5 @@ export const handler = async (event) => {
       results.push({ error: e.message, email: a.email });
     }
   }
-  return { statusCode: 200, body: JSON.stringify({ ok: true, results }) };
+  return new Response(JSON.stringify({ ok: true, results }), { status: 200 });
 };

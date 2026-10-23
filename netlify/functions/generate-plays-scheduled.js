@@ -15,17 +15,17 @@ import { generatePlays } from './lib/generate-plays.js';
 
 export const config = { schedule: '45 10 * * *' };
 
-export const handler = async () => {
+export default async () => {
   const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
-  if (!url || !key) { console.error('[generate-plays] missing SUPABASE env'); return { statusCode: 500, body: 'missing SUPABASE env' }; }
+  if (!url || !key) { console.error('[generate-plays] missing SUPABASE env'); return new Response('missing SUPABASE env', { status: 500 }); }
   const sb = createClient(url, key, { auth: { persistSession: false } });
   const log = (...a) => console.log('[generate-plays]', ...a);
   try {
     const r = await generatePlays({ sb, writeCsv: false, host: 'netlify', log });
-    return { statusCode: 200, body: JSON.stringify(r) };
+    return new Response(JSON.stringify(r), { status: 200 });
   } catch (e) {
     console.error('[generate-plays] ERROR:', e.message);
-    return { statusCode: 500, body: e.message };
+    return new Response(e.message, { status: 500 });
   }
 };

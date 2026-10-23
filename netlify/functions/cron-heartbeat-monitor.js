@@ -55,17 +55,17 @@ async function dmWill(text) {
   await slack('chat.postMessage', { channel: c.channel.id, text, unfurl_links: false });
 }
 
-export const handler = async () => {
+export default async () => {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return { statusCode: 500, body: 'misconfigured (SUPABASE)' };
+  if (!url || !key) return new Response('misconfigured (SUPABASE)', { status: 500 });
   const sb = createClient(url, key, { auth: { persistSession: false } });
 
   const { data: rows, error } = await sb.from('cron_heartbeats').select('job_name, last_run_at, status, note, host');
   if (error) {
     // Missing table (migration not applied yet) → clean no-op, not a failure.
     console.warn('[heartbeat-monitor] cron_heartbeats not readable (migration applied?):', error.message);
-    return { statusCode: 200, body: JSON.stringify({ skipped: true, reason: error.message }) };
+    return new Response(JSON.stringify({ skipped: true, reason: error.message }), { status: 200 });
   }
   const byJob = Object.fromEntries((rows || []).map((r) => [r.job_name, r]));
 
@@ -96,5 +96,5 @@ export const handler = async () => {
     await dmWill(text);
   }
 
-  return { statusCode: 200, body: JSON.stringify({ checked: EXPECTED.length, problems }) };
+  return new Response(JSON.stringify({ checked: EXPECTED.length, problems }), { status: 200 });
 };

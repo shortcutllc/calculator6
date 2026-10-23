@@ -19,20 +19,20 @@ import { stampHeartbeat } from './lib/heartbeat.js';
 
 export const config = { schedule: '25 * * * *' };
 
-export const handler = async () => {
+export default async () => {
   const apiKey = (process.env.SMARTLEAD_API_KEY || '').trim();
   const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
-  if (!apiKey) { console.error('[smartlead-pull] MISSING SMARTLEAD_API_KEY in Netlify env — add it to run this in the cloud'); return { statusCode: 500, body: 'missing SMARTLEAD_API_KEY' }; }
-  if (!url || !key) { console.error('[smartlead-pull] missing SUPABASE env'); return { statusCode: 500, body: 'missing SUPABASE env' }; }
+  if (!apiKey) { console.error('[smartlead-pull] MISSING SMARTLEAD_API_KEY in Netlify env — add it to run this in the cloud'); return new Response('missing SMARTLEAD_API_KEY', { status: 500 }); }
+  if (!url || !key) { console.error('[smartlead-pull] missing SUPABASE env'); return new Response('missing SUPABASE env', { status: 500 }); }
   const sb = createClient(url, key, { auth: { persistSession: false } });
   try {
     const r = await pullSmartlead({ sb, apiKey, full: false, days: 30, campaignMonths: 3, log: (...a) => console.log('[smartlead-pull]', ...a) });
     console.log('[smartlead-pull] done', JSON.stringify(r));
     await stampHeartbeat(sb, 'smartlead-pull', { host: 'netlify' });
-    return { statusCode: 200, body: JSON.stringify(r) };
+    return new Response(JSON.stringify(r), { status: 200 });
   } catch (e) {
     console.error('[smartlead-pull] ERROR:', e.message);
-    return { statusCode: 500, body: e.message };
+    return new Response(e.message, { status: 500 });
   }
 };

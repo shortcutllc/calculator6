@@ -36,10 +36,10 @@ export const config = { schedule: '45 11 * * 1-5' };
 // the morning queue WITHOUT a deploy. Default is on.
 const ENABLED = process.env.FOUNDER_QUEUE_ENABLED !== 'false';
 
-export const handler = async () => {
+export default async () => {
   if (!ENABLED) {
     console.log('[founder-queue-scheduled] PAUSED via FOUNDER_QUEUE_ENABLED=false. No dispatch.');
-    return { statusCode: 200, body: 'paused (FOUNDER_QUEUE_ENABLED=false)' };
+    return new Response('paused (FOUNDER_QUEUE_ENABLED=false)', { status: 200 });
   }
   const base = (process.env.URL || process.env.DEPLOY_PRIME_URL || 'https://proposals.getshortcut.co').replace(/\/$/, '');
   try {
@@ -49,9 +49,9 @@ export const handler = async () => {
       body: JSON.stringify({ max: 5, audience: 'brokers', engine: 'v2' }),
     });
     console.log(`[founder-queue-scheduled] dispatched → HTTP ${r.status}`);
-    return { statusCode: 200, body: `dispatched founder-queue-background (HTTP ${r.status})` };
+    return new Response(`dispatched founder-queue-background (HTTP ${r.status})`, { status: 200 });
   } catch (e) {
     console.error('[founder-queue-scheduled] dispatch failed:', e.message);
-    return { statusCode: 500, body: e.message };
+    return new Response(e.message, { status: 500 });
   }
 };

@@ -23,21 +23,21 @@ async function slackPost(method, body) {
   return j;
 }
 
-export const handler = async (event) => {
-  if (!process.env.PRO_SLACK_BOT_TOKEN) return { statusCode: 500, body: 'misconfigured' };
+export default async (req) => {
+  if (!process.env.PRO_SLACK_BOT_TOKEN) return new Response('misconfigured', { status: 500 });
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const sb = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
   let body = {};
-  try { body = JSON.parse(event.body || '{}'); } catch { /* noop */ }
-  if (!body.asset_id) return { statusCode: 400, body: 'asset_id required' };
+  try { body = JSON.parse((await req.text()) || '{}'); } catch { /* noop */ }
+  if (!body.asset_id) return new Response('asset_id required', { status: 400 });
 
   const { data: a } = await sb.from('copy_assets').select('*').eq('id', body.asset_id).maybeSingle();
-  if (!a) return { statusCode: 404, body: 'asset not found' };
+  if (!a) return new Response('asset not found', { status: 404 });
   const { data: acct } = await sb.from('gmail_accounts').select('slack_user_id').eq('email', WILL).maybeSingle();
-  if (!acct?.slack_user_id) return { statusCode: 500, body: 'will not on slack' };
+  if (!acct?.slack_user_id) return new Response('will not on slack', { status: 500 });
 
   const open = await slackPost('conversations.open', { users: acct.slack_user_id });
-  if (!open.ok) return { statusCode: 500, body: 'dm open failed' };
+  if (!open.ok) return new Response('dm open failed', { status: 500 });
   const channel = open.channel?.id;
 
   const stepsText = (a.steps || []).map((s) => `*E${s.step}* (day +${s.delayDays})${(s.subjects || []).filter(Boolean).length ? `  ·  subj: ${(s.subjects || []).filter(Boolean).map((x) => `"${x}"`).join(' / ')}` : '  ·  (threaded)'}\n\`\`\`${String(s.body || '').slice(0, 900)}\`\`\``).join('\n');
@@ -47,5 +47,5 @@ export const handler = async (event) => {
     { type: 'context', elements: [{ type: 'mrkdwn', text: `Nothing ships until you ratify. Approve: tell Claude "approve proposal ${a.id}" (or reject it). Newest approval becomes the engine's copy for ${a.segment}/${a.opener}.` }] },
   ];
   await slackPost('chat.postMessage', { channel, text: `Copy proposal: ${a.label}`, blocks, unfurl_links: false, unfurl_media: false });
-  return { statusCode: 200, body: JSON.stringify({ ok: true }) };
+  return new Response(JSON.stringify({ ok: true }), { status: 200 });
 };

@@ -20,7 +20,7 @@ const BACKGROUND_URL_PATH = '/.netlify/functions/founder-followup-background';
 
 export const config = { schedule: '0 13,15,17,19 * * 1-5' };
 
-export const handler = async () => {
+export default async () => {
   const base = (process.env.URL || process.env.DEPLOY_PRIME_URL || 'https://proposals.getshortcut.co').replace(/\/$/, '');
   try {
     const r = await fetch(`${base}${BACKGROUND_URL_PATH}`, {
@@ -29,9 +29,9 @@ export const handler = async () => {
       body: JSON.stringify({ confirm: true, max: 15 }),
     });
     console.log(`[founder-followup-scheduled] dispatched → HTTP ${r.status}`);
-    return { statusCode: 200, body: `dispatched founder-followup-background (HTTP ${r.status})` };
+    return new Response(`dispatched founder-followup-background (HTTP ${r.status})`, { status: 200 });
   } catch (e) {
     console.error('[founder-followup-scheduled] dispatch failed:', e.message);
-    return { statusCode: 500, body: e.message };
+    return new Response(e.message, { status: 500 });
   }
 };

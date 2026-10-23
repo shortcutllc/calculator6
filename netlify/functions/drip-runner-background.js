@@ -51,27 +51,27 @@ async function slackPost(method, body) {
   return r.json().catch(() => ({}));
 }
 
-export const handler = async (event) => {
+export default async (req) => {
   const lines = [];
   const log = (m) => { lines.push(m); console.log(`[drip] ${m}`); };
-  const body = JSON.parse(event.body || '{}');
+  const body = JSON.parse((await req.text()) || '{}');
   const { campaign: slug, confirm = false, only = null, max = 25 } = body;
 
   const sb = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
   const secret = process.env.DRIP_UNSUB_SECRET;
-  if (!secret) return { statusCode: 500, body: JSON.stringify({ ok: false, error: 'DRIP_UNSUB_SECRET not set' }) };
+  if (!secret) return new Response(JSON.stringify({ ok: false, error: 'DRIP_UNSUB_SECRET not set' }), { status: 500 });
 
   let q = sb.from('drip_campaigns').select('*').eq('status', 'active');
   if (slug) q = q.eq('slug', slug);
   const { data: campaigns } = await q;
-  if (!campaigns?.length) return { statusCode: 200, body: JSON.stringify({ ok: true, note: 'no active campaigns', slug }) };
+  if (!campaigns?.length) return new Response(JSON.stringify({ ok: true, note: 'no active campaigns', slug }), { status: 200 });
 
   const out = [];
   for (const camp of campaigns) {
     const res = await runCampaign({ sb, camp, confirm, only, max, secret, log });
     out.push(res);
   }
-  return { statusCode: 200, body: JSON.stringify({ ok: true, dry: !confirm, campaigns: out, log: lines }, null, 2) };
+  return new Response(JSON.stringify({ ok: true, dry: !confirm, campaigns: out, log: lines }, null, 2), { status: 200 });
 };
 
 async function runCampaign({ sb, camp, confirm, only, max, secret, log }) {

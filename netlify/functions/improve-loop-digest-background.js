@@ -65,14 +65,14 @@ function buildBlocks(p) {
   return blocks;
 }
 
-export const handler = async (event) => {
-  if (!process.env.PRO_SLACK_BOT_TOKEN) return { statusCode: 500, body: 'misconfigured (PRO_SLACK_BOT_TOKEN)' };
+export default async (req) => {
+  if (!process.env.PRO_SLACK_BOT_TOKEN) return new Response('misconfigured (PRO_SLACK_BOT_TOKEN)', { status: 500 });
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return { statusCode: 500, body: 'misconfigured (SUPABASE)' };
+  if (!url || !key) return new Response('misconfigured (SUPABASE)', { status: 500 });
 
   let p = {};
-  try { p = JSON.parse(event.body || '{}'); } catch { /* empty plan → still post a heartbeat */ }
+  try { p = JSON.parse((await req.text()) || '{}'); } catch { /* empty plan → still post a heartbeat */ }
   const sb = createClient(url, key, { auth: { persistSession: false } });
 
   // Resolve the recipient's Slack DM channel (default: Will).
@@ -80,9 +80,9 @@ export const handler = async (event) => {
   if (!channel) {
     const { data: acct } = await sb.from('gmail_accounts')
       .select('slack_user_id').eq('email', DEFAULT_RECIPIENT).maybeSingle();
-    if (!acct?.slack_user_id) return { statusCode: 200, body: JSON.stringify({ ok: false, skipped: `no slack_user_id for ${DEFAULT_RECIPIENT}` }) };
+    if (!acct?.slack_user_id) return new Response(JSON.stringify({ ok: false, skipped: `no slack_user_id for ${DEFAULT_RECIPIENT}` }), { status: 200 });
     const open = await slackPost('conversations.open', { users: acct.slack_user_id });
-    if (!open.ok) return { statusCode: 200, body: JSON.stringify({ ok: false, skipped: `conversations.open failed: ${open.error}` }) };
+    if (!open.ok) return new Response(JSON.stringify({ ok: false, skipped: `conversations.open failed: ${open.error}` }), { status: 200 });
     channel = open.channel?.id;
   }
 
@@ -90,5 +90,5 @@ export const handler = async (event) => {
   const post = await slackPost('chat.postMessage', {
     channel, text: `Cold-engine plan — week of ${p.week || ''}`, blocks, unfurl_links: false, unfurl_media: false,
   });
-  return { statusCode: 200, body: JSON.stringify({ ok: !!post.ok, error: post.ok ? undefined : post.error }) };
+  return new Response(JSON.stringify({ ok: !!post.ok, error: post.ok ? undefined : post.error }), { status: 200 });
 };
