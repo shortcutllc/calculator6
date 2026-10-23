@@ -17,10 +17,9 @@ export const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
-export const json = (statusCode, body) => ({
-  statusCode,
+export const json = (status, body) => Response.json(body, {
+  status,
   headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-  body: JSON.stringify(body),
 });
 
 export const str = (v, max = 300) => (v == null ? '' : String(v)).replace(/\s+/g, ' ').trim().slice(0, max);

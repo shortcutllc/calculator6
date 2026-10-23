@@ -117,11 +117,11 @@ async function postSlack(text) {
   if (!res.ok) throw new Error(`slack ${res.status}`);
 }
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
-  if (event.httpMethod !== 'POST') return json(405, { error: 'method' });
+export default async (req, context) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+  if (req.method !== 'POST') return json(405, { error: 'method' });
   if (!calendarConfigured()) return json(503, { error: 'not configured' });
-  const raw = event.body || '';
+  const raw = await req.text();
   if (Buffer.byteLength(raw) > MAX_BYTES) return json(413, { error: 'too large' });
   let body;
   try { body = JSON.parse(raw); } catch { return json(400, { error: 'bad json' }); }
@@ -138,7 +138,7 @@ export const handler = async (event) => {
   const slot = candidateSlots(now).find((c) => c.start === start);
   if (!slot) return json(409, { error: 'taken', slots: await fresh() });
 
-  const ip = (event.headers || {})['x-nf-client-connection-ip'] || '';
+  const ip = req.headers.get('x-nf-client-connection-ip') || context.ip || '';
   const booker = hash(`${page.slug}|${lead.email}`);
   const ipDay = hash(`${ip || 'none'}|${new Date(now).toISOString().slice(0, 10)}`);
   let prior, fromIp;

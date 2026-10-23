@@ -19,12 +19,12 @@ import { calendarConfigured } from './lib/gcal.js';
 import { slotJson } from './lib/call-slots.js';
 import { json, CORS, pageAndHost, openSlots } from './lib/sponsor-call.js';
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
-  if (event.httpMethod !== 'POST') return json(405, { error: 'method' });
+export default async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+  if (req.method !== 'POST') return json(405, { error: 'method' });
   if (!calendarConfigured()) return json(503, { error: 'not configured' });
   let body;
-  try { body = JSON.parse(event.body || '{}'); } catch { return json(400, { error: 'bad json' }); }
+  try { body = JSON.parse((await req.text()) || '{}'); } catch { return json(400, { error: 'bad json' }); }
 
   const found = await pageAndHost(body.slug, body.password);
   if (found.error) return json(found.status, { error: found.error });
