@@ -10,16 +10,28 @@
  * calendar.freebusy). Acting as the host makes the host the organiser, so
  * Google emails the invite.
  *
- * GOOGLE_CALENDAR_SA_KEY (Netlify env, secret, Functions scope) holds the
- * service account's JSON key file: the same value as on the getshortcutco
- * site. Raw JSON or base64 of it. Never print it or commit it.
+ * GOOGLE_CALENDAR_SA_KEY (Netlify env, secret, Functions scope) holds a key
+ * of that service account. NOT the whole JSON key file, as the website has:
+ * every function here runs in Lambda compatibility mode, where AWS caps ALL
+ * of a function's env vars at 4KB together, the site already uses about
+ * 2.4KB, and a key file is 2.3KB. So it holds the key packed:
+ * `rsa-pq.<key id>.<p>.<q>`, the RSA key's two primes (base64url), which
+ * rebuild the whole key and come to about 400 characters. A raw or base64
+ * JSON key file is still accepted, for when the functions leave Lambda
+ * compatibility mode (Netlify stops accepting it on July 1, 2027).
+ * scripts/set-google-calendar-key.mjs creates a key with gcloud, packs it,
+ * checks it with Google and sets it here, without printing it. Never print
+ * it or commit it.
  *
  * Each call signs a short JWT (RS256, node:crypto), swaps it for an access
  * token for that host, and caches the token for the life of the function
  * instance. GOOGLE_OAUTH_TOKEN_URL and GOOGLE_CALENDAR_API_URL exist only so
  * local tests can point at a mock.
  */
-import { createSign } from 'node:crypto';
+import { createPrivateKey, createSign } from 'node:crypto';
+
+/** The service account, for a packed key (it carries no email). Not secret. */
+export const SERVICE_ACCOUNT = 'site-call-booking@shortcut-seo-tools-2026.iam.gserviceaccount.com';
 
 const SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',
@@ -29,12 +41,60 @@ const TOKEN_URL = () => process.env.GOOGLE_OAUTH_TOKEN_URL || 'https://oauth2.go
 const API = () => process.env.GOOGLE_CALENDAR_API_URL || 'https://www.googleapis.com/calendar/v3';
 const TIMEOUT_MS = 8000;
 
+/* ── Packed keys: an RSA private key rebuilt from its primes p and q ── */
+
+const big = (b64u) => BigInt(`0x${Buffer.from(b64u, 'base64url').toString('hex') || '0'}`);
+const b64u = (n) => {
+  let hex = n.toString(16);
+  if (hex.length % 2) hex = `0${hex}`;
+  return Buffer.from(hex, 'hex').toString('base64url');
+};
+function modInverse(a, m) {
+  let [r0, r1, s0, s1] = [((a % m) + m) % m, m, 1n, 0n];
+  while (r1) {
+    const q = r0 / r1;
+    [r0, r1] = [r1, r0 - q * r1];
+    [s0, s1] = [s1, s0 - q * s1];
+  }
+  if (r0 !== 1n) throw new Error('not invertible');
+  return ((s0 % m) + m) % m;
+}
+
+/** 'rsa-pq.<kid>.<p>.<q>' → { private_key (PEM), private_key_id }. */
+export function unpackKey(packed) {
+  const [tag, kid, pS, qS] = String(packed).split('.');
+  if (tag !== 'rsa-pq' || !pS || !qS) return null;
+  const p = big(pS), q = big(qS), e = 65537n;
+  const d = modInverse(e, (p - 1n) * (q - 1n));
+  const jwk = {
+    kty: 'RSA', e: b64u(e), n: b64u(p * q), d: b64u(d), p: b64u(p), q: b64u(q),
+    dp: b64u(d % (p - 1n)), dq: b64u(d % (q - 1n)), qi: b64u(modInverse(q, p)),
+  };
+  const pem = createPrivateKey({ key: jwk, format: 'jwk' }).export({ type: 'pkcs8', format: 'pem' });
+  return { private_key: pem, private_key_id: kid || undefined };
+}
+
+/** A key file's PEM → 'rsa-pq.<kid>.<p>.<q>'. For scripts/set-google-calendar-key.mjs. */
+export function packKey(pem, kid) {
+  const jwk = createPrivateKey(pem).export({ format: 'jwk' });
+  return ['rsa-pq', kid || '', jwk.p, jwk.q].join('.');
+}
+
 let keyCache;
 /** The parsed key, or null when the env var is missing or unreadable. */
 export function serviceKey() {
   if (keyCache !== undefined) return keyCache;
   const raw = (process.env.GOOGLE_CALENDAR_SA_KEY || '').trim();
   keyCache = null;
+  if (raw.startsWith('rsa-pq.')) {
+    try {
+      const k = unpackKey(raw);
+      if (k) keyCache = { client_email: process.env.GOOGLE_CALENDAR_SA_EMAIL || SERVICE_ACCOUNT, ...k };
+    } catch (err) {
+      console.error('GOOGLE_CALENDAR_SA_KEY unreadable', err?.message);
+    }
+    return keyCache;
+  }
   for (const text of [raw, raw && Buffer.from(raw, 'base64').toString('utf8')]) {
     try {
       const k = JSON.parse(text);
