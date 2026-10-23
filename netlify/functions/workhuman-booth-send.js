@@ -31,11 +31,7 @@ const DEFAULT_SENDER_NAME = 'Will Newton';
 const DEFAULT_SENDER_EMAIL = 'will@getshortcut.co';
 
 function json(statusCode, body) {
-  return {
-    statusCode,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  };
+  return new Response(JSON.stringify(body), { status: statusCode, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
 }
 
 const HONORIFIC_RE = /^(Mr|Mrs|Ms|Mx|Dr|Prof|Sir|Madam|Miss|Mister)\.?\s+/i;
@@ -274,12 +270,12 @@ async function processSend(supabase, signupId, action) {
 const BULK_LIMIT = 80;
 const SEND_DELAY_MS = 250;
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS_HEADERS, body: '' };
-  if (event.httpMethod !== 'POST') return json(405, { error: 'POST only' });
+export default async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS_HEADERS });
+  if (req.method !== 'POST') return json(405, { error: 'POST only' });
 
   try {
-    const { signupId, signupIds, action } = JSON.parse(event.body || '{}');
+    const { signupId, signupIds, action } = JSON.parse((await req.text()) || '{}');
     if (!action || !['no_show_email', 'reminder_sms'].includes(action)) {
       return json(400, { error: 'action must be no_show_email or reminder_sms' });
     }

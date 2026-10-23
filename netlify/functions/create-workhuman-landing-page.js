@@ -277,22 +277,22 @@ async function findLogo(companyName, domain, overrideLogoUrl) {
 
 // ---- Handler ----
 
-export const handler = async (event) => {
+export default async (req) => {
   const cors = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: cors, body: '' };
-  if (event.httpMethod !== 'POST') return { statusCode: 405, headers: cors, body: JSON.stringify({ error: 'POST only' }) };
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: cors });
+  if (req.method !== 'POST') return new Response(JSON.stringify({ error: 'POST only' }), { status: 405, headers: cors });
 
   try {
-    const body = JSON.parse(event.body || '{}');
+    const body = JSON.parse((await req.text()) || '{}');
     const {
       leadId: providedLeadId, companyName, companyDomain, overrideLogoUrl, contactFirstName,
       contactEmail, contactName, assignedTo,
     } = body;
-    if (!companyName) return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'companyName required' }) };
+    if (!companyName) return new Response(JSON.stringify({ error: 'companyName required' }), { status: 400, headers: cors });
     let leadId = providedLeadId;
 
     // For non-Workhuman contacts: find-or-create a workhuman_leads row keyed
@@ -364,7 +364,7 @@ export const handler = async (event) => {
 
     if (pageErr) {
       console.error('Landing page insert error:', pageErr);
-      return { statusCode: 500, headers: cors, body: JSON.stringify({ error: pageErr.message }) };
+      return new Response(JSON.stringify({ error: pageErr.message }), { status: 500, headers: cors });
     }
 
     const longUrl = `${PUBLIC_BASE_URL}/${uniqueToken}`;
@@ -384,10 +384,7 @@ export const handler = async (event) => {
       if (updErr) console.warn('Lead update warning:', updErr.message);
     }
 
-    return {
-      statusCode: 200,
-      headers: { ...cors, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    return new Response(JSON.stringify({
         success: true,
         pageId: pageData.id,
         pageToken: uniqueToken,
@@ -397,11 +394,10 @@ export const handler = async (event) => {
         logoUrl: logo.url,
         logoSource: logo.source,
         logoMethod: logo.method,
-      }),
-    };
+      }), { status: 200, headers: { ...cors, 'Content-Type': 'application/json' } });
   } catch (e) {
     console.error('Handler error:', e);
-    return { statusCode: 500, headers: cors, body: JSON.stringify({ error: e.message }) };
+    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: cors });
   }
 };
 

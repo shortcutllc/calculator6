@@ -1,28 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
 
-export const handler = async (event, context) => {
+export default async (req) => {
   // Handle CORS preflight requests
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 200, headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      },
-      body: '',
-    };
+      } });
   }
 
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    };
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
   }
 
   try {
-    const { eventType, proposalId, clientName, clientEmail, proposalType, totalCost, eventDates, locations, surveyResults, invoiceUrl, invoiceAmount } = JSON.parse(event.body);
+    const { eventType, proposalId, clientName, clientEmail, proposalType, totalCost, eventDates, locations, surveyResults, invoiceUrl, invoiceAmount } = JSON.parse(await req.text());
 
     if (!eventType) {
       throw new Error('eventType is required');
@@ -56,14 +49,10 @@ export const handler = async (event, context) => {
 
           if (!countError && (count || 0) > 1) {
             console.log(`View notification throttled for ${proposalId}: ${count} view(s) in last ${windowHours}h`);
-            return {
-              statusCode: 200,
-              headers: {
+            return new Response(JSON.stringify({ success: true, throttled: true, windowHours, priorViews: count }), { status: 200, headers: {
                 'Access-Control-Allow-Origin': '*',
                 'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ success: true, throttled: true, windowHours, priorViews: count }),
-            };
+              } });
           }
         }
       } catch (throttleErr) {
@@ -77,14 +66,10 @@ export const handler = async (event, context) => {
     
     if (!SLACK_WEBHOOK_URL) {
       console.error('SLACK_WEBHOOK_URL_PROPOSALS environment variable is not set');
-      return {
-        statusCode: 500,
-        headers: {
+      return new Response(JSON.stringify({ error: 'Slack webhook URL not configured' }), { status: 500, headers: {
           'Access-Control-Allow-Origin': '*',
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Slack webhook URL not configured' }),
-      };
+        } });
     }
 
     // Build proposal URL
@@ -301,23 +286,15 @@ export const handler = async (event, context) => {
       throw new Error(`Slack webhook failed: ${response.status} ${response.statusText} - ${responseText}`);
     }
 
-    return {
-      statusCode: 200,
-      headers: {
+    return new Response(JSON.stringify({ success: true, message: 'Slack notification sent successfully' }), { status: 200, headers: {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ success: true, message: 'Slack notification sent successfully' }),
-    };
+      } });
   } catch (error) {
     console.error('Proposal event notification error:', error);
-    return {
-      statusCode: 500,
-      headers: {
+    return new Response(JSON.stringify({ error: error.message || 'Failed to send Slack notification' }), { status: 500, headers: {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ error: error.message || 'Failed to send Slack notification' }),
-    };
+      } });
   }
 };

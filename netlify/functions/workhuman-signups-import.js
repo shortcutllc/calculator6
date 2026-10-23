@@ -25,7 +25,7 @@ const CORS = {
 };
 
 function json(statusCode, body) {
-  return { statusCode, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+  return new Response(JSON.stringify(body), { status: statusCode, headers: { ...CORS, 'Content-Type': 'application/json' } });
 }
 
 // --- Helpers -----------------------------------------------------
@@ -180,9 +180,9 @@ async function createNewLead(supabase, row) {
 
 // --- Handler -----------------------------------------------------
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' };
-  if (event.httpMethod !== 'POST') return json(405, { error: 'POST only' });
+export default async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS });
+  if (req.method !== 'POST') return json(405, { error: 'POST only' });
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -191,7 +191,7 @@ export const handler = async (event) => {
 
   let rows;
   try {
-    const body = JSON.parse(event.body || '{}');
+    const body = JSON.parse((await req.text()) || '{}');
     rows = body.rows;
     if (!Array.isArray(rows)) return json(400, { error: 'rows must be an array' });
   } catch (err) {

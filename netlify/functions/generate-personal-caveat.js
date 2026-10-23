@@ -388,26 +388,22 @@ function validateOutput(body, ctx) {
   return missing;
 }
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 204,
-      headers: {
+export default async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
-      },
-      body: '',
-    };
+      } });
   }
 
-  if (event.httpMethod !== 'POST') {
+  if (req.method !== 'POST') {
     return jsonResponse(405, { error: 'Method not allowed' });
   }
 
   let body;
   try {
-    body = JSON.parse(event.body || '{}');
+    body = JSON.parse((await req.text()) || '{}');
   } catch (_) {
     return jsonResponse(400, { error: 'Invalid JSON' });
   }
@@ -493,12 +489,8 @@ function cleanFirstNameForCheck(fullName) {
 }
 
 function jsonResponse(statusCode, body) {
-  return {
-    statusCode,
-    headers: {
+  return new Response(JSON.stringify(body), { status: statusCode, headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
-    },
-    body: JSON.stringify(body),
-  };
+    } });
 }

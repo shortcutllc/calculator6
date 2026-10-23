@@ -30,14 +30,14 @@ const DEFAULT_OWNER = process.env.BOOK_A_CALL_OWNER_EMAIL || 'will@getshortcut.c
 
 const lc = (s) => (s == null ? '' : String(s).trim().toLowerCase());
 
-export const handler = async (event) => {
+export default async (req) => {
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return { statusCode: 500, body: 'misconfigured (SUPABASE)' };
+  if (!url || !key) return new Response('misconfigured (SUPABASE)', { status: 500 });
   const sb = createClient(url, key, { auth: { persistSession: false } });
 
   let body = {};
-  try { body = JSON.parse(event.body || '{}'); } catch { return { statusCode: 400, body: 'bad JSON' }; }
+  try { body = JSON.parse((await req.text()) || '{}'); } catch { return new Response('bad JSON', { status: 400 }); }
   // RELOGO MODE (2026-07-06): re-run the logo chain for pages that minted
   // without one (Brandfetch quota ran dry mid-batch on Jul 2 — 412/493 pages
   // fell back to the text-only header). Small per-call batch (sync fn limit);
@@ -74,18 +74,18 @@ export const handler = async (event) => {
     const { count } = await sb.from('generic_landing_pages').select('id', { count: 'exact', head: true })
       .gte('created_at', '2026-07-01').filter('data->>partnerLogoUrl', 'is', null)
       .filter('data->>logoAttempted', 'is', null);
-    return { statusCode: 200, body: JSON.stringify({ ...tally, remaining: count ?? -1 }) };
+    return new Response(JSON.stringify({ ...tally, remaining: count ?? -1 }), { status: 200 });
   }
 
   const leads = Array.isArray(body.leads) ? body.leads : [];
-  if (!leads.length) return { statusCode: 400, body: 'no leads' };
+  if (!leads.length) return new Response('no leads', { status: 400 });
   const opts = body.options || {};
 
   // Resolve the owning user (pages need an owner id).
   const ownerEmail = lc(body.owner_email) || DEFAULT_OWNER;
   const { data: acct } = await sb.from('gmail_accounts').select('supabase_user_id').eq('email', ownerEmail).maybeSingle();
   const userId = acct?.supabase_user_id || null;
-  if (!userId) return { statusCode: 500, body: `no supabase_user_id for owner ${ownerEmail}` };
+  if (!userId) return new Response(`no supabase_user_id for owner ${ownerEmail}`, { status: 500 });
 
   const results = [];
   for (const lead of leads.slice(0, 500)) {
@@ -121,5 +121,5 @@ export const handler = async (event) => {
       results.push({ company, error: e.message });
     }
   }
-  return { statusCode: 200, body: JSON.stringify({ results }) };
+  return new Response(JSON.stringify({ results }), { status: 200 });
 };

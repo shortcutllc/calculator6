@@ -35,17 +35,13 @@ const CORS_HEADERS = {
 };
 
 function jsonResponse(statusCode, body) {
-  return {
-    statusCode,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  };
+  return new Response(JSON.stringify(body), { status: statusCode, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
 }
 
 // --- Auth (same pattern as create-stripe-invoice.js) ---
 
-async function validateAuth(event) {
-  const authHeader = event.headers.authorization || event.headers.Authorization;
+async function validateAuth(req) {
+  const authHeader = req.headers.get('authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw { statusCode: 401, message: 'Authorization required' };
   }
@@ -221,13 +217,13 @@ Body should be plain text with real line breaks (\\n), no markdown, signed off s
 
 // --- Handler ---
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS_HEADERS, body: '' };
-  if (event.httpMethod !== 'POST') return jsonResponse(405, { error: 'Method not allowed' });
+export default async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
+  if (req.method !== 'POST') return jsonResponse(405, { error: 'Method not allowed' });
 
   let sb, user;
   try {
-    ({ supabase: sb, user } = await validateAuth(event));
+    ({ supabase: sb, user } = await validateAuth(req));
   } catch (e) {
     return jsonResponse(e.statusCode || 401, { error: e.message || 'Auth failed' });
   }
@@ -237,7 +233,7 @@ export const handler = async (event) => {
   }
 
   let body;
-  try { body = JSON.parse(event.body || '{}'); } catch { return jsonResponse(400, { error: 'Invalid JSON body' }); }
+  try { body = JSON.parse((await req.text()) || '{}'); } catch { return jsonResponse(400, { error: 'Invalid JSON body' }); }
   const followup = body.followup && body.followup.to ? body.followup : null;
   const play = followup ? null : (body.play === 'A' ? 'A' : body.play === 'B' ? 'B' : null);
   const rank = Number(body.rank);

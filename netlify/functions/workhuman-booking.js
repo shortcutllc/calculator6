@@ -28,11 +28,7 @@ const DEFAULT_SENDER_NAME = 'Will Newton';
 const DEFAULT_SENDER_EMAIL = 'will@getshortcut.co';
 
 function json(statusCode, body) {
-  return {
-    statusCode,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  };
+  return new Response(JSON.stringify(body), { status: statusCode, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
 }
 
 async function findLastOutreachSender(supabase, leadId) {
@@ -190,12 +186,12 @@ async function postSlack({ name, firstName, company, email, phone, title, employ
   return { posted: true };
 }
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS_HEADERS, body: '' };
-  if (event.httpMethod !== 'POST') return json(405, { error: 'POST only' });
+export default async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS_HEADERS });
+  if (req.method !== 'POST') return json(405, { error: 'POST only' });
 
   try {
-    const body = JSON.parse(event.body || '{}');
+    const body = JSON.parse((await req.text()) || '{}');
     const {
       firstName, lastName, email, phone, company, title, employeeCount,
       currentWellness, preferredDay, openToChat, landingPageId, leadId: leadIdFromUrl,

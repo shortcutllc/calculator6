@@ -195,26 +195,26 @@ function transformEvent(evt) {
 
 // --- Handler ---
 
-export const handler = async (event) => {
+export default async (req) => {
   const headers = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Authorization, Content-Type',
   };
 
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers, body: '' };
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers });
   }
 
-  if (event.httpMethod !== 'GET') {
-    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
+  if (req.method !== 'GET') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers });
   }
 
   // --- Auth ---
   try {
-    const authHeader = event.headers?.authorization || event.headers?.Authorization;
+    const authHeader = req.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return { statusCode: 401, headers, body: JSON.stringify({ error: 'Missing authorization' }) };
+      return new Response(JSON.stringify({ error: 'Missing authorization' }), { status: 401, headers });
     }
 
     const supabase = createClient(
@@ -224,11 +224,11 @@ export const handler = async (event) => {
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
     if (authError || !user) {
-      return { statusCode: 401, headers, body: JSON.stringify({ error: 'Invalid token' }) };
+      return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers });
     }
 
     // --- Query Parse ---
-    const scope = event.queryStringParameters?.scope || 'upcoming';
+    const scope = new URL(req.url).searchParams.get('scope') || 'upcoming';
     const now = new Date().toISOString();
 
     let where;
@@ -249,28 +249,20 @@ export const handler = async (event) => {
     const events = (result.results || []).map(transformEvent);
 
     // Optionally filter out test events unless requested
-    const includeTests = event.queryStringParameters?.includeTests === 'true';
+    const includeTests = new URL(req.url).searchParams.get('includeTests') === 'true';
     const filtered = includeTests ? events : events.filter(e => !e.isTestEvent);
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
+    return new Response(JSON.stringify({
         success: true,
         events: filtered,
         total: filtered.length,
         syncedAt: now,
-      }),
-    };
+      }), { status: 200, headers });
   } catch (err) {
     console.error('fetch-coordinator-events error:', err);
-    return {
-      statusCode: err.statusCode || 500,
-      headers,
-      body: JSON.stringify({
+    return new Response(JSON.stringify({
         error: err.message || 'Internal server error',
         code: err.code || 'UNKNOWN_ERROR',
-      }),
-    };
+      }), { status: err.statusCode || 500, headers });
   }
 };

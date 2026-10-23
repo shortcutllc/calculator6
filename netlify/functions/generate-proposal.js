@@ -49,11 +49,7 @@ const CORS_HEADERS = {
 };
 
 function jsonResponse(statusCode, body) {
-  return {
-    statusCode,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  };
+  return new Response(JSON.stringify(body), { status: statusCode, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
 }
 
 function errorResponse(statusCode, message, code) {
@@ -62,8 +58,8 @@ function errorResponse(statusCode, message, code) {
 
 // --- Auth ---
 
-async function validateAuth(event) {
-  const authHeader = event.headers.authorization || event.headers.Authorization;
+async function validateAuth(req) {
+  const authHeader = req.headers.get('authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw { statusCode: 401, message: 'Authorization header with Bearer token required', code: 'AUTH_MISSING' };
   }
@@ -94,9 +90,9 @@ async function validateAuth(event) {
 
 // --- Helper: Parse JSON body ---
 
-function parseBody(event) {
+function parseBody(raw) {
   try {
-    return JSON.parse(event.body);
+    return JSON.parse(raw);
   } catch (e) {
     return null;
   }
@@ -104,36 +100,37 @@ function parseBody(event) {
 
 // --- Main Handler ---
 
-export const handler = async (event, context) => {
+export default async (req) => {
   // CORS preflight
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers: CORS_HEADERS, body: '' };
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 200, headers: CORS_HEADERS });
   }
 
   try {
     // Parse query params
-    const params = event.queryStringParameters || {};
+    const params = Object.fromEntries(new URL(req.url).searchParams);
     const action = params.action;
 
     // Validate auth for all requests
-    const { user, supabase } = await validateAuth(event);
+    const { user, supabase } = await validateAuth(req);
+    const rawBody = await req.text();
 
     // Route based on method + action
-    switch (event.httpMethod) {
+    switch (req.method) {
       case 'POST':
-        if (action === 'calculate') return await handleCalculate(event);
-        if (action === 'duplicate') return await handleDuplicate(event, user, supabase);
-        if (action === 'create-option') return await handleCreateOption(event, user, supabase);
-        if (action === 'link') return await handleLink(event, supabase);
-        if (action === 'unlink') return await handleUnlink(event, supabase);
-        if (action === 'rename-option') return await handleRenameOption(event, supabase);
-        if (action === 'reorder-option') return await handleReorderOption(event, supabase);
-        if (action === 'create-landing-page') return await handleCreateLandingPage(event, user, supabase);
-        return await handleCreate(event, user, supabase);
+        if (action === 'calculate') return await handleCalculate(rawBody);
+        if (action === 'duplicate') return await handleDuplicate(rawBody, user, supabase);
+        if (action === 'create-option') return await handleCreateOption(rawBody, user, supabase);
+        if (action === 'link') return await handleLink(rawBody, supabase);
+        if (action === 'unlink') return await handleUnlink(rawBody, supabase);
+        if (action === 'rename-option') return await handleRenameOption(rawBody, supabase);
+        if (action === 'reorder-option') return await handleReorderOption(rawBody, supabase);
+        if (action === 'create-landing-page') return await handleCreateLandingPage(rawBody, user, supabase);
+        return await handleCreate(rawBody, user, supabase);
 
       case 'PATCH':
-        if (action === 'update-landing-page') return await handleUpdateLandingPage(event, supabase);
-        return await handleEdit(event, user, supabase);
+        if (action === 'update-landing-page') return await handleUpdateLandingPage(rawBody, supabase);
+        return await handleEdit(rawBody, user, supabase);
 
       case 'GET':
         if (action === 'client') return await handleClientLookup(params, supabase);
@@ -145,7 +142,7 @@ export const handler = async (event, context) => {
         return errorResponse(400, 'GET requires ?search=, ?id=, or a valid ?action=', 'VALIDATION_ERROR');
 
       default:
-        return errorResponse(405, `Method ${event.httpMethod} not allowed`, 'METHOD_NOT_ALLOWED');
+        return errorResponse(405, `Method ${req.method} not allowed`, 'METHOD_NOT_ALLOWED');
     }
   } catch (err) {
     // Structured errors from auth or validation
@@ -164,8 +161,8 @@ export const handler = async (event, context) => {
 
 // --- POST: Create Proposal ---
 
-async function handleCreate(event, user, supabase) {
-  const body = parseBody(event);
+async function handleCreate(rawBody, user, supabase) {
+  const body = parseBody(rawBody);
   if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
 
   if (!body.clientName) {
@@ -249,8 +246,8 @@ async function handleCreate(event, user, supabase) {
 
 // --- PATCH: Edit Proposal ---
 
-async function handleEdit(event, user, supabase) {
-  const body = parseBody(event);
+async function handleEdit(rawBody, user, supabase) {
+  const body = parseBody(rawBody);
   if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
 
   if (!body.proposalId) {
@@ -342,8 +339,8 @@ async function handleEdit(event, user, supabase) {
 
 // --- POST ?action=duplicate: Duplicate Proposal ---
 
-async function handleDuplicate(event, user, supabase) {
-  const body = parseBody(event);
+async function handleDuplicate(rawBody, user, supabase) {
+  const body = parseBody(rawBody);
   if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
 
   if (!body.proposalId) {
@@ -389,8 +386,8 @@ async function handleDuplicate(event, user, supabase) {
 
 // --- POST ?action=create-option ---
 
-async function handleCreateOption(event, user, supabase) {
-  const body = parseBody(event);
+async function handleCreateOption(rawBody, user, supabase) {
+  const body = parseBody(rawBody);
   if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
 
   if (!body.proposalId) {
@@ -422,8 +419,8 @@ async function handleCreateOption(event, user, supabase) {
 
 // --- POST ?action=link ---
 
-async function handleLink(event, supabase) {
-  const body = parseBody(event);
+async function handleLink(rawBody, supabase) {
+  const body = parseBody(rawBody);
   if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
 
   if (!body.sourceProposalId) {
@@ -450,8 +447,8 @@ async function handleLink(event, supabase) {
 
 // --- POST ?action=unlink ---
 
-async function handleUnlink(event, supabase) {
-  const body = parseBody(event);
+async function handleUnlink(rawBody, supabase) {
+  const body = parseBody(rawBody);
   if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
 
   if (!body.proposalId) {
@@ -474,8 +471,8 @@ async function handleUnlink(event, supabase) {
 
 // --- POST ?action=rename-option ---
 
-async function handleRenameOption(event, supabase) {
-  const body = parseBody(event);
+async function handleRenameOption(rawBody, supabase) {
+  const body = parseBody(rawBody);
   if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
 
   if (!body.proposalId) {
@@ -496,8 +493,8 @@ async function handleRenameOption(event, supabase) {
 
 // --- POST ?action=reorder-option ---
 
-async function handleReorderOption(event, supabase) {
-  const body = parseBody(event);
+async function handleReorderOption(rawBody, supabase) {
+  const body = parseBody(rawBody);
   if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
 
   if (!body.proposalId) {
@@ -538,8 +535,8 @@ async function handleGetGroupOptions(params, supabase) {
 
 // --- POST ?action=create-landing-page ---
 
-async function handleCreateLandingPage(event, user, supabase) {
-  const body = parseBody(event);
+async function handleCreateLandingPage(rawBody, user, supabase) {
+  const body = parseBody(rawBody);
   if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
 
   if (!body.partnerName) {
@@ -567,8 +564,8 @@ async function handleCreateLandingPage(event, user, supabase) {
 
 // --- PATCH ?action=update-landing-page ---
 
-async function handleUpdateLandingPage(event, supabase) {
-  const body = parseBody(event);
+async function handleUpdateLandingPage(rawBody, supabase) {
+  const body = parseBody(rawBody);
   if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
 
   if (!body.pageId) {
@@ -694,8 +691,8 @@ async function handleGetById(params, supabase) {
 
 // --- POST ?action=calculate: Reverse Calculator ---
 
-async function handleCalculate(event) {
-  const body = parseBody(event);
+async function handleCalculate(rawBody) {
+  const body = parseBody(rawBody);
   if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
 
   if (!body.serviceType) {

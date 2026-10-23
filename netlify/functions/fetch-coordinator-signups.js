@@ -137,11 +137,7 @@ const CORS_HEADERS = {
 };
 
 function jsonResponse(statusCode, body) {
-  return {
-    statusCode,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  };
+  return new Response(JSON.stringify(body), { status: statusCode, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
 }
 
 function errorResponse(statusCode, message, code) {
@@ -150,8 +146,8 @@ function errorResponse(statusCode, message, code) {
 
 // --- Auth ---
 
-async function validateAuth(event) {
-  const authHeader = event.headers.authorization || event.headers.Authorization;
+async function validateAuth(req) {
+  const authHeader = req.headers.get('authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw { statusCode: 401, message: 'Authorization header with Bearer token required', code: 'AUTH_MISSING' };
   }
@@ -176,18 +172,18 @@ async function validateAuth(event) {
 
 // --- Handler ---
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers: CORS_HEADERS, body: '' };
+export default async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 200, headers: CORS_HEADERS });
   }
-  if (event.httpMethod !== 'GET') {
+  if (req.method !== 'GET') {
     return errorResponse(405, 'Method not allowed', 'METHOD_NOT_ALLOWED');
   }
 
   try {
-    await validateAuth(event);
+    await validateAuth(req);
 
-    const eventId = extractEventId((event.queryStringParameters || {}).eventId);
+    const eventId = extractEventId(Object.fromEntries(new URL(req.url).searchParams).eventId);
     if (!eventId) {
       return errorResponse(400, 'Paste a coordinator sign-up link or event ID', 'MISSING_EVENT_ID');
     }

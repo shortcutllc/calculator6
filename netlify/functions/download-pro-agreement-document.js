@@ -22,19 +22,15 @@ const CORS_HEADERS = {
 };
 
 function jsonResponse(statusCode, body) {
-  return {
-    statusCode,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  };
+  return new Response(JSON.stringify(body), { status: statusCode, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
 }
 
 function errorResponse(statusCode, message, code) {
   return jsonResponse(statusCode, { success: false, error: message, code });
 }
 
-async function validateAuth(event) {
-  const authHeader = event.headers.authorization || event.headers.Authorization;
+async function validateAuth(req) {
+  const authHeader = req.headers.get('authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw { statusCode: 401, message: 'Authorization required', code: 'AUTH_MISSING' };
   }
@@ -57,19 +53,19 @@ async function validateAuth(event) {
   return { user, supabase };
 }
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: CORS_HEADERS, body: '' };
+export default async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
   }
 
-  if (event.httpMethod !== 'GET') {
+  if (req.method !== 'GET') {
     return errorResponse(405, 'Method not allowed', 'METHOD_NOT_ALLOWED');
   }
 
   try {
-    const { supabase } = await validateAuth(event);
+    const { supabase } = await validateAuth(req);
 
-    const params = event.queryStringParameters || {};
+    const params = Object.fromEntries(new URL(req.url).searchParams);
     const { agreementId } = params;
     const docIndex = parseInt(params.docIndex, 10) || 0;
 
@@ -139,18 +135,15 @@ export const handler = async (event) => {
 
     const contentType = docResponse.headers.get('content-type') || 'application/pdf';
     const arrayBuffer = await docResponse.arrayBuffer();
-    const base64Body = Buffer.from(arrayBuffer).toString('base64');
 
-    return {
-      statusCode: 200,
+    return new Response(arrayBuffer, {
+      status: 200,
       headers: {
         ...CORS_HEADERS,
         'Content-Type': contentType,
         'Content-Disposition': `attachment; filename="${fileName.replace(/"/g, '')}"`
-      },
-      body: base64Body,
-      isBase64Encoded: true
-    };
+      }
+    });
   } catch (err) {
     if (err.statusCode && err.code) {
       return errorResponse(err.statusCode, err.message, err.code);

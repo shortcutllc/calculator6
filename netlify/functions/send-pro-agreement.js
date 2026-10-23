@@ -19,11 +19,7 @@ const CORS_HEADERS = {
 };
 
 function jsonResponse(statusCode, body) {
-  return {
-    statusCode,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  };
+  return new Response(JSON.stringify(body), { status: statusCode, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
 }
 
 function errorResponse(statusCode, message, code) {
@@ -32,8 +28,8 @@ function errorResponse(statusCode, message, code) {
 
 // --- Auth ---
 
-async function validateAuth(event) {
-  const authHeader = event.headers.authorization || event.headers.Authorization;
+async function validateAuth(req) {
+  const authHeader = req.headers.get('authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw { statusCode: 401, message: 'Authorization required', code: 'AUTH_MISSING' };
   }
@@ -391,26 +387,26 @@ async function handleResendEmail(body, supabase) {
 
 // --- Main Handler ---
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: CORS_HEADERS, body: '' };
+export default async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
   }
 
-  if (event.httpMethod !== 'POST') {
+  if (req.method !== 'POST') {
     return errorResponse(405, 'Method not allowed', 'METHOD_NOT_ALLOWED');
   }
 
   try {
-    const { user, supabase } = await validateAuth(event);
+    const { user, supabase } = await validateAuth(req);
 
     let body;
     try {
-      body = JSON.parse(event.body);
+      body = JSON.parse(await req.text());
     } catch {
       return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
     }
 
-    const params = event.queryStringParameters || {};
+    const params = Object.fromEntries(new URL(req.url).searchParams);
 
     if (params.action === 'sync') {
       return await handleSyncStatus(body, supabase);

@@ -154,11 +154,7 @@ const CORS_HEADERS = {
 };
 
 function jsonResponse(statusCode, body) {
-  return {
-    statusCode,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  };
+  return new Response(JSON.stringify(body), { status: statusCode, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
 }
 
 function errorResponse(statusCode, message, code) {
@@ -167,8 +163,8 @@ function errorResponse(statusCode, message, code) {
 
 // --- Auth ---
 
-async function validateAuth(event) {
-  const authHeader = event.headers.authorization || event.headers.Authorization;
+async function validateAuth(req) {
+  const authHeader = req.headers.get('authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw { statusCode: 401, message: 'Authorization header with Bearer token required', code: 'AUTH_MISSING' };
   }
@@ -272,8 +268,8 @@ function transformToCoordinatorPayload(eventForm) {
 
 // --- Create Events ---
 
-async function handleCreateEvents(event, user, supabase) {
-  const body = JSON.parse(event.body || '{}');
+async function handleCreateEvents(req, user, supabase) {
+  const body = JSON.parse((await req.text()) || '{}');
   const { proposalId, events: eventForms } = body;
 
   if (!proposalId) {
@@ -381,8 +377,8 @@ async function handleCreateEvents(event, user, supabase) {
 
 // --- Get Event Status ---
 
-async function handleGetStatus(event, user, supabase) {
-  const params = event.queryStringParameters || {};
+async function handleGetStatus(req, user, supabase) {
+  const params = Object.fromEntries(new URL(req.url).searchParams);
   const { proposalId } = params;
 
   if (!proposalId) {
@@ -408,19 +404,19 @@ async function handleGetStatus(event, user, supabase) {
 
 // --- Handler ---
 
-export const handler = async (event, context) => {
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers: CORS_HEADERS, body: '' };
+export default async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 200, headers: CORS_HEADERS });
   }
 
   try {
-    const { user, supabase } = await validateAuth(event);
+    const { user, supabase } = await validateAuth(req);
 
-    switch (event.httpMethod) {
+    switch (req.method) {
       case 'POST':
-        return await handleCreateEvents(event, user, supabase);
+        return await handleCreateEvents(req, user, supabase);
       case 'GET':
-        return await handleGetStatus(event, user, supabase);
+        return await handleGetStatus(req, user, supabase);
       default:
         return errorResponse(405, 'Method not allowed', 'METHOD_NOT_ALLOWED');
     }
