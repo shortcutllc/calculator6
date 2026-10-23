@@ -9,7 +9,8 @@ import type { SponsorPageConfig } from '../../types/sponsorPage';
 import '../../styles/sponsor-page.css';
 import StationModal, { useGalleryByKey } from './StationModal';
 import SponsorBento from './SponsorBento';
-import SponsorPricing from './SponsorPricing';
+import SponsorPricing, { type QuoteRows } from './SponsorPricing';
+import SponsorCallSheet from './SponsorCallSheet';
 import { SPONSOR_SERVICES, serviceById, type SponsorServiceDef } from '../../utils/sponsorPackages';
 
 /* ─────────────────────────────────────────────
@@ -619,12 +620,18 @@ export default function SponsorOnePager() {
   const [state, setState] = useState<
     { kind: 'loading' } | { kind: 'missing' } | { kind: 'locked'; mark: string; logoUrl?: string } | { kind: 'page'; cfg: SponsorPageConfig }
   >({ kind: 'loading' });
+  /* The password the page was unlocked with: the call sheet's server check
+     asks for it too. */
+  const [pw, setPw] = useState<string | undefined>();
+  /* The call sheet, open with the pricing card's choices (or none). */
+  const [call, setCall] = useState<{ rows: QuoteRows } | null>(null);
 
   useEffect(() => {
     let live = true;
     setState({ kind: 'loading' });
     let saved: string | undefined;
     try { saved = sessionStorage.getItem(storageKey) || undefined; } catch { saved = undefined; }
+    setPw(saved);
     fetchPublicSponsorPage(slug, saved).then((res) => { if (live) setState(res); });
     return () => { live = false; };
   }, [slug, storageKey]);
@@ -633,6 +640,7 @@ export default function SponsorOnePager() {
     const res = await fetchPublicSponsorPage(slug, password);
     if (res.kind !== 'page') return false;
     try { sessionStorage.setItem(storageKey, password); } catch { /* private window */ }
+    setPw(password);
     setState(res);
     return true;
   };
@@ -689,7 +697,7 @@ export default function SponsorOnePager() {
 
   const { organizer, conference: conf, contact } = cfg;
   const hero = cfg.heroPhoto ?? DEFAULT_HERO;
-  const mailto = `mailto:${contact.email}?subject=${encodeURIComponent(`A call about the wellness lounge at ${conf.name}`)}`;
+  const openCall = () => setCall({ rows: [] });
 
   const tocItems = [
     { id: 'how-it-works', label: 'How it works' },
@@ -723,12 +731,13 @@ export default function SponsorOnePager() {
               </a>
             ))}
           </div>
-          <a
-            href={mailto}
+          <button
+            type="button"
+            onClick={openCall}
             className="h-9 inline-flex items-center px-4 rounded-full bg-shortcut-coral text-white text-[13.5px] font-bold"
           >
             Talk to us
-          </a>
+          </button>
         </div>
       </nav>
 
@@ -860,7 +869,7 @@ export default function SponsorOnePager() {
             title="See how pricing could work"
             accent="in three steps."
           />
-          <SponsorPricing confName={conf.name} contactEmail={contact.email} />
+          <SponsorPricing hostFirst={contact.name.split(' ')[0]} onQuote={(rows) => setCall({ rows })} />
         </Panel>
 
         {/* ══════════ STEP BY STEP (with who does each step) ══════════
@@ -968,13 +977,14 @@ export default function SponsorOnePager() {
               ))}
             </ol>
             <div className="mt-10 flex justify-center">
-              <a
-                href={mailto}
+              <button
+                type="button"
+                onClick={openCall}
                 className="h-[52px] inline-flex items-center gap-2.5 px-8 rounded-full bg-shortcut-coral text-white text-[17px] font-bold tracking-[-.01em] shadow-[0_4px_14px_rgba(255,80,80,.3)] transition-transform duration-500 hover:-translate-y-[3px]"
               >
                 Set up a call with {contact.name}
                 <ArrowUpRight size={19} strokeWidth={2.5} />
-              </a>
+              </button>
             </div>
             <div className="mt-12 pt-8 border-t border-white/15 text-center">
               <div className="text-[11px] font-bold uppercase tracking-[.12em] text-white/40">
@@ -995,6 +1005,17 @@ export default function SponsorOnePager() {
           onGo={setOpenIdx}
         />
       )}
+
+      <SponsorCallSheet
+        open={!!call}
+        onClose={() => setCall(null)}
+        slug={slug}
+        password={pw}
+        host={contact}
+        organizerName={organizer.name}
+        conferenceName={conf.name}
+        picked={call?.rows}
+      />
     </div>
   );
 }

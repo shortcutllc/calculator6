@@ -7,6 +7,7 @@ import {
 } from '../services/sponsorPageService';
 import { SPONSOR_SERVICES, type SponsorServiceId } from '../utils/sponsorPackages';
 import type { SponsorPageInput, SponsorPageRecord } from '../types/sponsorPage';
+import { ACCOUNT_TEAM } from './proposal/sidebar/AccountTeamCard';
 
 /* ─────────────────────────────────────────────
    Staff screen for conference partner pages (/sponsor/:slug).
@@ -19,6 +20,12 @@ import type { SponsorPageInput, SponsorPageRecord } from '../types/sponsorPage';
    ───────────────────────────────────────────── */
 
 const ALL_IDS = SPONSOR_SERVICES.map((s) => s.id);
+
+/* Who a page can be sent from. Their name is on the page's buttons and calls
+   book on their Google Calendar (sponsor/SponsorCallSheet.tsx), so the server
+   only accepts these: netlify/functions/lib/call-hours.js CALL_HOSTS. */
+const TEAM = ['will@getshortcut.co', 'marc@getshortcut.co', 'jaimie@getshortcut.co', 'caren@getshortcut.co']
+  .map((email) => ACCOUNT_TEAM[email]);
 
 const pageUrl = (slug: string) => `${window.location.origin}/sponsor/${slug}`;
 
@@ -57,6 +64,7 @@ function PageForm({ editing, onClose, onSaved }: {
   const [error, setError] = useState('');
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((prev) => ({ ...prev, [k]: v }));
+  const teammate = TEAM.find((m) => m.email === d.contactEmail.trim().toLowerCase());
 
 
   const toggleService = (id: SponsorServiceId) => {
@@ -101,10 +109,10 @@ function PageForm({ editing, onClose, onSaved }: {
     setError('');
     const required: [keyof Draft, string][] = [
       ['conferenceName', 'conference name'], ['organizerName', 'organizer name'],
-      ['contactName', 'contact name'], ['contactEmail', 'contact email'],
     ];
     const missing = required.filter(([k]) => !String(d[k]).trim()).map(([, label]) => label);
     if (missing.length) return setError(`Fill in the ${missing.join(', ')}.`);
+    if (!teammate) return setError('Pick who the page is sent from.');
     if (!d.services.length) return setError('Pick at least one service.');
     if (d.logoUrl && logoBroken) return setError('The logo image didn’t load. Fix or remove it before saving.');
 
@@ -112,8 +120,8 @@ function PageForm({ editing, onClose, onSaved }: {
       organizerName: d.organizerName,
       conferenceName: d.conferenceName,
       dateLabel: d.dateLabel,
-      contactName: d.contactName,
-      contactEmail: d.contactEmail,
+      contactName: teammate.name,
+      contactEmail: teammate.email,
       services: d.services.length === ALL_IDS.length ? null : d.services,
       logoUrl: d.logoUrl,
     };
@@ -190,13 +198,24 @@ function PageForm({ editing, onClose, onSaved }: {
             <p className={HINT}>Shown on the booking card.</p>
           </div>
           <div>
-            <label className={LABEL} htmlFor="sp-cname">Contact name</label>
-            <input id="sp-cname" className={INPUT} value={d.contactName} onChange={(e) => set('contactName', e.target.value)} />
-          </div>
-          <div>
-            <label className={LABEL} htmlFor="sp-cemail">Contact email</label>
-            <input id="sp-cemail" type="email" className={INPUT} value={d.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} />
-            <p className={HINT}>Where the “Set up a call” button emails.</p>
+            <label className={LABEL} htmlFor="sp-from">Sent from</label>
+            <select
+              id="sp-from"
+              className={INPUT}
+              value={teammate?.email ?? ''}
+              onChange={(e) => {
+                const m = ACCOUNT_TEAM[e.target.value];
+                if (m) setD((prev) => ({ ...prev, contactName: m.name, contactEmail: m.email }));
+              }}
+            >
+              {!teammate && <option value="">{d.contactName || 'Pick a teammate'}</option>}
+              {TEAM.map((m) => <option key={m.email} value={m.email}>{m.name}</option>)}
+            </select>
+            <p className={HINT}>
+              {teammate && teammate.name !== d.contactName
+                ? `The page says ${d.contactName}. Saving changes it to ${teammate.name}.`
+                : 'Their name is on the page’s buttons, and calls book on their Google Calendar.'}
+            </p>
           </div>
         </div>
 
@@ -321,7 +340,7 @@ export default function SponsorPagesManager() {
                   )}
                 </div>
                 <p className="mt-0.5 text-sm text-text-dark-60">
-                  {p.organizerName}{p.dateLabel ? ` · ${p.dateLabel}` : ''} · {p.services ? `${p.services.length} services` : 'All services'}
+                  {p.organizerName}{p.dateLabel ? ` · ${p.dateLabel}` : ''} · {p.services ? `${p.services.length} services` : 'All services'} · From {p.contactName}
                 </p>
                 <a href={`/sponsor/${p.slug}`} target="_blank" rel="noreferrer" className="mt-1 inline-block text-sm font-semibold text-shortcut-blue underline decoration-shortcut-teal decoration-2 underline-offset-2">
                   /sponsor/{p.slug}

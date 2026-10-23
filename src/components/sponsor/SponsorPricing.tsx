@@ -143,7 +143,11 @@ function StepHead({ n, title, dot }: { n: number; title: string; dot: string }) 
   );
 }
 
-export default function SponsorPricing({ confName, contactEmail }: { confName: string; contactEmail: string }) {
+/** "Get your quote" opens the page's call sheet with these rows, which the
+ *  sheet shows in its rail and sends with the invite. */
+export type QuoteRows = [string, string][];
+
+export default function SponsorPricing({ hostFirst, onQuote }: { hostFirst: string; onQuote: (rows: QuoteRows) => void }) {
   const [days, setDays] = useState<number | null>(null);
   const [daysCustom, setDaysCustom] = useState(false);
   const [pkgId, setPkgId] = useState<string | null>(null);
@@ -193,16 +197,14 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
     { id: 'pr-build', t: 'Make it yours', v: lines.length ? `${lines.length} service${lines.length > 1 ? 's' : ''} on` : 'Pick services' },
   ];
 
-  const mailBody = [
-    `Conference: ${confName}`,
-    pkg ? `Package: ${pkg.name}` : '',
-    days ? `Days: ${days}` : '',
-    ...lines.map((l) => `${l.label}: ${l.option.name}${days ? ` (${money(l.cost)})` : ''}`),
-    addOnLines.length ? `Add-ons: ${addOnLines.map((a) => a.name).join(', ')}` : '',
-    fee ? `Our fee, estimated: ${money(fee)}` : '',
-    sponsorPrice ? `Our sponsor price: ${money(sponsorPrice)}` : '',
-  ].filter(Boolean).join('\n');
-  const mailto = `mailto:${contactEmail}?subject=${encodeURIComponent(`Wellness lounge sponsorship at ${confName}`)}&body=${encodeURIComponent(mailBody)}`;
+  const quoteRows: QuoteRows = [
+    ...(pkg ? [['Package', pkg.name] as [string, string]] : []),
+    ...(days ? [['Days', String(days)] as [string, string]] : []),
+    ...lines.map((l) => [l.label, l.option.name] as [string, string]),
+    ...(addOnLines.length ? [['Add-ons', addOnLines.map((a) => a.name).join(', ')] as [string, string]] : []),
+    ...(fee ? [['Your cost, estimated', money(fee)] as [string, string]] : []),
+    ...(sponsorPrice ? [['Your price', money(sponsorPrice)] as [string, string]] : []),
+  ];
 
   return (
     <div ref={rootRef} className="pv-root !bg-transparent">
@@ -571,10 +573,10 @@ export default function SponsorPricing({ confName, contactEmail }: { confName: s
               ))}
             </div>
 
-            <a href={mailto} className="mt-5 flex h-[52px] w-full items-center justify-center rounded-full bg-[#FF5050] text-[16px] font-bold text-white transition-transform duration-500 hover:-translate-y-[2px]">
+            <button type="button" onClick={() => onQuote(quoteRows)} className="mt-5 flex h-[52px] w-full items-center justify-center rounded-full bg-[#FF5050] text-[16px] font-bold text-white transition-transform duration-500 hover:-translate-y-[2px]">
               Get your quote
-            </a>
-            <p className="m-0 mt-3 text-center text-[13px] font-semibold text-white/70">Opens an email with your choices filled in.</p>
+            </button>
+            <p className="m-0 mt-3 text-center text-[13px] font-semibold text-white/70">Book a call with {hostFirst}. Your choices come with it.</p>
           </div>
         </aside>
       </div>
