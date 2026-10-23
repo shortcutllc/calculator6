@@ -199,13 +199,25 @@ Discounts apply to the service cost.
 - To remove gratuity, use remove_gratuity (no parameters needed).
 
 ## Generic Landing Pages
-- When a user says "create a landing page", "generic landing page", "partner page", or anything similar → call the create_landing_page tool. Do NOT skip the tool call.
+- When a user says "create a landing page", "generic landing page", "partner page", or anything similar → call the create_landing_page tool. Do NOT skip the tool call. Exception: a page for a conference ORGANIZER (a conference, show or summit and its sponsors) is a sponsor page; see the next section. If you can't tell which, ask.
 - The create_landing_page tool requires partnerName. Optional fields: partnerLogoUrl, clientEmail, customMessage, isReturningClient, customization (theme, includePricingCalculator, includeTestimonials, includeFAQ).
 - The tool automatically searches for the client's logo (existing proposals → Brave → Clearbit) if you don't provide partnerLogoUrl. Check the result's logoApplied and logoUrl fields to confirm.
 - The CORRECT URL format is: https://proposals.getshortcut.co/generic-landing-page/{uniqueToken}
 - NEVER fabricate a landing page URL. ALWAYS use the exact "url" field returned by the create_landing_page tool result. If the tool fails, say it failed — don't make up a URL.
 - If the user says "mark them as a returning/recurring client", set isReturningClient: true.
 - After creating the landing page, report whether a logo was found. If logoApplied is false, tell the user: "I couldn't find a logo — if you have one, send me the URL and I can update the page."
+
+## Sponsor Pages (conference partner pages)
+- A sponsor page (/sponsor/<link>) pitches a conference ORGANIZER on reselling a white-labeled Shortcut wellness lounge to their sponsors. Use create_sponsor_page when a user asks for a sponsor page, a conference partner page, or a page for a conference organizer.
+- It needs conferenceName and organizerName. Ask for the dates if the user hasn't given them. Everything else has a default: all seven stations, no password, published, sent from the person asking when they are Will, Jaimie, Marc or Caren.
+- sentFrom must be one of Will, Jaimie, Marc or Caren: their name is on the page's buttons and calls book on their Google Calendar. If the person asking isn't one of them and didn't say, ask who it is from.
+- The page copy is the same for every conference. The fields are facts. Never put a pitch, tagline or note into a field.
+- The link is made from the conference name when the page is created and never changes. Renaming the conference later keeps the old link.
+- Logo: same rule as proposals. Create the page without one, then offer to find the organizer's logo with search_logo, show it, and apply it with edit_sponsor_page only after the user confirms.
+- If you set a password, remind the user to send it along with the link.
+- NEVER fabricate a sponsor page URL. Use the exact "url" field from the tool result.
+- To change a page, use edit_sponsor_page with only the fields that change. To find one, use list_sponsor_pages (search by conference or organizer) or get_sponsor_page.
+- Pages can't be deleted from Slack. Staff delete them at proposals.getshortcut.co/sponsor-pages.
 
 ## QR Code Signs
 - When a user says "create a QR code sign", "make a sign", "QR sign", or similar → call create_qr_code_sign.
@@ -591,6 +603,66 @@ const TOOLS = [
       required: ['pageId']
     }
   },
+  // --- Sponsor (conference partner) Page Tools ---
+  {
+    name: 'create_sponsor_page',
+    description: 'Create a conference partner page at /sponsor/<link>: the page that pitches a conference ORGANIZER on reselling a white-labeled Shortcut wellness lounge to their sponsors. Use it when a user asks for a sponsor page, a conference partner page, or a page for a conference organizer. Not for a company\'s own wellness team (that is create_landing_page). The page copy is fixed; these fields are facts only. The link is made from the conference name and never changes. Returns the page and its exact URL.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        conferenceName: { type: 'string', description: 'The conference as it reads mid-sentence, e.g. "The Deans Conference". Also makes the link.' },
+        organizerName: { type: 'string', description: 'The organizer as it reads in a sentence, e.g. "AACSB". Shown beside the Shortcut logo when there is no logo.' },
+        dateLabel: { type: 'string', description: 'The dates as they should read, e.g. "Oct 19 to 21, 2026". Use "to", never a dash.' },
+        sentFrom: { type: 'string', description: 'Who the page is sent from: Will, Jaimie, Marc or Caren (name or email). Their name is on the page\'s buttons and calls book on their calendar. Defaults to the person asking when they are one of the four.' },
+        stations: { type: 'array', items: { type: 'string' }, description: 'Stations to offer, by id or plain word: reset (chair massage), glow (hair, shaves, makeup, facials), polish (manicures), studio (headshots), mindful (mindfulness), sound (sound baths), movement (group classes). Omit for all seven.' },
+        logoUrl: { type: 'string', description: 'https link to the organizer\'s logo. A copy is stored. Shown in place of the organizer name.' },
+        password: { type: 'string', description: 'Optional. Visitors must enter it to see the page. Omit for an open page.' },
+        status: { type: 'string', enum: ['published', 'draft'], description: 'published (default) is live at once; draft is not reachable until published.' }
+      },
+      required: ['conferenceName', 'organizerName']
+    }
+  },
+  {
+    name: 'edit_sponsor_page',
+    description: 'Change a conference partner page. Pass only the fields to change. The link never changes, even when the conference name does. Returns the page, its URL, and what changed.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        page: { type: 'string', description: 'Which page: its id, its link, or the slug after /sponsor/.' },
+        conferenceName: { type: 'string' },
+        organizerName: { type: 'string' },
+        dateLabel: { type: 'string' },
+        sentFrom: { type: 'string', description: 'Will, Jaimie, Marc or Caren.' },
+        stations: { type: 'array', items: { type: 'string' }, description: 'The full new list of stations, or ["all"].' },
+        logoUrl: { type: 'string', description: 'https link to a new logo, or "" to remove it.' },
+        password: { type: 'string', description: 'A new password, or "" to remove it and open the page.' },
+        status: { type: 'string', enum: ['published', 'draft'] }
+      },
+      required: ['page']
+    }
+  },
+  {
+    name: 'get_sponsor_page',
+    description: 'Get one conference partner page by id, link or slug: its fields, URL, stations, sender and whether it has a password.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        page: { type: 'string', description: 'Its id, its link, or the slug after /sponsor/.' }
+      },
+      required: ['page']
+    }
+  },
+  {
+    name: 'list_sponsor_pages',
+    description: 'List conference partner pages, newest first. Optionally filter by conference or organizer name.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        search: { type: 'string', description: 'Part of a conference name, organizer name or link.' },
+        limit: { type: 'integer', description: 'How many (default 20, max 100).' }
+      }
+    }
+  },
   // --- QR Code Sign Tools ---
   {
     name: 'create_qr_code_sign',
@@ -888,7 +960,7 @@ async function processSlackMessage({ supabase, userId, channelId, threadTs, user
     for (const toolCall of toolUseBlocks) {
       console.log(`Pro: executing tool ${toolCall.name}`, JSON.stringify(toolCall.input).substring(0, 200));
 
-      const result = await executeTool(toolCall.name, toolCall.input, supabase, userId, { channelId, threadTs });
+      const result = await executeTool(toolCall.name, toolCall.input, supabase, userId, { channelId, threadTs, slackUserId });
 
       // Track proposal actions for cross-posting
       if (toolCall.name === 'create_proposal' && result.success) {

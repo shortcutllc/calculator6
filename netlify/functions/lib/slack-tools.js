@@ -13,6 +13,7 @@ import { recalculateProposalSummary } from './pricing-engine.js';
 import { duplicateProposal } from './proposal-duplicator.js';
 import { createOption, linkProposals, unlinkProposal, renameOption, reorderOption } from './proposal-linker.js';
 import { createLandingPage, getLandingPage } from './landing-page-assembler.js';
+import { createSponsorPage, updateSponsorPage, getSponsorPage, listSponsorPages } from './sponsor-pages.js';
 import { leadPicture, suggestNextActions, nextActions } from './lead-picture.js';
 import { getAccessToken, getThread, bodyFromPayload, lc as lcGmail } from './gmail.js';
 
@@ -59,6 +60,10 @@ const TOOL_HANDLERS = {
   reorder_proposal_option: handleReorderOption,
   create_landing_page: handleCreateLandingPage,
   get_landing_page: handleGetLandingPage,
+  create_sponsor_page: handleCreateSponsorPage,
+  edit_sponsor_page: handleEditSponsorPage,
+  get_sponsor_page: handleGetSponsorPage,
+  list_sponsor_pages: handleListSponsorPages,
   create_qr_code_sign: handleCreateQRCodeSign,
   get_qr_code_sign: handleGetQRCodeSign,
   list_qr_code_signs: handleListQRCodeSigns,
@@ -1305,6 +1310,44 @@ async function handleGetLandingPage(params, supabase) {
     customization: result.page.customization,
     status: result.page.status
   };
+}
+
+// --- Sponsor (conference partner) Pages ---
+// All four go through lib/sponsor-pages.js, the same module as the HTTP API.
+// Its errors are plain sentences, which executeTool hands back as { error }.
+
+/** The email of whoever is asking: the API key's owner, or the Slack user
+ *  Pro is talking to (via gmail_accounts). A sponsor page is sent from them
+ *  by default when they are one of its hosts. */
+async function callerEmail(supabase, ctx = {}) {
+  if (ctx.callerEmail) return ctx.callerEmail;
+  if (!ctx.slackUserId) return null;
+  const { data } = await supabase
+    .from('gmail_accounts')
+    .select('email')
+    .eq('slack_user_id', ctx.slackUserId)
+    .limit(1);
+  return data?.[0]?.email || null;
+}
+
+async function handleCreateSponsorPage(params, supabase, userId, ctx) {
+  const page = await createSponsorPage(supabase, userId, params, { defaultSender: await callerEmail(supabase, ctx) });
+  return { success: true, ...page };
+}
+
+async function handleEditSponsorPage(params, supabase) {
+  const { page: ref, ...changes } = params;
+  const { page, changed } = await updateSponsorPage(supabase, ref, changes);
+  return { success: true, changed, ...page };
+}
+
+async function handleGetSponsorPage(params, supabase) {
+  return { success: true, ...(await getSponsorPage(supabase, params.page)) };
+}
+
+async function handleListSponsorPages(params, supabase) {
+  const pages = await listSponsorPages(supabase, { search: params.search, limit: params.limit });
+  return { success: true, count: pages.length, pages };
 }
 
 // --- QR Code Sign Tools ---

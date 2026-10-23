@@ -26,10 +26,16 @@
  *   GET  ?action=landing-page&id=<>   → Get a landing page by ID
  *   GET  ?action=search-landing-pages&search=<> → Search landing pages
  *
- * Auth: Supabase JWT in Authorization header (Bearer token)
+ *   SPONSOR (CONFERENCE PARTNER) PAGES:
+ *   POST  ?action=create-sponsor-page → Create a /sponsor/<link> page
+ *   PATCH ?action=update-sponsor-page → Change fields on one ({ page, ...changes })
+ *   GET   ?action=sponsor-page&page=<id|slug|link> → Get one
+ *   GET   ?action=sponsor-pages[&search=<>]        → List them
+ *
+ * Auth: Authorization: Bearer <personal API key or Supabase sign-in token>
+ * (lib/staff-auth.js). Payloads and setup: docs/AI_INTEGRATION.md.
  */
 
-import { createClient } from '@supabase/supabase-js';
 import { assembleProposal } from './lib/proposal-assembler.js';
 import { applyOperations } from './lib/proposal-editor.js';
 import { calculateEventOptions } from './lib/reverse-calculator.js';
@@ -39,6 +45,8 @@ import { notifyProposalCreated, notifyProposalEdited } from './lib/slack-notifie
 import { duplicateProposal } from './lib/proposal-duplicator.js';
 import { createOption, linkProposals, unlinkProposal, renameOption, reorderOption, getGroupOptions } from './lib/proposal-linker.js';
 import { createLandingPage, updateLandingPage, getLandingPage, searchLandingPages } from './lib/landing-page-assembler.js';
+import { createSponsorPage, updateSponsorPage, getSponsorPage, listSponsorPages, SponsorPageError } from './lib/sponsor-pages.js';
+import { authenticate } from './lib/staff-auth.js';
 
 // --- CORS ---
 
@@ -54,38 +62,6 @@ function jsonResponse(statusCode, body) {
 
 function errorResponse(statusCode, message, code) {
   return jsonResponse(statusCode, { success: false, error: message, code });
-}
-
-// --- Auth ---
-
-async function validateAuth(req) {
-  const authHeader = req.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw { statusCode: 401, message: 'Authorization header with Bearer token required', code: 'AUTH_MISSING' };
-  }
-
-  const token = authHeader.replace('Bearer ', '');
-
-  // Use VITE_ prefixed vars (existing in Netlify) with fallback to non-prefixed
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl) {
-    throw { statusCode: 500, message: 'VITE_SUPABASE_URL not configured', code: 'CONFIG_ERROR' };
-  }
-  if (!serviceRoleKey) {
-    throw { statusCode: 500, message: 'SUPABASE_SERVICE_ROLE_KEY not configured', code: 'CONFIG_ERROR' };
-  }
-
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
-
-  const { data: { user }, error } = await supabase.auth.getUser(token);
-
-  if (error || !user) {
-    throw { statusCode: 401, message: 'Invalid or expired token', code: 'AUTH_INVALID' };
-  }
-
-  return { user, supabase };
 }
 
 // --- Helper: Parse JSON body ---
@@ -112,7 +88,7 @@ export default async (req) => {
     const action = params.action;
 
     // Validate auth for all requests
-    const { user, supabase } = await validateAuth(req);
+    const { user, supabase } = await authenticate(req);
     const rawBody = await req.text();
 
     // Route based on method + action
@@ -126,10 +102,12 @@ export default async (req) => {
         if (action === 'rename-option') return await handleRenameOption(rawBody, supabase);
         if (action === 'reorder-option') return await handleReorderOption(rawBody, supabase);
         if (action === 'create-landing-page') return await handleCreateLandingPage(rawBody, user, supabase);
+        if (action === 'create-sponsor-page') return await handleCreateSponsorPage(rawBody, user, supabase);
         return await handleCreate(rawBody, user, supabase);
 
       case 'PATCH':
         if (action === 'update-landing-page') return await handleUpdateLandingPage(rawBody, supabase);
+        if (action === 'update-sponsor-page') return await handleUpdateSponsorPage(rawBody, supabase);
         return await handleEdit(rawBody, user, supabase);
 
       case 'GET':
@@ -137,6 +115,8 @@ export default async (req) => {
         if (action === 'group-options') return await handleGetGroupOptions(params, supabase);
         if (action === 'landing-page') return await handleGetLandingPage(params, supabase);
         if (action === 'search-landing-pages') return await handleSearchLandingPages(params, supabase);
+        if (action === 'sponsor-page') return await handleGetSponsorPage(params, supabase);
+        if (action === 'sponsor-pages') return await handleListSponsorPages(params, supabase);
         if (params.search) return await handleSearch(params, supabase);
         if (params.id) return await handleGetById(params, supabase);
         return errorResponse(400, 'GET requires ?search=, ?id=, or a valid ?action=', 'VALIDATION_ERROR');
@@ -633,6 +613,68 @@ async function handleSearchLandingPages(params, supabase) {
   } catch (err) {
     console.error('Search landing pages error:', err);
     return errorResponse(500, err.message, 'LANDING_PAGE_SEARCH_FAILED');
+  }
+}
+
+// ============================================================
+// SPONSOR PAGE HANDLERS (lib/sponsor-pages.js, shared with Pro)
+// ============================================================
+
+function sponsorError(err, code) {
+  if (err instanceof SponsorPageError) return errorResponse(err.status, err.message, code);
+  console.error(`${code}:`, err);
+  return errorResponse(500, err.message || 'Internal server error', code);
+}
+
+// --- POST ?action=create-sponsor-page ---
+
+async function handleCreateSponsorPage(rawBody, user, supabase) {
+  const body = parseBody(rawBody);
+  if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
+
+  try {
+    // Sent from the caller by default, when they are one of the page's hosts.
+    const sponsorPage = await createSponsorPage(supabase, user.id, body, { defaultSender: user.email });
+    return jsonResponse(201, { success: true, sponsorPage });
+  } catch (err) {
+    return sponsorError(err, 'SPONSOR_PAGE_CREATE_FAILED');
+  }
+}
+
+// --- PATCH ?action=update-sponsor-page ---
+
+async function handleUpdateSponsorPage(rawBody, supabase) {
+  const body = parseBody(rawBody);
+  if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
+
+  const { page: ref, ...changes } = body;
+  try {
+    const { page, changed } = await updateSponsorPage(supabase, ref, changes);
+    return jsonResponse(200, { success: true, sponsorPage: page, changed });
+  } catch (err) {
+    return sponsorError(err, 'SPONSOR_PAGE_UPDATE_FAILED');
+  }
+}
+
+// --- GET ?action=sponsor-page&page=<id|slug|link> ---
+
+async function handleGetSponsorPage(params, supabase) {
+  try {
+    const sponsorPage = await getSponsorPage(supabase, params.page || params.id || params.slug);
+    return jsonResponse(200, { success: true, sponsorPage });
+  } catch (err) {
+    return sponsorError(err, 'SPONSOR_PAGE_GET_FAILED');
+  }
+}
+
+// --- GET ?action=sponsor-pages[&search=<term>] ---
+
+async function handleListSponsorPages(params, supabase) {
+  try {
+    const sponsorPages = await listSponsorPages(supabase, { search: params.search, limit: params.limit });
+    return jsonResponse(200, { success: true, count: sponsorPages.length, sponsorPages });
+  } catch (err) {
+    return sponsorError(err, 'SPONSOR_PAGE_LIST_FAILED');
   }
 }
 
