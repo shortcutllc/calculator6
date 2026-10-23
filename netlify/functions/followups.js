@@ -27,7 +27,7 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
 };
-const json = (s, b) => ({ statusCode: s, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
+const json = (s, b) => Response.json(b, { status: s, headers: CORS });
 
 const MIN_DAYS = 4;
 // Dual cap: trip if EITHER rule is hit. Models real outreach cadence —
@@ -59,10 +59,10 @@ const MAX_RESULTS = 2000;
 const PERSONAL_NOTE_RE = /\[[^\[\]]*·[^\[\]]*\]/;  // strict: [timestamp · Author]
 const lc = (s) => (s == null ? null : String(s).trim().toLowerCase() || null);
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
+export default async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
 
-  const authHeader = event.headers.authorization || event.headers.Authorization;
+  const authHeader = req.headers.get('authorization');
   if (!authHeader?.startsWith('Bearer ')) return json(401, { error: 'Authorization required' });
 
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -73,7 +73,7 @@ export const handler = async (event) => {
   const { data: { user }, error } = await sb.auth.getUser(authHeader.replace('Bearer ', ''));
   if (error || !user) return json(401, { error: 'Invalid or expired token' });
 
-  const scope = (event.queryStringParameters?.scope === 'team') ? 'team' : 'mine';
+  const scope = (new URL(req.url).searchParams.get('scope') === 'team') ? 'team' : 'mine';
 
   // Resolve the rep's Gmail + assignee identity.
   const { data: gAcct } = await sb.from('gmail_accounts')
@@ -93,7 +93,7 @@ export const handler = async (event) => {
   // the UI (lead-actions.js). Keeps hidden leads discoverable instead of
   // black-holing them. Source filter excludes auto-bounces/cold-list-DNCs
   // so the section only shows things a human explicitly hid.
-  const includeMuted = (event.queryStringParameters?.include_muted || '') === '1';
+  const includeMuted = (new URL(req.url).searchParams.get('include_muted') || '') === '1';
   if (includeMuted) {
     const { data: supp } = await sb.from('crm_suppression')
       .select('email, reason, source, detail, ingested_at')

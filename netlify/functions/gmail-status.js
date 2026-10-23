@@ -13,12 +13,12 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
 };
-const json = (s, b) => ({ statusCode: s, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
+const json = (s, b) => Response.json(b, { status: s, headers: CORS });
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
+export default async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
 
-  const authHeader = event.headers.authorization || event.headers.Authorization;
+  const authHeader = req.headers.get('authorization');
   if (!authHeader?.startsWith('Bearer ')) return json(401, { error: 'Authorization required' });
 
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;

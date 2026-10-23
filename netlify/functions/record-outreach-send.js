@@ -25,7 +25,7 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
-const json = (s, b) => ({ statusCode: s, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
+const json = (s, b) => Response.json(b, { status: s, headers: CORS });
 
 // Keep in sync with workhuman-booth-send.js + the backfill script.
 // TODO: extract to a shared lib once a fourth caller appears.
@@ -38,18 +38,18 @@ const SENDER_EMAILS = {
 
 const CAMPAIGN_ID = 'workhuman-booth-email';
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
-  if (event.httpMethod !== 'POST') return json(405, { error: 'POST only' });
+export default async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+  if (req.method !== 'POST') return json(405, { error: 'POST only' });
 
   // Bearer-auth required so random anon can't pollute outreach_sends with
   // junk. We accept either the supabase anon key (frontend) or service_role.
   // The signature isn't load-bearing security — this is internal-tool only.
-  const auth = event.headers.authorization || event.headers.Authorization;
+  const auth = req.headers.get('authorization');
   if (!auth?.startsWith('Bearer ')) return json(401, { error: 'auth required' });
 
   let body;
-  try { body = JSON.parse(event.body || '{}'); }
+  try { body = JSON.parse((await req.text()) || '{}'); }
   catch { return json(400, { error: 'bad json' }); }
   const { leadId, senderName } = body;
   if (!leadId) return json(400, { error: 'leadId required' });

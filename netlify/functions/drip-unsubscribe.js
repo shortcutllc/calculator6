@@ -33,30 +33,30 @@ const page = (title, msg) => `<!doctype html><meta charset="utf-8">
 <p style="font-size:1rem;line-height:1.55;color:#4a5a63;margin:0">${msg}</p>
 </div>`;
 
-export const handler = async (event) => {
+export default async (req) => {
   const secret = process.env.DRIP_UNSUB_SECRET;
   const url = process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  const q = event.queryStringParameters || {};
+  const q = Object.fromEntries(new URL(req.url).searchParams);
   const email = String(q.e || '').trim().toLowerCase();
   const campaignId = String(q.c || '').trim();
   const token = String(q.t || '').trim();
-  const isPost = event.httpMethod === 'POST';
+  const isPost = req.method === 'POST';
 
   // A misconfigured server must never tell a one-click caller "fine". Return 500
   // so the provider retries, rather than silently dropping an opt-out.
   if (!secret || !url || !key) {
     console.error('[drip-unsubscribe] missing env');
     return isPost
-      ? { statusCode: 500, body: 'unsubscribe temporarily unavailable' }
-      : { statusCode: 500, headers: { 'Content-Type': 'text/html' }, body: page('Something went wrong', 'We could not process that just now. Please reply to the email and we will remove you by hand.') };
+      ? new Response('unsubscribe temporarily unavailable', { status: 500 })
+      : new Response(page('Something went wrong', 'We could not process that just now. Please reply to the email and we will remove you by hand.'), { status: 500, headers: { 'Content-Type': 'text/html' } });
   }
 
   if (!email || !campaignId || !token || !verifyUnsubToken(email, campaignId, token, secret)) {
     return isPost
-      ? { statusCode: 400, body: 'invalid unsubscribe token' }
-      : { statusCode: 400, headers: { 'Content-Type': 'text/html' }, body: page('That link is not valid', 'Reply to the email with the word unsubscribe and we will take you off the list.') };
+      ? new Response('invalid unsubscribe token', { status: 400 })
+      : new Response(page('That link is not valid', 'Reply to the email with the word unsubscribe and we will take you off the list.'), { status: 400, headers: { 'Content-Type': 'text/html' } });
   }
 
   const sb = createClient(url, key);
@@ -66,8 +66,8 @@ export const handler = async (event) => {
       campaign_id: campaignId,
       token,
       method: isPost ? 'one-click' : 'link',
-      user_agent: (event.headers || {})['user-agent'] || null,
-      ip: (event.headers || {})['x-nf-client-connection-ip'] || null,
+      user_agent: req.headers.get('user-agent') || null,
+      ip: req.headers.get('x-nf-client-connection-ip') || null,
     });
 
     // The cross-system stop. Every sender in this repo checks crm_suppression.
@@ -83,15 +83,11 @@ export const handler = async (event) => {
   } catch (e) {
     console.error('[drip-unsubscribe] write failed:', e.message);
     return isPost
-      ? { statusCode: 500, body: 'could not record unsubscribe' }
-      : { statusCode: 500, headers: { 'Content-Type': 'text/html' }, body: page('Something went wrong', 'We could not process that just now. Please reply to the email and we will remove you by hand.') };
+      ? new Response('could not record unsubscribe', { status: 500 })
+      : new Response(page('Something went wrong', 'We could not process that just now. Please reply to the email and we will remove you by hand.'), { status: 500, headers: { 'Content-Type': 'text/html' } });
   }
 
   return isPost
-    ? { statusCode: 200, body: 'unsubscribed' }
-    : {
-        statusCode: 200,
-        headers: { 'Content-Type': 'text/html', 'Cache-Control': 'no-store' },
-        body: page('You are unsubscribed', `We will not email <strong>${email.replace(/</g, '&lt;')}</strong> again. Nothing else is needed from you.`),
-      };
+    ? new Response('unsubscribed', { status: 200 })
+    : new Response(page('You are unsubscribed', `We will not email <strong>${email.replace(/</g, '&lt;')}</strong> again. Nothing else is needed from you.`), { status: 200, headers: { 'Content-Type': 'text/html', 'Cache-Control': 'no-store' } });
 };

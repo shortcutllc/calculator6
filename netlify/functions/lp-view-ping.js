@@ -22,7 +22,7 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
-const json = (s, b) => ({ statusCode: s, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
+const json = (s, b) => Response.json(b, { status: s, headers: CORS });
 
 const MIN_VIEWS_TO_PING = 2;     // skip view #1; ping #2 onward
 const DEBOUNCE_HOURS = 4;        // don't re-ping for the same lead within 4h
@@ -33,12 +33,12 @@ const ASSIGNEE_TO_EMAIL = {
   'Caren Skutch':      'caren@getshortcut.co',
 };
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
-  if (event.httpMethod !== 'POST') return json(405, { error: 'POST only' });
+export default async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+  if (req.method !== 'POST') return json(405, { error: 'POST only' });
 
   let body;
-  try { body = JSON.parse(event.body || '{}'); }
+  try { body = JSON.parse((await req.text()) || '{}'); }
   catch { return json(400, { error: 'bad json' }); }
   const token = (body.unique_token || '').toString().trim();
   if (!token) return json(400, { error: 'unique_token required' });

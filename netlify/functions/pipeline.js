@@ -25,12 +25,12 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
-const json = (s, b) => ({ statusCode: s, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
+const json = (s, b) => Response.json(b, { status: s, headers: CORS });
 const lc = (s) => (s == null ? null : String(s).trim().toLowerCase() || null);
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
-  const auth = event.headers.authorization || event.headers.Authorization;
+export default async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+  const auth = req.headers.get('authorization');
   if (!auth?.startsWith('Bearer ')) return json(401, { error: 'Authorization required' });
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -45,9 +45,11 @@ export const handler = async (event) => {
   const myRep = assigneeForGmail(myEmail);
   const isManager = MANAGERS.includes(lc(user.email)) || MANAGERS.includes(myEmail);
 
-  const requested = event.httpMethod === 'GET'
-    ? event.queryStringParameters?.rep
-    : (() => { try { return JSON.parse(event.body || '{}').rep; } catch { return null; } })();
+  // A request body can be read once; GET has none.
+  const raw = req.method === 'GET' ? '' : await req.text();
+  const requested = req.method === 'GET'
+    ? new URL(req.url).searchParams.get('rep')
+    : (() => { try { return JSON.parse(raw || '{}').rep; } catch { return null; } })();
   let rep = myRep;
   if (requested && REPS[requested]) {
     if (isManager) rep = requested;
@@ -55,7 +57,7 @@ export const handler = async (event) => {
   }
   if (!rep) return json(200, { success: true, board: null, viewer: { email: myEmail, rep: null, is_manager: isManager, reps: isManager ? Object.keys(REPS) : [] }, note: `No board is set up for ${myEmail}. Connect your Gmail from the header so we can match you to your leads.` });
 
-  if (event.httpMethod === 'GET') {
+  if (req.method === 'GET') {
     try {
       const board = await buildBoard(sb, rep);
       return json(200, { success: true, board, viewer: { email: myEmail, rep: myRep, is_manager: isManager, reps: isManager ? Object.keys(REPS) : [myRep] } });
@@ -64,8 +66,8 @@ export const handler = async (event) => {
     }
   }
 
-  if (event.httpMethod !== 'POST') return json(405, { error: 'GET or POST' });
-  let body; try { body = JSON.parse(event.body || '{}'); } catch { return json(400, { error: 'bad json' }); }
+  if (req.method !== 'POST') return json(405, { error: 'GET or POST' });
+  let body; try { body = JSON.parse(raw || '{}'); } catch { return json(400, { error: 'bad json' }); }
   const leadKey = String(body.key || '').slice(0, 180);
   if (!leadKey) return json(400, { error: 'key required' });
 

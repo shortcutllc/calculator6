@@ -26,14 +26,14 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
-const json = (s, b) => ({ statusCode: s, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
+const json = (s, b) => Response.json(b, { status: s, headers: CORS });
 const lc = (s) => (s == null ? null : String(s).trim().toLowerCase() || null);
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
-  if (event.httpMethod !== 'POST') return json(405, { error: 'POST only' });
+export default async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+  if (req.method !== 'POST') return json(405, { error: 'POST only' });
 
-  const auth = event.headers.authorization || event.headers.Authorization;
+  const auth = req.headers.get('authorization');
   if (!auth?.startsWith('Bearer ')) return json(401, { error: 'auth required' });
 
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -44,7 +44,7 @@ export const handler = async (event) => {
   if (authErr || !user) return json(401, { error: 'invalid token' });
 
   let body;
-  try { body = JSON.parse(event.body || '{}'); }
+  try { body = JSON.parse((await req.text()) || '{}'); }
   catch { return json(400, { error: 'bad json' }); }
 
   const action = body.action;

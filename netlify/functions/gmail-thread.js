@@ -23,18 +23,18 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
-const json = (s, b) => ({ statusCode: s, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
+const json = (s, b) => Response.json(b, { status: s, headers: CORS });
 
 function headerVal(headers, name) {
   const h = (headers || []).find((x) => x.name?.toLowerCase() === name.toLowerCase());
   return h ? h.value : null;
 }
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
-  if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
+export default async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+  if (req.method !== 'POST') return json(405, { error: 'Method not allowed' });
 
-  const authHeader = event.headers.authorization || event.headers.Authorization;
+  const authHeader = req.headers.get('authorization');
   if (!authHeader?.startsWith('Bearer ')) return json(401, { error: 'Authorization required' });
 
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -46,7 +46,7 @@ export const handler = async (event) => {
   if (error || !user) return json(401, { error: 'Invalid or expired token' });
 
   let body;
-  try { body = JSON.parse(event.body || '{}'); } catch { return json(400, { error: 'Invalid JSON body' }); }
+  try { body = JSON.parse((await req.text()) || '{}'); } catch { return json(400, { error: 'Invalid JSON body' }); }
   const threadId = body.thread_id || body.threadId;
   const senderEmailReq = (body.sender_email || body.senderEmail || '').toString().trim().toLowerCase() || null;
   if (!threadId) return json(400, { error: 'thread_id required' });

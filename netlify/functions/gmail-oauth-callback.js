@@ -15,14 +15,10 @@ const REDIRECT_URI = 'https://proposals.getshortcut.co/.netlify/functions/gmail-
 const APP_RETURN = 'https://proposals.getshortcut.co/sales-intelligence';
 const STATE_MAX_AGE_MS = 10 * 60 * 1000;
 
-const redirect = (status) => ({
-  statusCode: 302,
-  headers: { Location: `${APP_RETURN}?gmail=${status}` },
-  body: '',
-});
+const redirect = (status) => new Response(null, { status: 302, headers: { Location: `${APP_RETURN}?gmail=${status}` } });
 
-export const handler = async (event) => {
-  const q = event.queryStringParameters || {};
+export default async (req) => {
+  const q = Object.fromEntries(new URL(req.url).searchParams);
   if (q.error) return redirect('denied');
   if (!q.code || !q.state) return redirect('error');
 
