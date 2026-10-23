@@ -72,8 +72,9 @@ If you DO want to CLI-deploy: `netlify deploy --prod` with NO flags. `--no-build
 **To confirm a deploy went live:** `gh api repos/shortcutllc/calculator6/commits/main --jq .sha` matches what's on prod, OR check `https://app.netlify.com/projects/resplendent-narwhal-3de33b/deploys` for `state: ready` on the commit you just pushed.
 
 **Step 6 — fast-forward local main to origin/main:**
-- If working in a **worktree** (path contains `.claude/worktrees/`), local main is checked out in the parent repo. Run:
-  `git -C /Users/willnewton/Documents/GitHub/calculator6 fetch origin && git -C /Users/willnewton/Documents/GitHub/calculator6 merge --ff-only origin/main`
+- If working in a **worktree** (path contains `.claude/worktrees/`), update local main without touching the parent checkout, which may be on another branch with uncommitted work:
+  `git -C /Users/willnewton/Documents/GitHub/calculator6 fetch origin main:main`
+  Only if that refuses because main is checked out in the parent repo, run `git -C /Users/willnewton/Documents/GitHub/calculator6 merge --ff-only origin/main`. Never run that merge while the parent is on another branch: it merges main into that branch (2026-10-23 the parent was on `sponsor-partner-page`).
 - If working directly on the **main branch in the main repo**, you can skip this (commit + push already updated local main).
 - This must be a clean fast-forward. If it fails (non-FF), something is wrong with your push — investigate before forcing anything.
 
@@ -259,6 +260,7 @@ Dynamic routing for clean client-facing URLs:
 - Utilities: camelCase (`formatDate.ts`)
 - Use Tailwind for all styling — no inline styles
 - Types go in `src/types/`
+- Netlify functions use the modern Functions API (all of them since 2026-10-23): `export default async (req, context) => new Response(...)`, scheduled ones with `export const config = { schedule }` plus the `netlify.toml` block. Never `export const handler` (Netlify rejects deploys with one from July 1, 2027, and one brings back the 4KB env cap for every function) and never `config.path` (it takes the function off `/.netlify/functions/<name>`, the URL the app and every registered webhook call). `node scripts/check-functions-v2.mjs` checks both. A request body reads once, so keep `await req.text()` in a variable; a 204 needs a `null` body; Slack work that can outlast 3 seconds goes in `context.waitUntil()` after the 200.
 
 ## Do NOT
 - Use `head`, `tail`, `less`, `more` pipes in bash (causes buffering issues)

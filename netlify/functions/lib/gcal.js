@@ -11,14 +11,15 @@
  * Google emails the invite.
  *
  * GOOGLE_CALENDAR_SA_KEY (Netlify env, secret, Functions scope) holds a key
- * of that service account. NOT the whole JSON key file, as the website has:
- * every function here runs in Lambda compatibility mode, where AWS caps ALL
- * of a function's env vars at 4KB together, the site already uses about
- * 2.4KB, and a key file is 2.3KB. So it holds the key packed:
- * `rsa-pq.<key id>.<p>.<q>`, the RSA key's two primes (base64url), which
- * rebuild the whole key and come to about 400 characters. A raw or base64
- * JSON key file is still accepted, for when the functions leave Lambda
- * compatibility mode (Netlify stops accepting it on July 1, 2027).
+ * of that service account, packed: `rsa-pq.<key id>.<p>.<q>`, the RSA key's
+ * two primes (base64url), which rebuild the whole key and come to about 400
+ * characters. It was packed because every function then ran in Lambda
+ * compatibility mode, where AWS caps ALL of a function's env vars at 4KB
+ * together, the site used about 2.4KB, and a key file is 2.3KB. Since
+ * October 2026 every function uses the modern Functions API, which has no
+ * such cap, so a raw or base64 JSON key file works too; the packed key stays
+ * because it works. scripts/check-functions-v2.mjs keeps it that way: one
+ * Lambda-style function would bring the cap back for all of them.
  * scripts/set-google-calendar-key.mjs creates a key with gcloud, packs it,
  * checks it with Google and sets it here, without printing it. Never print
  * it or commit it.

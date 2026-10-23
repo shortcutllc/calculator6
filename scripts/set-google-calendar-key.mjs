@@ -9,8 +9,8 @@
  * 1. Creates a JSON key for site-call-booking@shortcut-seo-tools-2026 with
  *    gcloud (signed in as a project owner), into a private temp folder.
  * 2. Packs it to `rsa-pq.<key id>.<p>.<q>`, about 400 characters. The full
- *    file is 2.3KB, and in Lambda compatibility mode AWS caps all of a
- *    function's env vars at 4KB together (see gcal.js).
+ *    file is 2.3KB; packing dates from Lambda compatibility mode's 4KB cap
+ *    on all of a function's env vars (see gcal.js).
  * 3. Checks the packed key with Google: a token for every host in
  *    lib/call-hours.js CALL_HOSTS and a free/busy read of their next day.
  *    Read only: nothing is written to any calendar.
