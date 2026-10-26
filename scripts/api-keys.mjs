@@ -2,7 +2,7 @@
 /**
  * Issue, list and revoke the personal API keys a teammate's AI uses to
  * create proposals, landing pages, sponsor pages and QR signs as them.
- * Teammates set up from the guide page (https://claude.ai/artifact/L6ayMmMArbqhQUhpm1QU43); the technical
+ * Teammates set up from the guide page (https://proposals.getshortcut.co/ai-guide/); the technical
  * reference is docs/AI_INTEGRATION.md.
  *
  * USAGE
@@ -75,7 +75,7 @@ async function issue(email, label) {
 
   console.log(`\nKey for ${user.email} (${label.trim()}). Shown once, so send it to them now:\n`);
   console.log(`  ${key}\n`);
-  console.log('Send it privately with the setup guide (share the page with them first): https://claude.ai/artifact/L6ayMmMArbqhQUhpm1QU43');
+  console.log('Send it privately, in a DM, with the setup guide: https://proposals.getshortcut.co/ai-guide/');
 }
 
 async function list() {

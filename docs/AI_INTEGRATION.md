@@ -1,6 +1,6 @@
 # Team AI integration: technical reference
 
-**Teammates set up from the guide page, not this file: [Shortcut AI Connector](https://claude.ai/artifact/L6ayMmMArbqhQUhpm1QU43).** It explains, in plain language, what this unlocks, how to connect Muse, Claude or ChatGPT step by step, how to get good results, how to keep a key safe, and what to do when something goes wrong. The page is private to Will's account, so share it from its Share menu before sending the link. Change setup steps there, not here. This file is the technical reference behind it.
+**Teammates set up from the guide page, not this file: [https://proposals.getshortcut.co/ai-guide/](https://proposals.getshortcut.co/ai-guide/).** It explains, in plain language, what this unlocks, how to connect Muse, Claude or ChatGPT step by step, how to get good results, how to keep a key safe, and what to do when something goes wrong. It is a static page in this repo (`public/ai-guide/index.html`), so anyone with the link can open it without a claude.ai account, and it carries noindex like the rest of the site. It holds no key and no key commands. Change setup steps there, not here. This file is the technical reference behind it.
 
 A teammate's AI (Muse, Claude, ChatGPT, Cursor, or a script) can create and edit proposals, landing pages, sponsor pages and QR signs on proposals.getshortcut.co, the same way Pro does in Slack. It acts as that teammate: what it creates is saved under their user id, and every tool hands back the live link.
 
@@ -202,7 +202,7 @@ node scripts/api-keys.mjs revoke sk_shortcut_AbC123
 
 The teammate needs to have signed in to proposals.getshortcut.co once, so their account exists. Only a hash of each key is stored, so a lost key gets revoked and replaced, never recovered.
 
-Send the key privately (a Slack DM, not a channel) along with the [guide page](https://claude.ai/artifact/L6ayMmMArbqhQUhpm1QU43), shared with them first. The guide tells them where the key goes, and that it never goes in a chat message.
+Send the key privately (a Slack DM, not a channel) along with the [guide page](https://proposals.getshortcut.co/ai-guide/). The guide tells them where the key goes, and that it never goes in a chat message.
 
 ## How it fits together (for whoever maintains it)
 

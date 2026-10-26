@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<!-- Team setup guide for the AI connector (netlify/functions/mcp.js). Technical
+     reference: docs/AI_INTEGRATION.md. Served as a static file, outside the SPA. -->
+<style>
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<title>Shortcut AI Connector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one calm reading column, a team handbook page. Examples sit in a two-up grid that stacks on phones. */
+:root {
+  --bg: #ffffff;
+  --surface: #F1F6F5;
+  --ink: #032232;
+  --heading: #003756;
+  --muted: #3d5866;
+  --rule: #d5e3e6;
+  --teal: #018EA2;
+  --coral: #FF5050;
+  --btn-bg: #003756;
+  --btn-ink: #ffffff;
+  --code-bg: #F1F6F5;
+  --logo-ink: #175071;
+  --tab-on: #003756;
+  --tab-on-ink: #ffffff;
+  --font: 'Outfit', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a1d27; --surface: #10293a; --ink: #e4edf1; --heading: #ffffff; --muted: #a7bcc7;
+    --rule: #24495a; --teal: #2fb3c5; --coral: #ff6b6b; --btn-bg: #9EFAFF; --btn-ink: #032232;
+    --code-bg: #071822; --logo-ink: #ffffff; --tab-on: #9EFAFF; --tab-on-ink: #032232;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0a1d27; --surface: #10293a; --ink: #e4edf1; --heading: #ffffff; --muted: #a7bcc7;
+  --rule: #24495a; --teal: #2fb3c5; --coral: #ff6b6b; --btn-bg: #9EFAFF; --btn-ink: #032232;
+  --code-bg: #071822; --logo-ink: #ffffff; --tab-on: #9EFAFF; --tab-on-ink: #032232;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.6;
+}
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+.topbar { height: 4px; background: var(--coral); }
+
+header { display: flex; flex-direction: column; gap: 20px; }
+.brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand svg { width: 150px; height: auto; color: var(--logo-ink); }
+.brand .tag {
+  font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted); border: 1px solid var(--rule); border-radius: 999px; padding: 4px 10px;
+}
+h1 {
+  font-size: clamp(30px, 6vw, 42px); line-height: 1.12; font-weight: 700;
+  color: var(--heading); margin: 0; text-wrap: balance; letter-spacing: -0.01em;
+}
+.lead { font-size: 19px; line-height: 1.55; margin: 0; max-width: 62ch; }
+.lead + .lead { font-size: 16px; color: var(--muted); }
+
+section { display: flex; flex-direction: column; gap: 16px; }
+h2 { font-size: 24px; line-height: 1.25; font-weight: 700; color: var(--heading); margin: 0; text-wrap: balance; }
+h3 { font-size: 18px; line-height: 1.3; font-weight: 600; color: var(--heading); margin: 0; }
+p { margin: 0; max-width: 65ch; }
+.sub { color: var(--muted); }
+
+/* What you can ask */
+.examples { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.ex {
+  display: flex; flex-direction: column; gap: 10px;
+  border: 1px solid var(--rule); border-radius: 12px; padding: 16px 16px 18px;
+  background: var(--bg); min-width: 0;
+}
+.ex .label { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.ex .say {
+  margin: 0; padding-left: 12px; border-left: 3px solid var(--coral);
+  font-weight: 500; color: var(--heading);
+}
+.ex .get { color: var(--ink); }
+
+/* Why it helps */
+.points { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 28px; }
+.point { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+
+/* Won't do */
+.callout {
+  background: var(--surface); border-radius: 12px; padding: 18px 18px 20px;
+  display: flex; flex-direction: column; gap: 10px; border-left: 4px solid var(--teal);
+}
+
+/* Steps */
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 28px; }
+.step { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 14px; align-items: start; }
+.num {
+  width: 36px; height: 36px; border-radius: 50%; background: var(--btn-bg); color: var(--btn-ink);
+  display: grid; place-items: center; font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums;
+}
+.step-body { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.tab {
+  font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--rule); background: var(--bg); color: var(--heading);
+  border-radius: 999px; padding: 8px 16px;
+}
+.tab[aria-selected="true"] { background: var(--tab-on); color: var(--tab-on-ink); border-color: var(--tab-on); }
+.tab:focus-visible, .copy:focus-visible, summary:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+.panel { border: 1px solid var(--rule); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.panel ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 12px; }
+.panel li { padding-left: 4px; }
+.panel li > * + * { margin-top: 10px; }
+.note { font-size: 15px; color: var(--muted); }
+
+.copybox {
+  position: relative; background: var(--code-bg); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 14px 14px 14px; display: flex; flex-direction: column; gap: 10px;
+}
+.copybox pre {
+  margin: 0; font-family: var(--mono); font-size: 14px; line-height: 1.55; color: var(--ink);
+  white-space: pre-wrap; word-break: break-word;
+}
+.copy {
+  align-self: flex-start; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  background: var(--btn-bg); color: var(--btn-ink); border: 0; border-radius: 8px; padding: 7px 14px;
+}
+
+/* Tips, safety, trouble */
+.list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; }
+.list li::marker { color: var(--teal); }
+.trouble { display: flex; flex-direction: column; border: 1px solid var(--rule); border-radius: 12px; overflow: hidden; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 16px; padding: 14px 16px; }
+.row + .row { border-top: 1px solid var(--rule); }
+.row .see { font-weight: 600; color: var(--heading); }
+
+details { border-top: 1px solid var(--rule); padding-top: 16px; }
+summary { cursor: pointer; font-weight: 600; color: var(--heading); }
+details[open] summary { margin-bottom: 12px; }
+details .tech { display: flex; flex-direction: column; gap: 10px; font-size: 15px; }
+code { font-family: var(--mono); font-size: 0.92em; background: var(--code-bg); border: 1px solid var(--rule); border-radius: 5px; padding: 1px 5px; word-break: break-word; }
+
+footer { color: var(--muted); font-size: 14px; border-top: 1px solid var(--rule); padding-top: 18px; }
+
+@media (max-width: 620px) {
+  .examples, .points { grid-template-columns: minmax(0, 1fr); }
+  .row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .lead { font-size: 18px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="topbar" aria-hidden="true"></div>
+<main class="page">
+
+  <header>
+    <div class="brand">
+      <svg role="img" aria-label="Shortcut" viewBox="0 0 300 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M66.3655 36.0468C66.0413 38.8847 65.1718 41.6677 63.5267 44.0384C59.6388 49.6416 52.9422 51.5122 46.3263 49.4718C39.7968 47.458 33.4645 41.7578 29 32.5209L35.1071 29.5692C38.9952 37.6134 44.0685 41.6771 48.3253 42.99C52.4957 44.2761 55.9662 43.0361 57.9539 40.1715C58.3082 39.6609 58.6128 39.0838 58.8647 38.4481C58.4821 38.469 58.0993 38.4758 57.7167 38.4686C53.3154 38.3863 49.2862 36.4763 46.254 33.8446C43.2423 31.2308 40.9302 27.6576 40.256 23.8648C39.5518 19.9037 40.6843 15.7358 44.4833 12.8244C46.2611 11.462 48.2112 10.6534 50.2623 10.497C52.3079 10.3411 54.2183 10.8516 55.8959 11.7507C59.1586 13.4992 61.6954 16.7797 63.4274 20.2988C64.5244 22.5278 65.3754 25.0044 65.9039 27.5488C68.9511 24.2883 72.2654 22.3492 75.0708 21.2597C76.5203 20.6968 77.8542 20.3526 78.973 20.172C79.9539 20.0137 81.1383 19.9183 82.1251 20.146L80.5999 26.7554C80.7176 26.7825 80.7806 26.792 80.7806 26.792C80.7802 26.797 80.5573 26.7871 80.054 26.8684C79.4204 26.9706 78.5465 27.1865 77.5263 27.5827C75.4942 28.3718 72.9611 29.8447 70.6113 32.4508C69.2721 33.9361 67.8462 35.1281 66.3655 36.0468ZM59.6515 31.5327C59.397 28.6954 58.5657 25.7815 57.3415 23.2941C55.9463 20.4593 54.2323 18.5548 52.6919 17.7293C51.968 17.3414 51.3388 17.2177 50.778 17.2604C50.2228 17.3028 49.4998 17.5258 48.6093 18.2083C47.0716 19.3867 46.6158 20.8859 46.9343 22.6776C47.2827 24.6377 48.6043 26.903 50.7 28.7219C52.7752 30.5229 55.3272 31.6397 57.8435 31.6867C58.4302 31.6977 59.0348 31.6513 59.6515 31.5327Z" fill="#FF5050"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M76.2969 23.05C73.0466 22.027 70.6121 19.9327 68.5865 17.6431L73.7638 13.0629C75.3858 14.8964 76.8142 15.9661 78.3723 16.4565C79.894 16.9354 81.999 17.0038 85.2365 15.9237L88.0518 22.1993C85.656 23.5754 84.3307 25.8167 83.7037 28.1354C83.3908 29.2923 83.2731 30.4032 83.2786 31.3063C83.2841 32.2171 83.4116 32.6805 83.4272 32.7373C83.4285 32.7422 83.4286 32.7431 83.4286 32.7431L77.0654 35.4434C76.5629 34.2592 76.3747 32.7616 76.3662 31.348C76.3572 29.8493 76.5482 28.1158 77.0309 26.3309C77.2825 25.4006 77.6191 24.4385 78.0574 23.4796C77.4588 23.3743 76.8723 23.2312 76.2969 23.05Z" fill="#FF5050"/>
+<path d="M258.576 46.1066V15.827H265.319V46.1066H258.576ZM253.727 30.4159V24.6861H270.167V30.4159H253.727Z" fill="currentColor"/>
+<path d="M240.067 46.5908C238.098 46.5908 236.35 46.1941 234.822 45.4007C233.324 44.578 232.148 43.4614 231.296 42.051C230.444 40.6113 230.018 38.9658 230.018 37.1146V24.6855H236.762V37.0265C236.762 37.7611 236.879 38.3928 237.114 38.9217C237.379 39.4506 237.761 39.862 238.26 40.1558C238.76 40.4497 239.362 40.5966 240.067 40.5966C241.066 40.5966 241.86 40.288 242.447 39.671C243.035 39.0246 243.329 38.1431 243.329 37.0265V24.6855H250.072V37.0706C250.072 38.9511 249.646 40.6113 248.794 42.051C247.942 43.4614 246.767 44.578 245.268 45.4007C243.769 46.1941 242.036 46.5908 240.067 46.5908Z" fill="currentColor"/>
+<path d="M218.272 46.591C216.068 46.591 214.07 46.1062 212.277 45.1366C210.485 44.1669 209.075 42.83 208.046 41.1257C207.018 39.4215 206.504 37.5116 206.504 35.396C206.504 33.251 207.018 31.3411 208.046 29.6662C209.104 27.962 210.529 26.6251 212.322 25.6554C214.114 24.6858 216.127 24.2009 218.36 24.2009C220.035 24.2009 221.563 24.4948 222.944 25.0824C224.354 25.6407 225.603 26.4928 226.69 27.6388L222.371 31.9581C221.871 31.3998 221.283 30.9885 220.608 30.724C219.961 30.4596 219.212 30.3274 218.36 30.3274C217.39 30.3274 216.523 30.5477 215.759 30.9885C215.025 31.3998 214.437 31.9875 213.996 32.7515C213.585 33.4861 213.379 34.3529 213.379 35.3519C213.379 36.3509 213.585 37.2324 213.996 37.9964C214.437 38.7604 215.04 39.3627 215.803 39.8035C216.567 40.2442 217.42 40.4646 218.36 40.4646C219.241 40.4646 220.02 40.3177 220.696 40.0239C221.401 39.7006 222.003 39.2599 222.503 38.7016L226.778 43.021C225.662 44.1963 224.398 45.0925 222.988 45.7095C221.577 46.2972 220.005 46.591 218.272 46.591Z" fill="currentColor"/>
+<path d="M192.861 46.1066V15.827H199.605V46.1066H192.861ZM188.013 30.4159V24.6861H204.453V30.4159H188.013Z" fill="currentColor"/>
+<path d="M168.953 46.1061V24.6856H175.696V46.1061H168.953ZM175.696 34.3381L172.875 32.1343C173.434 29.6367 174.374 27.6974 175.696 26.3164C177.018 24.9354 178.855 24.2449 181.206 24.2449C182.234 24.2449 183.13 24.4065 183.894 24.7297C184.687 25.0235 185.378 25.4937 185.966 26.1401L181.955 31.2087C181.661 30.8855 181.294 30.6358 180.853 30.4595C180.412 30.2832 179.913 30.195 179.354 30.195C178.238 30.195 177.342 30.5476 176.666 31.2528C176.019 31.9286 175.696 32.957 175.696 34.3381Z" fill="currentColor"/>
+<path d="M153.871 46.591C151.668 46.591 149.67 46.1062 147.877 45.1366C146.114 44.1375 144.719 42.7859 143.69 41.0817C142.662 39.3774 142.147 37.4675 142.147 35.3519C142.147 33.2363 142.662 31.3411 143.69 29.6662C144.719 27.9914 146.114 26.6691 147.877 25.6995C149.64 24.7004 151.638 24.2009 153.871 24.2009C156.105 24.2009 158.103 24.6858 159.866 25.6554C161.629 26.6251 163.024 27.962 164.053 29.6662C165.081 31.3411 165.595 33.2363 165.595 35.3519C165.595 37.4675 165.081 39.3774 164.053 41.0817C163.024 42.7859 161.629 44.1375 159.866 45.1366C158.103 46.1062 156.105 46.591 153.871 46.591ZM153.871 40.4646C154.841 40.4646 155.693 40.2589 156.428 39.8476C157.162 39.4068 157.721 38.8045 158.103 38.0405C158.514 37.2471 158.72 36.3509 158.72 35.3519C158.72 34.3529 158.514 33.4861 158.103 32.7515C157.691 31.9875 157.118 31.3998 156.384 30.9885C155.678 30.5477 154.841 30.3274 153.871 30.3274C152.931 30.3274 152.094 30.5477 151.359 30.9885C150.625 31.3998 150.052 31.9875 149.64 32.7515C149.229 33.5154 149.023 34.3969 149.023 35.396C149.023 36.3656 149.229 37.2471 149.64 38.0405C150.052 38.8045 150.625 39.4068 151.359 39.8476C152.094 40.2589 152.931 40.4646 153.871 40.4646Z" fill="currentColor"/>
+<path d="M132.023 46.106V33.8972C132.023 32.7807 131.671 31.8845 130.966 31.2087C130.29 30.5035 129.423 30.1509 128.365 30.1509C127.631 30.1509 126.984 30.3125 126.426 30.6357C125.868 30.9295 125.427 31.3703 125.104 31.9579C124.78 32.5162 124.619 33.1626 124.619 33.8972L122.018 32.6191C122.018 30.9442 122.371 29.475 123.076 28.2116C123.781 26.9481 124.766 25.9784 126.029 25.3026C127.293 24.5974 128.747 24.2448 130.393 24.2448C132.068 24.2448 133.537 24.5974 134.8 25.3026C136.064 25.9784 137.033 26.9334 137.709 28.1675C138.414 29.3722 138.767 30.7826 138.767 32.3987V46.106H132.023ZM117.875 46.106V14.1075H124.619V46.106H117.875Z" fill="currentColor"/>
+<path d="M105.182 46.6348C103.919 46.6348 102.67 46.4732 101.436 46.15C100.231 45.8268 99.1001 45.3713 98.0423 44.7837C97.0139 44.1666 96.1324 43.4614 95.3978 42.6681L99.2324 38.7895C99.9376 39.5534 100.775 40.1558 101.745 40.5966C102.714 41.0079 103.772 41.2136 104.918 41.2136C105.711 41.2136 106.314 41.0961 106.725 40.861C107.166 40.6259 107.386 40.3027 107.386 39.8914C107.386 39.3625 107.122 38.9658 106.593 38.7013C106.093 38.4075 105.447 38.1577 104.654 37.9521C103.86 37.717 103.023 37.4672 102.141 37.2028C101.26 36.9383 100.422 36.571 99.629 36.1009C98.8357 35.6308 98.1892 34.9843 97.6897 34.1616C97.1902 33.3095 96.9405 32.237 96.9405 30.9441C96.9405 29.5631 97.2931 28.3731 97.9983 27.374C98.7035 26.3456 99.7025 25.5376 100.995 24.9499C102.288 24.3623 103.801 24.0684 105.535 24.0684C107.357 24.0684 109.032 24.3916 110.56 25.0381C112.117 25.6551 113.38 26.5807 114.35 27.8148L110.516 31.6934C109.84 30.9 109.076 30.3418 108.224 30.0185C107.401 29.6953 106.593 29.5337 105.8 29.5337C105.036 29.5337 104.463 29.6513 104.081 29.8863C103.699 30.092 103.508 30.4005 103.508 30.8119C103.508 31.2526 103.757 31.6052 104.257 31.8697C104.756 32.1341 105.403 32.3692 106.196 32.5749C106.99 32.7806 107.827 33.0303 108.708 33.3242C109.59 33.618 110.427 34.0147 111.221 34.5142C112.014 35.0137 112.661 35.6895 113.16 36.5417C113.66 37.3644 113.909 38.4516 113.909 39.8032C113.909 41.8894 113.116 43.5496 111.529 44.7837C109.972 46.0178 107.856 46.6348 105.182 46.6348Z" fill="currentColor"/>
+</svg>
+      <span class="tag">Team guide</span>
+    </div>
+    <h1>Use your own AI to make proposals and pages</h1>
+    <p class="lead">You can now ask the AI app you already use, like Muse, Claude or ChatGPT, to build proposals, landing pages, sponsor pages and QR signs for you. It works like asking Pro in Slack. Your AI makes the real thing on proposals.getshortcut.co, saves it under your name, and gives you the link.</p>
+    <p class="lead">Setting it up takes about five minutes, once. This page explains what it can do, what it won't do, and how to connect it.</p>
+  </header>
+
+  <section aria-labelledby="ask">
+    <h2 id="ask">What you can ask it to do</h2>
+    <p class="sub">Type or say it the way you would to a coworker. These are real requests and what comes back.</p>
+    <div class="examples">
+      <article class="ex">
+        <span class="label">After a call</span>
+        <p class="say">Make a proposal for Acme: chair massage at their New York office, 350 5th Ave, on November 12, 4 hours with 2 therapists.</p>
+        <p class="get">A live proposal link in about a minute, with 24 appointments at $1,200. It is saved as a draft under your name.</p>
+      </article>
+      <article class="ex">
+        <span class="label">Staffing math</span>
+        <p class="say">Acme wants about 40 massages. How many therapists and hours do I need?</p>
+        <p class="get">A few staffing options, each with its exact price, so you can pick one before you build the proposal.</p>
+      </article>
+      <article class="ex">
+        <span class="label">Changes</span>
+        <p class="say">Move the Acme proposal to November 19 and make it quarterly.</p>
+        <p class="get">The same link, updated with the new date and the 10% discount for four visits a year.</p>
+      </article>
+      <article class="ex">
+        <span class="label">Two versions</span>
+        <p class="say">Add a second version for Acme that includes headshots.</p>
+        <p class="get">A second option on the same link, so the client can compare the two and choose.</p>
+      </article>
+      <article class="ex">
+        <span class="label">Conference organizers</span>
+        <p class="say">Make a sponsor page for the AACSB Deans Conference, October 19 to 21, 2026, massage and headshots only.</p>
+        <p class="get">A live sponsor page for the organizer, sent from you, with your name on its booking button.</p>
+      </article>
+      <article class="ex">
+        <span class="label">Leave-behinds</span>
+        <p class="say">Make a landing page for Acme's wellness team.</p>
+        <p class="get">A page about Shortcut with Acme's logo on it, ready to send after a call.</p>
+      </article>
+    </div>
+    <p class="sub">It can also make printable QR signs for event days, find a client's logo, and look up past proposals for a client.</p>
+  </section>
+
+  <section aria-labelledby="why">
+    <h2 id="why">Why this helps</h2>
+    <div class="points">
+      <div class="point">
+        <h3>You can do it from your phone</h3>
+        <p>Muse and Claude both have phone apps. You can send a proposal from the train right after a call, without opening the calculator.</p>
+      </div>
+      <div class="point">
+        <h3>The numbers are right</h3>
+        <p>Your AI uses the same pricing calculator as the app and Pro, so prices, staffing and discounts match what you would get by hand.</p>
+      </div>
+      <div class="point">
+        <h3>It can use what your AI already knows</h3>
+        <p>If your AI can read your email or notes, you can say "make a proposal from what Dana asked for in her last email" and it will pull the details from there.</p>
+      </div>
+      <div class="point">
+        <h3>Everything lands in the usual places</h3>
+        <p>What your AI makes is saved in the app with everything else, and new proposals post in #proposals like any other.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="wont">
+    <h2 id="wont">What it won't do</h2>
+    <div class="callout">
+      <p>Your AI can't send email or messages, look up or change leads, create invoices, or delete anything. Those stay with you, and with Pro in Slack, where a person always does the sending.</p>
+      <p>Proposals are saved as drafts. Open the link and check it before you send it to a client, the same as you would with one you made yourself.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="setup">
+    <h2 id="setup">Set it up</h2>
+    <ol class="steps">
+      <li class="step">
+        <span class="num" aria-hidden="true">1</span>
+        <div class="step-body">
+          <h3>Get your key from Will</h3>
+          <p>Your key is a private password made just for your AI. It lets your AI create things on the site as you. Will sends it to you privately. If you connect more than one AI app, ask for a separate key for each one.</p>
+        </div>
+      </li>
+      <li class="step">
+        <span class="num" aria-hidden="true">2</span>
+        <div class="step-body">
+          <h3>Connect your AI app</h3>
+          <p>Pick the app you use.</p>
+          <div class="tabs" role="tablist" aria-label="AI app">
+            <button class="tab" role="tab" id="tab-muse" aria-controls="panel-muse" aria-selected="true" data-tab="muse">Muse</button>
+            <button class="tab" role="tab" id="tab-claude" aria-controls="panel-claude" aria-selected="false" data-tab="claude">Claude</button>
+            <button class="tab" role="tab" id="tab-chatgpt" aria-controls="panel-chatgpt" aria-selected="false" data-tab="chatgpt">ChatGPT</button>
+            <button class="tab" role="tab" id="tab-other" aria-controls="panel-other" aria-selected="false" data-tab="other">Something else</button>
+          </div>
+
+          <div class="panel" role="tabpanel" id="panel-muse" aria-labelledby="tab-muse">
+            <ol>
+              <li>Open Muse and start a new chat.</li>
+              <li>
+                <p>Copy this message and send it as it is. Don't add your key to it.</p>
+                <div class="copybox">
+                  <pre id="muse-msg">Build a custom connector to Shortcut's proposals MCP server at https://proposals.getshortcut.co/.netlify/functions/mcp. It's a hosted MCP server over streamable HTTP and needs an Authorization: Bearer header. Test every tool, then save it as a skill.</pre>
+                  <button class="copy" type="button" data-copy="muse-msg">Copy message</button>
+                </div>
+                <p class="note">The message tells Muse where to connect and how to sign in. You don't need to understand it.</p>
+              </li>
+              <li>Muse opens a separate, secure box that asks for a credential. Paste your key there, and only there. If the box asks for the full header value, type the word Bearer, then a space, then your key.</li>
+              <li>Muse tests the connection and saves it. Then open Muse's settings and set this connection to ask you before every action, so nothing gets created or changed without your OK.</li>
+            </ol>
+          </div>
+
+          <div class="panel" role="tabpanel" id="panel-claude" aria-labelledby="tab-claude" hidden>
+            <ol>
+              <li>On claude.ai or in the Claude desktop app, open Settings, then Connectors, and choose Add custom connector.</li>
+              <li>
+                <p>Name it Shortcut. In the URL box, paste this link, then replace YOUR_KEY with your key.</p>
+                <div class="copybox">
+                  <pre id="claude-url">https://proposals.getshortcut.co/.netlify/functions/mcp?key=YOUR_KEY</pre>
+                  <button class="copy" type="button" data-copy="claude-url">Copy link</button>
+                </div>
+              </li>
+              <li>Leave the other fields empty and save it.</li>
+              <li>In a new chat, open the tools menu under the message box and switch Shortcut on.</li>
+            </ol>
+            <p class="note">Your key is part of this link, so treat the whole link like a password.</p>
+          </div>
+
+          <div class="panel" role="tabpanel" id="panel-chatgpt" aria-labelledby="tab-chatgpt" hidden>
+            <ol>
+              <li>In ChatGPT on the web, open Settings, then Apps &amp; Connectors, then the advanced settings, and turn on developer mode. Not every plan has it. If you don't see it, tell Will.</li>
+              <li>
+                <p>Create a new connector named Shortcut. Paste this link with your key in place of YOUR_KEY, and set authentication to none.</p>
+                <div class="copybox">
+                  <pre id="chatgpt-url">https://proposals.getshortcut.co/.netlify/functions/mcp?key=YOUR_KEY</pre>
+                  <button class="copy" type="button" data-copy="chatgpt-url">Copy link</button>
+                </div>
+              </li>
+              <li>In a new chat, turn on developer mode from the tools menu and switch Shortcut on.</li>
+            </ol>
+            <p class="note">ChatGPT renames its menus often. If yours look different, look for "connectors" or "developer mode" in settings. Your key is part of the link, so treat the link like a password.</p>
+          </div>
+
+          <div class="panel" role="tabpanel" id="panel-other" aria-labelledby="tab-other" hidden>
+            <p>Cursor, Claude Code, Zapier, n8n and your own scripts all work too. Tell Will what you use and he'll help you connect it. The technical details are at the bottom of this page.</p>
+          </div>
+        </div>
+      </li>
+      <li class="step">
+        <span class="num" aria-hidden="true">3</span>
+        <div class="step-body">
+          <h3>Check that it works</h3>
+          <p>Ask your AI: "List the latest sponsor pages." If it answers with a list of conference pages, you're connected.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="tips">
+    <h2 id="tips">Getting good results</h2>
+    <ul class="list">
+      <li>Put the basics in one message: the client, the service, the date, the address, how many hours and how many people. If something is missing, it will ask.</li>
+      <li>Start a new chat with "read the Shortcut guide first." Your AI then knows the services, prices and rules before it builds anything.</li>
+      <li>It can find a client's logo for a proposal, and it shows you the logo before adding it.</li>
+      <li>Sponsor pages go out from Will, Jaimie, Marc or Caren. That person's name goes on the page's booking button, and calls book on their calendar.</li>
+      <li>Use the link your AI gives you. Don't retype it.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="safe">
+    <h2 id="safe">Keep your key safe</h2>
+    <ul class="list">
+      <li>Treat your key like a password. Anyone who has it can create and change live client pages as you.</li>
+      <li>Only paste it where the steps above say to. Never put it in a normal chat message, an email or a shared doc.</li>
+      <li>If you think someone else saw it, tell Will. He can switch it off in seconds and send you a new one.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="trouble">
+    <h2 id="trouble">If something goes wrong</h2>
+    <div class="trouble">
+      <div class="row"><span class="see">Your AI says the key isn't valid or was revoked</span><span>The key was mistyped or switched off. Ask Will for a new one.</span></div>
+      <div class="row"><span class="see">Your AI says it doesn't have Shortcut tools</span><span>The connection is off in this chat. Switch it on in the chat's tools menu, or start a new chat.</span></div>
+      <div class="row"><span class="see">It asks who the page is sent from</span><span>Tell it Will, Jaimie, Marc or Caren.</span></div>
+      <div class="row"><span class="see">Anything else</span><span>Send Will a screenshot of what your AI said.</span></div>
+    </div>
+  </section>
+
+  <details>
+    <summary>Technical details, for Cursor, Claude Code and scripts</summary>
+    <div class="tech">
+      <p>Connector (MCP, streamable HTTP): <code>https://proposals.getshortcut.co/.netlify/functions/mcp</code></p>
+      <p>Send the key as a header, <code>Authorization: Bearer YOUR_KEY</code>, or add <code>?key=YOUR_KEY</code> to the URL for apps that only take a link.</p>
+      <p>The same key works with the HTTP API at <code>https://proposals.getshortcut.co/.netlify/functions/generate-proposal</code>. Payloads and examples are in <code>docs/AI_INTEGRATION.md</code> in the calculator6 repo.</p>
+    </div>
+  </details>
+
+  <footer>Questions or something broken? Message Will.</footer>
+</main>
+
+<script>
+(function () {
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  function show(name) {
+    tabs.forEach(function (t) {
+      var on = t.getAttribute('data-tab') === name;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById('panel-' + t.getAttribute('data-tab')).hidden = !on;
+    });
+    try { localStorage.setItem('ai-guide-tab', name); } catch (e) {}
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () { show(t.getAttribute('data-tab')); });
+    t.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      var next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+      show(next.getAttribute('data-tab'));
+      next.focus();
+    });
+  });
+  var names = tabs.map(function (t) { return t.getAttribute('data-tab'); });
+  var start = location.hash.slice(1);
+  if (names.indexOf(start) < 0) {
+    try { start = localStorage.getItem('ai-guide-tab'); } catch (e) { start = null; }
+  }
+  show(names.indexOf(start) >= 0 ? start : 'muse');
+
+  document.querySelectorAll('.copy').forEach(function (btn) {
+    var label = btn.textContent;
+    btn.addEventListener('click', function () {
+      var el = document.getElementById(btn.getAttribute('data-copy'));
+      var text = el.textContent;
+      function done(msg) { btn.textContent = msg; setTimeout(function () { btn.textContent = label; }, 1800); }
+      function select() {
+        var r = document.createRange(); r.selectNodeContents(el);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        done('Selected. Press copy');
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { done('Copied'); }, select);
+      } else { select(); }
+    });
+  });
+})();
+</script>
+</body>
+</html>
