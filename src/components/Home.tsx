@@ -4,7 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { useProposal } from '../contexts/ProposalContext';
 import ProposalOptionsModal from './ProposalOptionsModal';
 import { Button } from './Button';
-import { prepareProposalFromCalculation } from '../utils/proposalGenerator';
+import { prepareProposalFromCalculation, recalculateServiceTotals, retouchedPortraits } from '../utils/proposalGenerator';
+import HolidayPackagePicker, { HolidayChoice } from './HolidayPackagePicker';
+import { holidayPackageRecord } from '../../netlify/functions/lib/holiday-packages.js';
 import {
   MINDFULNESS_CATALOG_BY_ID,
   MINDFULNESS_SELECT_OPTIONS,
@@ -386,6 +388,11 @@ const Home: React.FC = () => {
   const [eventType, setEventType] = useState<'office' | 'conference'>('office');
   const eventTypeRef = useRef(eventType);
   eventTypeRef.current = eventType;
+  // The holiday package picked in the Add Event window, if any. A ref for the
+  // same reason as eventType.
+  const [holidayChoice, setHolidayChoice] = useState<HolidayChoice | null>(null);
+  const holidayChoiceRef = useRef(holidayChoice);
+  holidayChoiceRef.current = holidayChoice;
   const [locations, setLocations] = useState(['']);
   const [showDashboard, setShowDashboard] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
@@ -535,7 +542,8 @@ const Home: React.FC = () => {
 
     if (service.serviceType === 'headshot') {
       proRevenue = service.totalHours * service.numPros * service.proHourly;
-      const retouchingTotal = totalAppts * (service.retouchingCost || 0);
+      // Holiday package headshots bill retouching per person (retouchCount).
+      const retouchingTotal = retouchedPortraits(service, totalAppts) * (service.retouchingCost || 0);
       serviceCost = proRevenue + retouchingTotal;
     } else if (isMindfulness) {
       // Mindfulness services use fixed pricing
@@ -803,6 +811,12 @@ const Home: React.FC = () => {
       if (eventTypeRef.current === 'conference') {
         (proposalData as any).eventType = 'conference';
       }
+      // A holiday package (HolidayPackagePicker): the proposal carries the
+      // package's offer, and recalculating applies its combine-and-save.
+      if (holidayChoiceRef.current) {
+        (proposalData as any).holidayPackage = holidayPackageRecord(holidayChoiceRef.current);
+        Object.assign(proposalData, recalculateServiceTotals(proposalData));
+      }
       // Handle office locations - support both new (multiple) and legacy (single) formats
       if (options.officeLocations && Object.keys(options.officeLocations).length > 0) {
         proposalData.officeLocations = options.officeLocations;
@@ -857,6 +871,7 @@ const Home: React.FC = () => {
       locations: validLocations,
       events: {}
     });
+    setHolidayChoice(null);
     setShowDashboard(true);
   };
 
@@ -1540,6 +1555,14 @@ const Home: React.FC = () => {
                 <X size={28} />
               </button>
             </div>
+
+            <HolidayPackagePicker
+              location={currentLocation}
+              onApply={(svcs, choice) => {
+                setServices(svcs as Service[]);
+                setHolidayChoice(choice);
+              }}
+            />
 
             {/* Add Service Section - Prominent at top */}
             <div className="mb-8 p-5 bg-gradient-to-br from-shortcut-teal/10 to-shortcut-teal/5 rounded-[24px] border-2 border-shortcut-teal/30">

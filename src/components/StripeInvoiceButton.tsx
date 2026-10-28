@@ -73,6 +73,16 @@ export function generateLineItems(
     });
   });
 
+  // Holiday package combine-and-save: a summary line, so the services above
+  // are at full price and the saving goes on as a credit.
+  const holidaySavings = Number(proposalData?.summary?.holidayDiscountAmount) || 0;
+  if (holidaySavings > 0) {
+    items.push({
+      description: `${proposalData?.holidayPackage?.name || 'Holiday package'}: combine and save (${proposalData?.summary?.holidayDiscountPercent || 10}%)`,
+      amount: -holidaySavings
+    });
+  }
+
   // Custom line items
   if (proposalData?.customLineItems && Array.isArray(proposalData.customLineItems)) {
     proposalData.customLineItems.forEach((item: any) => {

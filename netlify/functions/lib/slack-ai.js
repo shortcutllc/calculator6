@@ -160,6 +160,17 @@ For CLE proposals, set cleState to the state where accreditation applies (NY, PA
 - 9+ occurrences (monthly): 15% discount
 Discounts apply to the service cost.
 
+## Holiday Packages (holiday 2026)
+The five packages on www.getshortcut.co/holiday, as proposals. When someone asks for a holiday proposal or names a package, use these, never create_proposal:
+- price_holiday_package: the price for a headcount, without saving anything. Use it to answer "what would it cost". Report its figures exactly.
+- create_holiday_proposal: builds the proposal as a draft and returns its link. It needs the client, the package, the headcount, the date and the location (a short locationName plus officeAddress). Ask for anything missing, say what you are about to create, and wait for an OK.
+- On an existing proposal, edit_proposal with op set_holiday_package switches the package or re-staffs it for a new headcount.
+
+The packages: Sleigh the Stress (chair massage + group meditation), Resting Grinch Face (hair + makeup), Tis the Season to Be Styled (hair + manicures), Merry and Bright (headshots + hair and makeup touch-up), and Create Your Own Holiday Magic (any of: massage, hair, nails, facials, headshots, assisted stretch, mindfulness, sound bath, yoga, strength & sculpt, dance cardio, somatic movement, passed as services).
+The tools do the math the page does: a 4 hour visit staffed for the headcount, $150 per Pro hour, headshots at $450 per photographer hour plus $25 per person, and group classes at one flat price (30 minutes unless classMinutes is 60). Two or more services in one visit save 10%, and hair + makeup counts as two. Every holiday booking also gets a free 30 minute group mind or body class, a $1,250 value, on site or virtual, to use by March 2027, and a special holiday treat. The proposal shows all of that to the client by itself.
+Ready-made packages are fixed sets, so the client cannot switch a service off. Create Your Own keeps the switches, and below two services the 10% goes away.
+Never add the free class as a service, never set a discount on holiday services (the 10% is automatic), and never hand-build a package with create_proposal: the headshot rate, the retouching and the 10% would not match the page.
+
 ## Locations
 - locationName is a SHORT label like "NYC", "SF Office", "LA HQ", "Main Office" — NOT a street address.
 - officeAddress is the full street address like "350 5th Ave, New York NY 10118".
@@ -264,6 +275,7 @@ When editing proposals, use these operations:
 - change_date: Move all services from one date to another at a location (location, oldDate, newDate)
 - set_status: Change status (draft, pending, approved)
 - update_customization: Update proposal display settings (legacy customization keys only)
+- set_holiday_package: Make a visit a holiday package, switch its package, or re-staff it for a new headcount (package, headcount, services for Create Your Own, classMinutes; location and date when the proposal has more than one visit). remove: true drops the package and its offer.
 - set_proposal_field: Set proposal-wide fields not covered by other ops. Required: field (one of "startUnselected", "signupLink", "signupLinkTitle", "signupLinkDescription", "heroTitle", "accountTeamMemberEmail", "eventType") and value. Pass empty string or null to clear the field.
 
 Field aliases for update_service: appointmentTime→appTime, hours→totalHours, pros→numPros, rate→hourlyRate, discount→discountPercent
@@ -389,6 +401,43 @@ const TOOLS = [
     }
   },
   {
+    name: 'price_holiday_package',
+    description: 'Price one of the holiday 2026 packages (www.getshortcut.co/holiday) for a headcount, exactly as the page prices it, WITHOUT creating anything. Returns each service with its Pros and cost, the subtotal, the 10% combine-and-save, the total, and the free class. Use it to answer "what would it cost", and report its numbers as given.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        package: { type: 'string', description: 'The holiday package, by id or name: sleigh (Sleigh the Stress: chair massage + group meditation), grinch (Resting Grinch Face: hair + makeup), styled (Tis the Season to Be Styled: hair + manicures), bright (Merry and Bright: headshots + hair and makeup touch-up), custom (Create Your Own Holiday Magic: pass services).' },
+        headcount: { type: 'number', description: 'How many people the visit is for. The tool staffs the 4 hour visit for them.' },
+        services: { type: 'array', items: { type: 'string' }, description: 'Create Your Own only: the services, by plain name. Any of: massage, hair, nails, facials, headshots, assisted stretch, mindfulness, sound bath, yoga, strength & sculpt, dance cardio, somatic movement.' },
+        classMinutes: { type: 'number', enum: [30, 60], description: 'Length of the group class in the package (meditation, sound bath, yoga and the other classes): 30 (default) or 60.' },
+      },
+      required: ['package', 'headcount']
+    }
+  },
+  {
+    name: 'create_holiday_proposal',
+    description: 'Create a holiday package proposal as a draft, priced exactly like www.getshortcut.co/holiday: a 4 hour visit staffed for the headcount, the 10% combine-and-save, and the free 30 minute class and holiday treat shown to the client. Use this, never create_proposal, for any holiday package. Returns the link, the price breakdown and the summary. Same contact handling as create_proposal: when the rep names a person, call lookup_lead first.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        clientName: { type: 'string', description: 'Client company name' },
+        clientEmail: { type: 'string', description: 'Client contact email (optional).' },
+        clientLogoUrl: { type: 'string', description: 'URL to the client logo (optional). Use search_logo first.' },
+        contactName: { type: 'string', description: 'Full name of the contact the proposal is for. The client view says "Hi {first name}".' },
+        customNote: { type: 'string', description: 'A short personal intro note at the top of the proposal, grounded in real context. Optional.' },
+        package: { type: 'string', description: 'The holiday package, by id or name: sleigh (Sleigh the Stress: chair massage + group meditation), grinch (Resting Grinch Face: hair + makeup), styled (Tis the Season to Be Styled: hair + manicures), bright (Merry and Bright: headshots + hair and makeup touch-up), custom (Create Your Own Holiday Magic: pass services).' },
+        headcount: { type: 'number', description: 'How many people the visit is for. The tool staffs the 4 hour visit for them.' },
+        services: { type: 'array', items: { type: 'string' }, description: 'Create Your Own only: the services, by plain name. Any of: massage, hair, nails, facials, headshots, assisted stretch, mindfulness, sound bath, yoga, strength & sculpt, dance cardio, somatic movement.' },
+        classMinutes: { type: 'number', enum: [30, 60], description: 'Length of the group class in the package (meditation, sound bath, yoga and the other classes): 30 (default) or 60.' },
+        date: { type: 'string', description: 'The visit date, YYYY-MM-DD, or "TBD".' },
+        locationName: { type: 'string', description: 'Short location label, like "NYC" or "Main Office". Never a street address.' },
+        officeAddress: { type: 'string', description: 'Full street address of the office.' },
+        notes: { type: 'string', description: 'Internal notes about this proposal' }
+      },
+      required: ['clientName', 'package', 'headcount', 'date', 'locationName']
+    }
+  },
+  {
     name: 'edit_proposal',
     description: 'Edit an existing proposal by applying operations. Returns a "verifiedState" showing the confirmed state after edits — always report from verifiedState, not assumptions. Use get_proposal first if you need to see the current structure.',
     input_schema: {
@@ -401,7 +450,7 @@ const TOOLS = [
           items: {
             type: 'object',
             properties: {
-              op: { type: 'string', description: 'Operation type: add_service, remove_service, remove_date, update_service, move_service, set_recurring, remove_recurring, set_gratuity, remove_gratuity, set_discount, update_client_info, add_location, remove_location, rename_location, change_date, set_status, update_customization, set_cle_state, add_pricing_options, remove_pricing_options, select_pricing_option, set_proposal_field, set_admin_notes (internal team-only notes — clients never see; pass {op: "set_admin_notes", notes: "..."} — empty string clears)' },
+              op: { type: 'string', description: 'Operation type: add_service, remove_service, remove_date, update_service, move_service, set_recurring, remove_recurring, set_gratuity, remove_gratuity, set_discount, update_client_info, add_location, remove_location, rename_location, change_date, set_status, update_customization, set_cle_state, add_pricing_options, remove_pricing_options, select_pricing_option, set_proposal_field, set_holiday_package (make a visit a holiday package, switch its package or re-staff it for a new headcount: {op: "set_holiday_package", package, headcount, services?, classMinutes?, location?, date?}; {op: "set_holiday_package", remove: true} drops it), set_admin_notes (internal team-only notes — clients never see; pass {op: "set_admin_notes", notes: "..."} — empty string clears)' },
               location: { type: 'string' },
               date: { type: 'string' },
               serviceIndex: { type: 'integer' },

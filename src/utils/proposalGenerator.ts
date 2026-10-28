@@ -6,6 +6,17 @@ import { SOUND_BATH_CATALOG_BY_ID, SOUND_BATH_CATALOG } from './soundBathCatalog
 import { YOGA_CATALOG_BY_ID, YOGA_CATALOG } from './yogaCatalog';
 import { MOVEMENT_CATALOG_BY_ID, MOVEMENT_CATALOG, resolveMovementEntry, isMovementServiceType } from './movementCatalog';
 import { summaryShape } from '../components/proposal/summaryGroups';
+import { holidayComboActive, holidayComboSavings, COMBINE_PCT } from '../../netlify/functions/lib/holiday-packages.js';
+
+/**
+ * How many portraits a headshot service bills retouching for: `retouchCount`
+ * when set (holiday packages bill per person, like the www page), otherwise
+ * every bookable slot. Mirrors retouchedPortraits in pricing-engine.js.
+ */
+export const retouchedPortraits = (service: any, totalAppts: unknown): number => {
+  if (service?.retouchCount != null && Number.isFinite(Number(service.retouchCount))) return Number(service.retouchCount);
+  return typeof totalAppts === 'number' ? totalAppts : 0;
+};
 
 // Helper function to calculate recurring discount based on occurrences
 export const calculateRecurringDiscount = (frequency: RecurringFrequency | undefined): number => {
@@ -42,7 +53,7 @@ export const calculateOriginalPrice = (service: any): number => {
     const apptsPerHourPerPro = 60 / service.appTime;
     const totalApptsPerHour = apptsPerHourPerPro * service.numPros;
     const totalAppts = Math.floor(service.totalHours * totalApptsPerHour);
-    const retouchingTotal = totalAppts * (service.retouchingCost || 0);
+    const retouchingTotal = retouchedPortraits(service, totalAppts) * (service.retouchingCost || 0);
     return proRevenue + retouchingTotal;
   } else if (service.serviceType === 'mindfulness') {
     return service.fixedPrice || 1375;
@@ -78,7 +89,7 @@ export const calculateServiceResults = (service: any) => {
 
   if (service.serviceType === 'headshot') {
     const photographerCost = service.totalHours * service.numPros * (service.proHourly || 0);
-    const retouchingTotal = (typeof totalAppts === 'number' ? totalAppts : 0) * (service.retouchingCost || 0);
+    const retouchingTotal = retouchedPortraits(service, totalAppts) * (service.retouchingCost || 0);
     serviceCost = photographerCost + retouchingTotal;
     proRevenue = serviceCost * 0.80; // 80% to Pro, 20% to Shortcut
   } else if (isMindfulness) {
@@ -1015,7 +1026,7 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
             // For headshots: only discount photographer hourly, NOT retouching
             // Derive photographer cost from existing serviceCost (not base params)
             // because pricing options may override totalHours/numPros
-            const retouchingTotal = (typeof service.totalAppointments === 'number' ? service.totalAppointments : 0) * (service.retouchingCost || 0);
+            const retouchingTotal = retouchedPortraits(service, service.totalAppointments) * (service.retouchingCost || 0);
             const photographerCost = service.serviceCost - retouchingTotal;
             const discountedPhotographerCost = photographerCost * (1 - discountMultiplier);
             service.serviceCost = Number((discountedPhotographerCost + retouchingTotal).toFixed(2));
@@ -1094,5 +1105,52 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
     });
   }
 
+
+  applyHolidayCombo(updatedData);
+
   return updatedData;
+};
+
+/**
+ * Holiday packages: combine-and-save, 10% of each visit with two or more
+ * services (netlify/functions/lib/holiday-packages.js). Not baked into the
+ * service prices like the volume discount: the client viewer recomputes it as
+ * services are switched on and off, so services keep their full price and the
+ * saving is a summary line. Mirrors applyHolidayCombo in pricing-engine.js.
+ */
+const applyHolidayCombo = (data: ProposalData) => {
+  const summary: any = data.summary;
+  delete summary.holidayDiscountPercent;
+  delete summary.holidayDiscountAmount;
+  if (!holidayComboActive(data)) return;
+  const visits: { serviceTypes: string[]; subtotal: number }[] = [];
+  Object.values(data.services || {}).forEach((byDate: any) => {
+    Object.values(byDate || {}).forEach((day: any) => {
+      const services = day?.services || [];
+      visits.push({
+        serviceTypes: services.map((s: any) => s.serviceType),
+        subtotal: services.reduce((a: number, s: any) => a + (Number(s.serviceCost) || 0), 0),
+      });
+    });
+  });
+  const percent = (data as any).holidayPackage?.combinePercent ?? COMBINE_PCT;
+  const savings = holidayComboSavings(visits, percent);
+  if (!(savings > 0)) return;
+
+  const before = summary.subtotalBeforeGratuity;
+  const discounted = Number((before - savings).toFixed(2));
+  let gratuityAmount = 0;
+  if (data.gratuityType === 'percentage' && data.gratuityValue) {
+    gratuityAmount = Number((discounted * (data.gratuityValue / 100)).toFixed(2));
+  } else if (data.gratuityType === 'dollar' && data.gratuityValue) {
+    gratuityAmount = data.gratuityValue;
+  }
+  summary.holidayDiscountPercent = percent;
+  summary.holidayDiscountAmount = savings;
+  summary.originalSubtotalBeforeGratuity = before;
+  summary.subtotalBeforeGratuity = discounted;
+  summary.gratuityAmount = gratuityAmount;
+  summary.totalEventCost = Number((discounted + gratuityAmount).toFixed(2));
+  summary.netProfit = Number((discounted - summary.totalProRevenue).toFixed(2));
+  summary.profitMargin = discounted > 0 ? Number(((summary.netProfit / discounted) * 100).toFixed(2)) : 0;
 };

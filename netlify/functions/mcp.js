@@ -28,6 +28,7 @@ const SERVER_INFO = { name: 'shortcut-proposals', title: 'Shortcut proposals', v
 
 const EXPOSED = new Set([
   'create_proposal', 'edit_proposal', 'search_proposals', 'get_proposal', 'duplicate_proposal',
+  'price_holiday_package', 'create_holiday_proposal',
   'calculate_pricing', 'lookup_client', 'search_logo',
   'create_proposal_option', 'link_proposals', 'unlink_proposal', 'rename_proposal_option', 'reorder_proposal_option',
   'create_landing_page', 'get_landing_page',
@@ -57,7 +58,7 @@ function guide(email) {
   return [
     `You are connected to Shortcut's proposals site (proposals.getshortcut.co) as ${email}. Everything you create is saved under their name and is live at the URL the tool returns.`,
     '',
-    'You have the proposal, landing page, sponsor page, QR sign, pricing, client lookup and logo tools. The lead, email drafting and invoice tools are only in Slack (Pro). Where the rules below say to call lookup_lead, read_thread or draft_email, skip that step and ask the user instead.',
+    'You have the proposal, holiday package, landing page, sponsor page, QR sign, pricing, client lookup and logo tools. The lead, email drafting and invoice tools are only in Slack (Pro). Where the rules below say to call lookup_lead, read_thread or draft_email, skip that step and ask the user instead.',
     'The rules below are the ones Pro follows in Slack. Ignore anything about Slack formatting.',
     '',
     '## Words the client reads',
@@ -85,7 +86,7 @@ const textContent = (text, isError = false) => ({ content: [{ type: 'text', text
 
 /** Posts to #proposals like the HTTP API does. Never fails the tool call. */
 async function notify(name, result, supabase) {
-  if (!['create_proposal', 'duplicate_proposal', 'edit_proposal'].includes(name) || !result.proposalId) return;
+  if (!['create_proposal', 'create_holiday_proposal', 'duplicate_proposal', 'edit_proposal'].includes(name) || !result.proposalId) return;
   try {
     const { data: row } = await supabase.from('proposals').select('*').eq('id', result.proposalId).single();
     if (!row) return;
@@ -102,7 +103,7 @@ async function callTool(params, ctx) {
   if (!EXPOSED.has(name)) return textContent(`Unknown tool: ${name}`, true);
 
   const input = { ...(params.arguments || {}) };
-  if (name === 'create_proposal' && !input.notes) input.notes = `Created via API by ${ctx.user.email}`;
+  if ((name === 'create_proposal' || name === 'create_holiday_proposal') && !input.notes) input.notes = `Created via API by ${ctx.user.email}`;
 
   const result = await executeTool(name, input, ctx.supabase, ctx.user.id, { callerEmail: ctx.user.email });
   console.log(`mcp: ${ctx.user.email} ${name} ${result?.error ? `failed: ${result.error}` : 'ok'}`);

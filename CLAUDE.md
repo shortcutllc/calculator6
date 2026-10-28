@@ -227,6 +227,12 @@ Teammates connect their own AI (Muse, Claude, ChatGPT, Cursor, scripts) with a p
 - `netlify/functions/lib/sponsor-pages.js` is the only server code that writes `sponsor_pages`; Pro, the API and MCP all call it.
 - `lib/staff-auth.js` takes a key or a staff sign-in token. Keys are issued by hand because email signup is open: a signed-in account is not proof of staff.
 
+### Holiday packages (www.getshortcut.co/holiday as proposals)
+`netlify/functions/lib/holiday-packages.js` (types in the `.d.ts` beside it) holds the five holiday packages and the page's math, and everything imports it: Pro and MCP (`price_holiday_package`, `create_holiday_proposal`, the `set_holiday_package` edit op), the HTTP API (`?action=holiday-packages`, `holiday-quote`, `create-holiday-proposal`), the staff calculator's picker (`HolidayPackagePicker` in Add Event), and the client viewer.
+- A proposal stores `data.holidayPackage`, a snapshot of the package and its offer. Combine-and-save (10% of each visit with 2+ services; hair + makeup counts as two) is a **summary line, not baked into service prices**, so the viewer can drop it live when a Create Your Own service is switched off. It is computed in `applyHolidayCombo` (pricing-engine.js and proposalGenerator.ts), `useServiceSelections`, `OptionsTabs`, the staff summary in ProposalViewerV2, and invoices add it as a credit line. A baked volume discount wins instead, never both.
+- Package headshots are $450/hr plus $25 per PERSON (`retouchCount`); every other headshot stays on the $400 basic tier (Will, 2026-10-28). Ready-made packages hide the client's switches; Create Your Own keeps them.
+- **The www page is the source.** Change `frontend/data/holiday-data.js` in the shortcut repo first, then this module, then run `node scripts/check-holiday-parity.mjs`, which prices every package with the page's file and both proposal engines.
+
 ---
 
 ## Key Workflows

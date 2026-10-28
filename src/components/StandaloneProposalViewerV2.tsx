@@ -53,6 +53,8 @@ import HelpModal from './proposal/HelpModal';
 import '../styles/proposal-refresh.css';
 import '../styles/proposal-refresh-mobile.css';
 import MobileServiceCard from './proposal/mobile/MobileServiceCard';
+import HolidayPackageBanner from './proposal/HolidayPackageBanner';
+import { holidayComboActive, COMBINE_PCT } from '../../netlify/functions/lib/holiday-packages.js';
 import MobileDayByDay from './proposal/mobile/MobileDayByDay';
 import ServiceAgreement from './ServiceAgreement';
 import { resolveTeamMember } from './proposal/sidebar/AccountTeamCard';
@@ -516,6 +518,12 @@ const StandaloneProposalViewerV2: React.FC = () => {
     // the price move under them, so we pass null there and let the old
     // automatic tiers stand. Drafts and everything new get the real setting.
     volumeDiscountOverride: isApproved ? null : resolveVolumeDiscount(displayData),
+    // HOLIDAY PACKAGE (lib/holiday-packages.js): combine-and-save, live as
+    // services are switched. Approved proposals keep it too: it is part of
+    // the price they agreed to.
+    holidayComboPercent: holidayComboActive(displayData)
+      ? (displayData as any).holidayPackage?.combinePercent ?? COMBINE_PCT
+      : null,
   });
 
   // ---- Service-type mix (drives Phase 5 conditional sections) -----------
@@ -571,6 +579,19 @@ const StandaloneProposalViewerV2: React.FC = () => {
   // A conference or multi-day event (proposal/summaryGroups): its discount is
   // a flat 10% on one event, not a yearly volume tier.
   const isMultiDayEvent = summaryShape(displayData?.services, displayData?.eventType).multiDay;
+  // A holiday package proposal. Ready-made packages are fixed sets, as on the
+  // www page: no switches. Create Your Own keeps them.
+  const holidayPkg = (displayData as any)?.holidayPackage || null;
+  const packageLocked = !!holidayPkg && !holidayPkg.custom;
+  const discountLabel =
+    summary.discountKind === 'holiday'
+      ? 'Combine and save'
+      : isMultiDayEvent
+      ? 'Conference discount'
+      : 'Volume discount';
+  const freeClassLabel = holidayPkg
+    ? `Free ${holidayPkg.freeClass?.minutes || 30} minute mind or body class`
+    : '';
 
   // ---- Derived stats ------------------------------------------------------
   const stats = useMemo(() => {
@@ -1351,7 +1372,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
               </span>
             )}
           </div>
-          {!displayData?.customization?.hideVolumeDiscountBanner && !summaryShape(displayData?.services, displayData?.eventType).multiDay && (
+          {holidayPkg && (
+            <HolidayPackageBanner pkg={holidayPkg} saving={summary.discountKind === 'holiday'} compact />
+          )}
+          {!holidayPkg && !displayData?.customization?.hideVolumeDiscountBanner && !summaryShape(displayData?.services, displayData?.eventType).multiDay && (
           <div className="pvm-savings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
               <path d="m17 2 4 4-4 4" />
@@ -1476,6 +1500,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                             handleChangeMassageType(loc, date, idx, type)
                           }
                           showHours={displayData?.showHours === true}
+                          showSelectionControls={!packageLocked}
                                         galleryImages={toStripImages(galleryByService[service.serviceType])}
                           autoRecurringDiscount={displayData?.autoRecurringDiscount}
                           onSelectPricingOption={(optIdx) =>
@@ -1836,8 +1861,14 @@ const StandaloneProposalViewerV2: React.FC = () => {
           )}
           {summary.discountPercent > 0 && (
             <div className="pvm-pl discount">
-              <span className="k">{isMultiDayEvent ? 'Conference discount' : 'Volume discount'} · {summary.discountPercent}%</span>
+              <span className="k">{discountLabel} · {summary.discountPercent}%</span>
               <span className="v">−{formatCurrency(summary.discountAmount)}</span>
+            </div>
+          )}
+          {holidayPkg && (
+            <div className="pvm-pl">
+              <span className="k">{freeClassLabel}</span>
+              <span className="v">Included</span>
             </div>
           )}
           {typeof displayData?.autoRecurringDiscount === 'number' &&
@@ -2704,7 +2735,9 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 maxWidth: 680,
               }}
             >
-              {summary.rows.length === 1
+              {packageLocked
+                ? `${holidayPkg.name}. Everything below is included, and here’s how each service runs.`
+                : summary.rows.length === 1
                 ? 'Set how often you’d like it, adjust the details, and approve when you’re ready.'
                 : 'Select the services you’d like to include, then set how often you want them. Toggle any service on or off. Your proposal updates automatically.'}
             </p>
@@ -2738,7 +2771,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 </span>
               )}
             </div>
-            {!displayData?.customization?.hideVolumeDiscountBanner && !summaryShape(displayData?.services, displayData?.eventType).multiDay && (
+            {holidayPkg && (
+              <HolidayPackageBanner pkg={holidayPkg} saving={summary.discountKind === 'holiday'} />
+            )}
+            {!holidayPkg && !displayData?.customization?.hideVolumeDiscountBanner && !summaryShape(displayData?.services, displayData?.eventType).multiDay && (
             <div className="pv-savings" style={{ marginBottom: 0 }}>
               <svg
                 viewBox="0 0 24 24"
@@ -2967,6 +3003,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                                           handleChangeMassageType(loc, date, idx, type)
                                         }
                                         showHours={displayData?.showHours === true}
+                                        showSelectionControls={!packageLocked}
                                         galleryImages={toStripImages(galleryByService[service.serviceType])}
                                         autoRecurringDiscount={displayData?.autoRecurringDiscount}
                                         internalView={false}
@@ -3293,7 +3330,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                     color: T.aqua,
                   }}
                 >
-                  <span>{isMultiDayEvent ? 'Conference discount' : 'Volume discount'} · {summary.discountPercent}%</span>
+                  <span>{discountLabel} · {summary.discountPercent}%</span>
                   <span>−{formatCurrency(summary.discountAmount)}</span>
                 </div>
               )}
@@ -3907,9 +3944,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
               //  • annual — summary.discountAmount, the total saved across the
               //    year (shown as the savings banner).
               const perEventVolumeDiscount =
-                summary.discountPercent > 0
-                  ? summary.perEventSubtotal * (summary.discountPercent / 100)
-                  : 0;
+                summary.discountPercent > 0 ? summary.perEventDiscountAmount : 0;
               const perEventTotalNet = perEventGrandTotal - perEventVolumeDiscount;
               // Optional add-ons are charged once, not per event (see
               // proposal/useAddOnSelections). On a single-event proposal this
@@ -4136,8 +4171,14 @@ const StandaloneProposalViewerV2: React.FC = () => {
                             4+ (10%) / 9+ (15%) threshold is met. */}
                         {summary.discountPercent > 0 && perEventVolumeDiscount > 0 && (
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: T.fontD, fontSize: 13, color: T.aqua }}>
-                            <span>{isMultiDayEvent ? 'Conference discount' : 'Volume discount'} · {summary.discountPercent}%</span>
+                            <span>{discountLabel} · {summary.discountPercent}%</span>
                             <span>−{formatCurrency(perEventVolumeDiscount)}</span>
+                          </div>
+                        )}
+                        {holidayPkg && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontFamily: T.fontD, fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>
+                            <span>{freeClassLabel}</span>
+                            <span style={{ color: '#fff', whiteSpace: 'nowrap' }}>Included</span>
                           </div>
                         )}
                         {gratuity && (
@@ -4227,7 +4268,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            {summary.discountPercent}% {isMultiDayEvent ? 'conference' : 'volume'} discount
+                            {summary.discountPercent}% {summary.discountKind === 'holiday' ? 'combine and save' : isMultiDayEvent ? 'conference discount' : 'volume discount'}
                           </span>
                           <span
                             style={{
@@ -4238,7 +4279,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            You save {formatCurrency(summary.discountAmount)}{isMultiDayEvent ? '' : '/yr'}
+                            You save {formatCurrency(summary.discountAmount)}{isMultiDayEvent || summary.discountKind === 'holiday' ? '' : '/yr'}
                           </span>
                         </div>
                       )}
@@ -4315,6 +4356,8 @@ const StandaloneProposalViewerV2: React.FC = () => {
             >
               {isApproved
                 ? 'Approved — selections are locked.'
+                : packageLocked
+                ? `Everything in ${holidayPkg.name} is included.`
                 : 'Selections auto-save as you toggle.'}
             </div>
           </div>

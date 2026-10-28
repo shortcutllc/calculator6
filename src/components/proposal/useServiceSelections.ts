@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { summaryShape } from './summaryGroups';
+import { holidayComboSavings } from '../../../netlify/functions/lib/holiday-packages.js';
 
 // Per-service selection state used by the redesigned viewers.
 // Keyed by `${location}|${date}|${serviceIndex}` so the same proposal data
@@ -45,6 +46,11 @@ export interface ServiceSelectionSummary {
   discountPercent: number;
   /** Dollar amount of the volume discount. */
   discountAmount: number;
+  /** Which discount `discountPercent` is: the volume (or conference) tier, or
+   *  a holiday package's combine-and-save. Never both: the larger wins. */
+  discountKind: 'volume' | 'holiday';
+  /** The discount on ONE event (frequency held at 1), for the sidebar. */
+  perEventDiscountAmount: number;
   /** Subtotal minus discountAmount. (Gratuity is intentionally not added — */
   /** per project decision #3 it stays as a staff-editable add-on only.) */
   total: number;
@@ -93,6 +99,11 @@ interface UseServiceSelectionsArgs {
    *  tier and silently ignored the admin's setting entirely, so 45 proposals
    *  were showing a discount nobody had chosen (2026-08-31). */
   volumeDiscountOverride?: number | null;
+  /** A holiday package's combine-and-save percent (10), when it applies
+   *  (holidayComboActive). Each visit with two or more INCLUDED services saves
+   *  that share of the visit, rounded to the dollar like the www page, so
+   *  switching a Create Your Own service off below two drops it live. */
+  holidayComboPercent?: number | null;
 }
 
 /**
@@ -108,6 +119,7 @@ export function useServiceSelections({
   readOnly,
   startUnselected,
   volumeDiscountOverride,
+  holidayComboPercent,
 }: UseServiceSelectionsArgs) {
   // Build defaults from staff-set fields on each service if provided.
   // Precedence for the initial frequency:
@@ -293,7 +305,36 @@ export function useServiceSelections({
       discountPercent = totalEvents >= 9 ? 15 : totalEvents >= 4 ? 10 : 0;
     }
 
-    const discountAmount = (subtotal * discountPercent) / 100;
+    let discountAmount = (subtotal * discountPercent) / 100;
+    let perEventDiscountAmount = (perEventSubtotal * discountPercent) / 100;
+    let discountKind: 'volume' | 'holiday' = 'volume';
+
+    // Holiday combine-and-save, per visit (location + date). The larger of it
+    // and the volume discount applies, never both.
+    if (typeof holidayComboPercent === 'number' && holidayComboPercent > 0) {
+      const visits = new Map<string, { serviceTypes: string[]; subtotal: number; perEvent: number }>();
+      rows.forEach((r) => {
+        if (!r.included) return;
+        const k = `${r.location}|${r.date}`;
+        const v = visits.get(k) || { serviceTypes: [], subtotal: 0, perEvent: 0 };
+        v.serviceTypes.push(r.serviceType);
+        v.subtotal += r.lineCost;
+        v.perEvent += r.unitCost;
+        visits.set(k, v);
+      });
+      const list = Array.from(visits.values());
+      const holidayAmount = holidayComboSavings(list, holidayComboPercent);
+      if (holidayAmount > 0 && holidayAmount >= discountAmount) {
+        discountKind = 'holiday';
+        discountPercent = holidayComboPercent;
+        discountAmount = holidayAmount;
+        perEventDiscountAmount = holidayComboSavings(
+          list.map((v) => ({ serviceTypes: v.serviceTypes, subtotal: v.perEvent })),
+          holidayComboPercent
+        );
+      }
+    }
+
     const total = subtotal - discountAmount;
 
     return {
@@ -304,13 +345,15 @@ export function useServiceSelections({
       totalEvents,
       discountPercent,
       discountAmount,
+      discountKind,
+      perEventDiscountAmount,
       total,
       perEventSubtotal,
       perEventOriginalSubtotal,
       perEventServiceDiscount,
       perEventTotal: perEventSubtotal,
     };
-  }, [state, servicesByLocation, volumeDiscountOverride]);
+  }, [state, servicesByLocation, volumeDiscountOverride, holidayComboPercent]);
 
   return { get, setIncluded, setFrequency, summary, state };
 }

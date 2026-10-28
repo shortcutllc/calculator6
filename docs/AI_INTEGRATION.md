@@ -52,6 +52,7 @@ A quick check from any client: ask it to "List the latest sponsor pages."
 | Area | Tools |
 |---|---|
 | Proposals | `create_proposal`, `edit_proposal`, `get_proposal`, `search_proposals`, `duplicate_proposal` |
+| Holiday packages (www.getshortcut.co/holiday) | `price_holiday_package` (a price, nothing saved), `create_holiday_proposal`, and `edit_proposal`'s `set_holiday_package` operation (switch the package or re-staff for a new headcount) |
 | Proposal options (A/B/C versions in one link) | `create_proposal_option`, `link_proposals`, `unlink_proposal`, `rename_proposal_option`, `reorder_proposal_option` |
 | Pricing and lookups | `calculate_pricing` (appointments to hours and pros), `lookup_client`, `search_logo` |
 | Landing pages (for a company's wellness team) | `create_landing_page`, `get_landing_page` |
@@ -102,6 +103,9 @@ Every request carries `Authorization: Bearer sk_shortcut_YOUR_KEY` and, with a b
 | Get a sponsor page | `GET ?action=sponsor-page&page=<id, slug or link>` |
 | List sponsor pages | `GET ?action=sponsor-pages&search=<term>` (search optional) |
 | Proposal options | `POST ?action=create-option`, `link`, `unlink`, `rename-option`, `reorder-option`; `GET ?action=group-options&id=<uuid>` |
+| List the holiday packages | `GET ?action=holiday-packages` |
+| Price a holiday package | `GET ?action=holiday-quote&package=<id or name>&headcount=<n>` (plus `&services=massage,yoga` for Create Your Own, `&classMinutes=60` for hour-long classes) |
+| Create a holiday package proposal | `POST ?action=create-holiday-proposal` |
 
 The edit operations for `PATCH` (add a service, change a date, set a discount, and so on) are listed under "Edit Operations" in the guide. Ask your AI for `get_guide`, or read `SYSTEM_PROMPT_TEXT` in `netlify/functions/lib/slack-ai.js`.
 
@@ -127,6 +131,37 @@ Reply (shortened):
 { "success": true,
   "proposal": { "id": "…", "url": "https://proposals.getshortcut.co/p/…", "status": "draft",
                 "summary": { "totalAppointments": 24, "totalEventCost": 1200 } } }
+```
+
+### Create a holiday package proposal
+
+The five packages on www.getshortcut.co/holiday, priced exactly as the page prices them: a 4 hour visit staffed for the headcount, $150 per Pro hour, headshots at $450 per photographer hour plus $25 per person, group classes at one flat price, and 10% off any visit with two or more services (hair + makeup counts as two). The client view shows the package, the 10%, and the free 30 minute class and holiday treat. `package` is `sleigh`, `grinch`, `styled`, `bright` or `custom` (or the package's name); Create Your Own takes `services`.
+
+```bash
+curl -X POST "https://proposals.getshortcut.co/.netlify/functions/generate-proposal?action=create-holiday-proposal" \
+  -H "Authorization: Bearer sk_shortcut_YOUR_KEY" -H "Content-Type: application/json" \
+  -d '{
+    "clientName": "Acme",
+    "contactName": "Dana Lee",
+    "package": "bright",
+    "headcount": 50,
+    "date": "2026-12-10",
+    "locationName": "NYC",
+    "officeAddress": "350 5th Ave, New York NY 10118"
+  }'
+```
+
+Reply (shortened):
+
+```json
+{ "success": true,
+  "proposal": { "id": "…", "url": "https://proposals.getshortcut.co/p/…", "status": "draft",
+                "summary": { "totalEventCost": 7605, "holidayDiscountAmount": 845 } },
+  "holidayPackage": "Merry and Bright",
+  "quote": { "lines": [ { "name": "Headshots", "pros": 3, "cost": 6650 },
+                        { "name": "Hair and makeup touch-up", "pros": 3, "cost": 1800 } ],
+             "subtotal": 8450, "savings": 845, "total": 7605,
+             "freeClass": { "minutes": 30, "value": 1250, "useBy": "March 2027" } } }
 ```
 
 ### Create a sponsor page
@@ -209,5 +244,6 @@ Send the key privately (a Slack DM, not a channel) along with the [guide page](h
 - `netlify/functions/mcp.js`: the MCP endpoint. Its tools are Pro's own definitions (`TOOLS` in `lib/slack-ai.js`) and handlers (`lib/slack-tools.js`), filtered by `EXPOSED`. Teach Pro a tool, add its name to `EXPOSED`, and every teammate's AI has it. Its instructions are Pro's rules plus the positioning block (`lib/positioning.js`), so a note your AI writes follows the same brain as everything else.
 - `netlify/functions/generate-proposal.js`: the HTTP API.
 - `netlify/functions/lib/sponsor-pages.js`: sponsor pages, shared by Pro, the API and MCP. Same rules as the staff screen at /sponsor-pages.
+- `netlify/functions/lib/holiday-packages.js`: the holiday packages and their math, shared by Pro, the API, MCP, the staff calculator and the client viewer. `node scripts/check-holiday-parity.mjs` prices every package with the www page's own file and both proposal engines, and fails on any difference. Change the www page first, then this file, then run it.
 - `netlify/functions/lib/staff-auth.js`: one auth check for both. It takes a personal key or a staff sign-in token (what the app itself sends).
 - `staff_api_keys` table: `supabase/migrations/20261023000000_create_staff_api_keys.sql`.

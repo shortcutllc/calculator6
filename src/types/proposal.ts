@@ -1,3 +1,5 @@
+import type { HolidayPackageRecord } from '../../netlify/functions/lib/holiday-packages.js';
+
 import { Database } from './database';
 
 // Recurring event frequency types
@@ -97,6 +99,9 @@ export interface Service {
   // When true, the "Repeats" (frequency) picker is hidden on the client view
   // for this service. Admin-controlled per service. Absent/false → shown.
   hideRepeats?: boolean;
+  // Headshots: portraits billed for retouching. Holiday packages bill per
+  // person; absent → every bookable slot (totalAppointments).
+  retouchCount?: number;
   // Recurring event fields
   isRecurring?: boolean;
   recurringFrequency?: RecurringFrequency;
@@ -152,6 +157,10 @@ export interface ProposalSummary {
   profitMargin: number;
   gratuityAmount?: number;
   subtotalBeforeGratuity?: number;
+  /** Holiday combine-and-save, a summary line (services keep full price). */
+  holidayDiscountPercent?: number;
+  holidayDiscountAmount?: number;
+  originalSubtotalBeforeGratuity?: number;
 }
 
 export interface ProposalData {
@@ -162,6 +171,9 @@ export interface ProposalData {
   officeLocations?: { [location: string]: string }; // New: multiple office locations
   /** 'conference' = days of one event (summary by day, flat 10%); unset = office. */
   eventType?: 'conference';
+  /** A holiday package proposal: a snapshot of the package and its offer
+   *  (netlify/functions/lib/holiday-packages.js). */
+  holidayPackage?: HolidayPackageRecord;
   eventDates: string[];
   locations: string[];
   services: {

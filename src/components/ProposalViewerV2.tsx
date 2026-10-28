@@ -99,6 +99,7 @@ import { FACILITATOR_KIRSTEN } from './proposal/sections/serviceContent';
 import { generateLineItems } from './StripeInvoiceButton';
 import type { InvoiceLineItem } from './InvoiceConfirmationModal';
 import InvoiceConfirmationModalV2 from './proposal/InvoiceConfirmationModalV2';
+import { holidayComboActive, holidayComboSavings, COMBINE_PCT } from '../../netlify/functions/lib/holiday-packages.js';
 
 // ============================================================================
 // ProposalViewerV2 — internal/admin proposal viewer in the redesign-2026 visual
@@ -2656,15 +2657,34 @@ const ProposalViewerV2: React.FC = () => {
     [customLineItems]
   );
 
-  const subtotal = servicesSubtotal + customItemsTotal;
+  // Holiday package combine-and-save (lib/holiday-packages.js): a summary
+  // line, since the services keep their full price. Staff see every service,
+  // so every service counts.
+  const holidayPkg = (displayData as any)?.holidayPackage || null;
+  const holidayPercent = holidayPkg?.combinePercent ?? COMBINE_PCT;
+  const holidaySavings = useMemo(() => {
+    if (!holidayComboActive(displayData)) return 0;
+    const visits = new Map<string, { serviceTypes: string[]; subtotal: number }>();
+    pricingRows.forEach((r) => {
+      const k = `${r.location}|${r.date}`;
+      const v = visits.get(k) || { serviceTypes: [], subtotal: 0 };
+      v.serviceTypes.push(r.type);
+      v.subtotal += r.lineCost;
+      visits.set(k, v);
+    });
+    return holidayComboSavings(Array.from(visits.values()), holidayPercent);
+  }, [displayData, pricingRows, holidayPercent]);
+
+  const subtotal = servicesSubtotal + customItemsTotal - holidaySavings;
 
   // Admin-only internal financials — totals across all services.
   const totalProCost = useMemo(
     () => pricingRows.reduce((sum, r) => sum + r.proRevenue, 0),
     [pricingRows]
   );
-  const totalMargin = servicesSubtotal - totalProCost;
-  const totalMarginPct = servicesSubtotal > 0 ? (totalMargin / servicesSubtotal) * 100 : 0;
+  const servicesNet = servicesSubtotal - holidaySavings;
+  const totalMargin = servicesNet - totalProCost;
+  const totalMarginPct = servicesNet > 0 ? (totalMargin / servicesNet) * 100 : 0;
 
   const gratuity = useMemo(() => {
     const type = displayData?.gratuityType as string | null | undefined;
@@ -4750,6 +4770,36 @@ const ProposalViewerV2: React.FC = () => {
                     <span>−{formatCurrency(displayData.autoRecurringSavings)}</span>
                   </div>
                 )}
+              {holidaySavings > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontFamily: T.fontD,
+                    fontSize: 14,
+                    color: T.aqua,
+                  }}
+                >
+                  <span>Combine and save · {holidayPercent}%</span>
+                  <span>−{formatCurrency(holidaySavings)}</span>
+                </div>
+              )}
+              {holidayPkg && (
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontFamily: T.fontD,
+                    fontSize: 14,
+                    color: 'rgba(255,255,255,0.75)',
+                  }}
+                >
+                  <span>
+                    {holidayPkg.name} · free {holidayPkg.freeClass?.minutes || 30} minute class
+                  </span>
+                  <span style={{ color: '#fff' }}>Included</span>
+                </div>
+              )}
               {gratuity && (
                 <div
                   style={{

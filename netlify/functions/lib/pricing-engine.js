@@ -4,6 +4,8 @@
  * ESM module for use in Netlify serverless functions.
  */
 
+import { holidayComboActive, holidayComboSavings, COMBINE_PCT } from './holiday-packages.js';
+
 // Service defaults matching src/components/Calculator.tsx SERVICE_DEFAULTS
 const SERVICE_DEFAULTS = {
   massage: {
@@ -158,6 +160,104 @@ const SERVICE_DEFAULTS = {
     classLength: 45,
     participants: 'unlimited',
     fixedPrice: 1375
+  },
+  // Assisted stretch: one-on-one appointments, priced like massage.
+  stretch: {
+    appTime: 20,
+    totalHours: 4,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 150,
+    earlyArrival: 25,
+    retouchingCost: 0
+  },
+  // Flat-price group classes, at their 60 minute catalog price
+  // (src/utils/soundBathCatalog, yogaCatalog, movementCatalog). They were
+  // missing here, so Pro and the API could not add one and a class priced
+  // at $0. A 30 minute class passes its own classLength and fixedPrice.
+  'sound-bath': {
+    appTime: 60,
+    totalHours: 1,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 60,
+    participants: 'unlimited',
+    fixedPrice: 1500
+  },
+  yoga: {
+    appTime: 60,
+    totalHours: 1,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 60,
+    participants: 'unlimited',
+    fixedPrice: 1250
+  },
+  'crystal-sound-bath': {
+    appTime: 60,
+    totalHours: 1,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 60,
+    participants: 'unlimited',
+    fixedPrice: 1500
+  },
+  'somatic-sound-bath': {
+    appTime: 60,
+    totalHours: 1,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 60,
+    participants: 'unlimited',
+    fixedPrice: 1750
+  },
+  'stretch-mobility': {
+    appTime: 60,
+    totalHours: 1,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 60,
+    participants: 'unlimited',
+    fixedPrice: 1250
+  },
+  'dance-cardio': {
+    appTime: 60,
+    totalHours: 1,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 60,
+    participants: 'unlimited',
+    fixedPrice: 1250
+  },
+  'strength-sculpt': {
+    appTime: 60,
+    totalHours: 1,
+    numPros: 1,
+    proHourly: 0,
+    hourlyRate: 0,
+    earlyArrival: 0,
+    retouchingCost: 0,
+    classLength: 60,
+    participants: 'unlimited',
+    fixedPrice: 1250
   }
 };
 
@@ -206,6 +306,30 @@ function isMindfulnessService(serviceType) {
     serviceType === 'mindfulness-pro-reactivity';
 }
 
+/** The 2026 movement and sound classes (src/utils/movementCatalog.ts). */
+const MOVEMENT_SERVICE_TYPES = ['crystal-sound-bath', 'somatic-sound-bath', 'stretch-mobility', 'dance-cardio', 'strength-sculpt'];
+
+/**
+ * Group classes priced at one flat `fixedPrice` with unlimited attendance.
+ * Mirrors isFlatPriceService in src/utils/proposalGenerator.ts.
+ */
+function isFlatPriceService(serviceType) {
+  return isMindfulnessService(serviceType) ||
+    serviceType === 'sound-bath' ||
+    serviceType === 'yoga' ||
+    MOVEMENT_SERVICE_TYPES.includes(serviceType);
+}
+
+/**
+ * How many portraits a headshot service bills retouching for: `retouchCount`
+ * when set (holiday packages bill per person, like the www page), otherwise
+ * every bookable slot. Mirrors retouchedPortraits in proposalGenerator.ts.
+ */
+function retouchedPortraits(service, totalAppts) {
+  if (service.retouchCount != null && Number.isFinite(Number(service.retouchCount))) return Number(service.retouchCount);
+  return typeof totalAppts === 'number' ? totalAppts : 0;
+}
+
 /**
  * Calculate recurring discount based on frequency.
  * Matches proposalGenerator.ts calculateRecurringDiscount
@@ -223,7 +347,7 @@ function calculateRecurringDiscount(frequency) {
  * Ported from proposalGenerator.ts calculateServiceResults (lines 49-108)
  */
 function calculateServiceResults(service) {
-  const isMindfulness = isMindfulnessService(service.serviceType);
+  const isMindfulness = isFlatPriceService(service.serviceType);
 
   if (!isMindfulness && (!service.appTime || !service.numPros || !service.totalHours)) {
     return { totalAppointments: 0, serviceCost: 0, proRevenue: 0, originalPrice: 0, recurringDiscount: 0, recurringSavings: 0 };
@@ -238,7 +362,7 @@ function calculateServiceResults(service) {
 
   if (service.serviceType === 'headshot') {
     const photographerCost = service.totalHours * service.numPros * (service.proHourly || 0);
-    const retouchingTotal = (typeof totalAppts === 'number' ? totalAppts : 0) * (service.retouchingCost || 0);
+    const retouchingTotal = retouchedPortraits(service, totalAppts) * (service.retouchingCost || 0);
     serviceCost = photographerCost + retouchingTotal;
     proRevenue = serviceCost * 0.80; // 80% to Pro, 20% to Shortcut
   } else if (isMindfulness) {
@@ -438,7 +562,7 @@ function recalculateProposalSummary(proposalData) {
             // For headshots: only discount photographer hourly, NOT retouching
             // Derive photographer cost from existing serviceCost (not base params)
             // because pricing options may override totalHours/numPros
-            const retouchingTotal = (typeof service.totalAppointments === 'number' ? service.totalAppointments : 0) * (service.retouchingCost || 0);
+            const retouchingTotal = retouchedPortraits(service, service.totalAppointments) * (service.retouchingCost || 0);
             const photographerCost = service.serviceCost - retouchingTotal;
             const discountedPhotographerCost = photographerCost * (1 - discountMultiplier);
             service.serviceCost = Number((discountedPhotographerCost + retouchingTotal).toFixed(2));
@@ -506,7 +630,53 @@ function recalculateProposalSummary(proposalData) {
     });
   }
 
+
+  applyHolidayCombo(proposalData);
+
   return proposalData;
+}
+
+/**
+ * Holiday packages: combine-and-save, 10% of each visit with two or more
+ * services (lib/holiday-packages.js). Unlike the volume discount it is not
+ * baked into the service prices, because the client viewer recomputes it as
+ * services are switched on and off (Create Your Own drops it below two). So
+ * the services keep their full price and the saving is a summary line.
+ * Mirrors applyHolidayCombo in src/utils/proposalGenerator.ts.
+ */
+function applyHolidayCombo(proposalData) {
+  if (!holidayComboActive(proposalData)) return;
+  const summary = proposalData.summary;
+  const visits = [];
+  Object.values(proposalData.services || {}).forEach((byDate) => {
+    Object.values(byDate || {}).forEach((day) => {
+      const services = day.services || [];
+      visits.push({
+        serviceTypes: services.map((s) => s.serviceType),
+        subtotal: services.reduce((a, s) => a + (Number(s.serviceCost) || 0), 0),
+      });
+    });
+  });
+  const percent = proposalData.holidayPackage.combinePercent ?? COMBINE_PCT;
+  const savings = holidayComboSavings(visits, percent);
+  if (!(savings > 0)) return;
+
+  const before = summary.subtotalBeforeGratuity;
+  const discounted = Number((before - savings).toFixed(2));
+  let gratuityAmount = 0;
+  if (proposalData.gratuityType === 'percentage' && proposalData.gratuityValue) {
+    gratuityAmount = Number((discounted * (proposalData.gratuityValue / 100)).toFixed(2));
+  } else if (proposalData.gratuityType === 'dollar' && proposalData.gratuityValue) {
+    gratuityAmount = proposalData.gratuityValue;
+  }
+  summary.holidayDiscountPercent = percent;
+  summary.holidayDiscountAmount = savings;
+  summary.originalSubtotalBeforeGratuity = before;
+  summary.subtotalBeforeGratuity = discounted;
+  summary.gratuityAmount = gratuityAmount;
+  summary.totalEventCost = Number((discounted + gratuityAmount).toFixed(2));
+  summary.netProfit = Number((discounted - summary.totalProRevenue).toFixed(2));
+  summary.profitMargin = discounted > 0 ? Number(((summary.netProfit / discounted) * 100).toFixed(2)) : 0;
 }
 
 export {
@@ -514,6 +684,7 @@ export {
   HEADSHOT_TIERS,
   MINDFULNESS_TYPES,
   isMindfulnessService,
+  isFlatPriceService,
   calculateRecurringDiscount,
   calculateServiceResults,
   recalculateProposalSummary

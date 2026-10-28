@@ -14,6 +14,7 @@ import { duplicateProposal } from './proposal-duplicator.js';
 import { createOption, linkProposals, unlinkProposal, renameOption, reorderOption } from './proposal-linker.js';
 import { createLandingPage, getLandingPage } from './landing-page-assembler.js';
 import { createSponsorPage, updateSponsorPage, getSponsorPage, listSponsorPages } from './sponsor-pages.js';
+import { quoteHolidayPackage, holidayServices, holidayPackageRecord, HolidayPackageError } from './holiday-packages.js';
 import { leadPicture, suggestNextActions, nextActions } from './lead-picture.js';
 import { getAccessToken, getThread, bodyFromPayload, lc as lcGmail } from './gmail.js';
 
@@ -46,6 +47,8 @@ async function executeTool(toolName, params, supabase, userId, slackContext) {
 
 const TOOL_HANDLERS = {
   create_proposal: handleCreateProposal,
+  price_holiday_package: handlePriceHolidayPackage,
+  create_holiday_proposal: handleCreateHolidayProposal,
   edit_proposal: handleEditProposal,
   search_proposals: handleSearchProposals,
   get_proposal: handleGetProposal,
@@ -811,6 +814,64 @@ async function handleCreateProposal(params, supabase, userId) {
     eventDates: proposalData.eventDates || [],
     verifiedState
   };
+}
+
+// --- Holiday packages (lib/holiday-packages.js) ---
+
+const holidayInput = (params) => ({
+  packageId: params.package,
+  headcount: params.headcount,
+  services: params.services,
+  classMinutes: params.classMinutes,
+});
+
+/** A holiday package's price for a headcount, as the www page shows it. */
+async function handlePriceHolidayPackage(params) {
+  try {
+    return { success: true, quote: quoteHolidayPackage(holidayInput(params)) };
+  } catch (e) {
+    if (e instanceof HolidayPackageError) return { error: e.message };
+    throw e;
+  }
+}
+
+/**
+ * A holiday package proposal: the package's services, staffed and priced by
+ * holiday-packages.js, saved through the same path as create_proposal.
+ */
+async function handleCreateHolidayProposal(params, supabase, userId) {
+  if (!params.clientName) return { error: 'clientName is required' };
+  if (!params.date) return { error: 'date is required: YYYY-MM-DD, or "TBD"' };
+  if (!params.locationName) return { error: 'locationName is required: a short label like "NYC"' };
+  let quote;
+  let events;
+  let holidayPackage;
+  try {
+    const input = holidayInput(params);
+    quote = quoteHolidayPackage(input);
+    events = holidayServices(input).map((svc) => ({
+      ...svc,
+      locationName: params.locationName,
+      officeAddress: params.officeAddress,
+      date: params.date,
+    }));
+    holidayPackage = holidayPackageRecord(input);
+  } catch (e) {
+    if (e instanceof HolidayPackageError) return { error: e.message };
+    throw e;
+  }
+  const result = await handleCreateProposal({
+    clientName: params.clientName,
+    clientEmail: params.clientEmail,
+    clientLogoUrl: params.clientLogoUrl,
+    contactName: params.contactName,
+    customNote: params.customNote,
+    notes: params.notes,
+    events,
+    holidayPackage,
+  }, supabase, userId);
+  if (!result.success) return result;
+  return { ...result, holidayPackage: holidayPackage.name, quote };
 }
 
 // --- Edit Proposal ---

@@ -12,6 +12,7 @@ import {
   HEADSHOT_TIERS,
   MINDFULNESS_TYPES,
   isMindfulnessService,
+  isFlatPriceService,
   calculateServiceResults,
   recalculateProposalSummary
 } from './pricing-engine.js';
@@ -67,8 +68,9 @@ function applyServiceDefaults(event) {
     }
   }
 
-  // Apply mindfulness type overrides
-  if (isMindfulnessService(serviceType)) {
+  // Apply mindfulness type overrides (and the class fields every flat-price
+  // group class carries: sound bath, yoga, movement)
+  if (isFlatPriceService(serviceType)) {
     // Copy mindfulness-specific defaults
     service.classLength = defaults.classLength;
     service.participants = defaults.participants || 'unlimited';
@@ -99,6 +101,17 @@ function applyServiceDefaults(event) {
   if (event.classLength !== undefined) service.classLength = Number(event.classLength);
   if (event.fixedPrice !== undefined) service.fixedPrice = Number(event.fixedPrice);
   if (event.participants !== undefined) service.participants = event.participants;
+  // Catalog ids for the class services, so the client engine and the staff
+  // screens keep the catalog entry (src/utils/mindfulnessCatalog,
+  // movementCatalog, yogaCatalog, soundBathCatalog).
+  for (const k of ['movementServiceId', 'yogaServiceId', 'soundBathServiceId', 'mindfulnessServiceId']) {
+    if (event[k]) service[k] = String(event[k]);
+  }
+  // Headshots billed for retouching per person rather than per bookable slot
+  // (holiday packages, lib/holiday-packages.js).
+  if (event.retouchCount !== undefined && event.retouchCount !== null) service.retouchCount = Number(event.retouchCount);
+  // One-off visits (holiday packages) hide the client's "Repeats" picker.
+  if (event.hideRepeats) service.hideRepeats = true;
 
   // Massage type (chair, table, or general massage)
   if (serviceType === 'massage' && event.massageType) {
@@ -278,6 +291,10 @@ function buildProposalData(input) {
     gratuityType: gratuityType || null,
     gratuityValue: gratuityValue || null
   };
+
+  // A holiday package proposal (lib/holiday-packages.js): set before the
+  // recalculation below, which applies its combine-and-save.
+  if (input.holidayPackage) proposalData.holidayPackage = input.holidayPackage;
 
   // Determine CLE state if any CLE service is present
   const hasCLE = services.some(s => s.serviceType === 'mindfulness-cle');

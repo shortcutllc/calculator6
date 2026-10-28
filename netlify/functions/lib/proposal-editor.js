@@ -16,6 +16,12 @@ import {
   recalculateProposalSummary
 } from './pricing-engine.js';
 import { applyServiceDefaults, normalizeDate, sortDates } from './proposal-assembler.js';
+import {
+  getHolidayPackage,
+  holidayServices,
+  holidayPackageRecord,
+  holidaySelectionFrom,
+} from './holiday-packages.js';
 
 /**
  * Apply an array of operations to a proposal's data.
@@ -85,8 +91,77 @@ const OPERATION_HANDLERS = {
   set_cle_state: handleSetCLEState,
   move_service: handleMoveService,
   set_proposal_field: handleSetProposalField,
-  set_admin_notes: handleSetAdminNotes
+  set_admin_notes: handleSetAdminNotes,
+  set_holiday_package: handleSetHolidayPackage
 };
+
+/**
+ * Make a visit a holiday package, switch its package, or re-staff it for a
+ * new headcount (lib/holiday-packages.js). The visit's services are replaced
+ * by the package's, priced exactly like www.getshortcut.co/holiday.
+ *   { op: 'set_holiday_package', package?, headcount?, services?, classMinutes?, location?, date? }
+ *   { op: 'set_holiday_package', remove: true }  drops the package and its
+ *   offer; the services stay at their full prices.
+ */
+function handleSetHolidayPackage(proposalData, customization, proposalRecord, op) {
+  const current = proposalData.holidayPackage || null;
+  if (op.remove) {
+    if (!current) throw new Error('This proposal has no holiday package to remove.');
+    delete proposalData.holidayPackage;
+    return { op: 'set_holiday_package', description: `Removed the ${current.name} holiday package and its offer; the services keep their full prices` };
+  }
+
+  const pkg = getHolidayPackage(op.package || (current && current.id));
+  if (!pkg) throw new Error(op.package ? `No holiday package called "${op.package}".` : 'set_holiday_package needs a package.');
+  const headcount = op.headcount ?? (current && current.headcount);
+  if (!headcount) throw new Error('set_holiday_package needs a headcount: how many people the visit is for.');
+
+  // Which visit: the one named, or the only one.
+  const visits = [];
+  Object.entries(proposalData.services || {}).forEach(([loc, byDate]) => {
+    Object.keys(byDate || {}).forEach((d) => visits.push([loc, d]));
+  });
+  let target;
+  if (op.location || op.date) {
+    const date = op.date ? normalizeDate(op.date) : null;
+    target = visits.find(([l, d]) => (!op.location || l === op.location) && (!date || d === date));
+    if (!target) throw new Error(`No visit at ${op.location || 'any location'}${op.date ? ` on ${op.date}` : ''}.`);
+  } else if (visits.length === 1) {
+    target = visits[0];
+  } else {
+    throw new Error(`This proposal has ${visits.length} visits. Pass location and date for the one to make a holiday package.`);
+  }
+  const [location, date] = target;
+  const existing = proposalData.services[location][date].services || [];
+
+  // Create Your Own keeps its services on a headcount change unless new ones
+  // are passed.
+  let services = op.services;
+  let classMinutes = op.classMinutes;
+  if (pkg.custom && !services) {
+    const sel = holidaySelectionFrom(existing);
+    services = sel.services;
+    classMinutes = classMinutes ?? sel.classMinutes;
+  }
+
+  const officeAddress = existing.find((s) => s.officeAddress)?.officeAddress || (proposalData.officeLocations || {})[location] || null;
+  proposalData.services[location][date].services = holidayServices({ packageId: pkg.id, headcount, services, classMinutes })
+    .map((svc) => applyServiceDefaults({ ...svc, locationName: location, date, officeAddress }));
+  proposalData.holidayPackage = holidayPackageRecord({ packageId: pkg.id, headcount });
+
+  // The visit's services were replaced, so any client picks keyed by their
+  // old positions no longer apply (persisted state shadows defaults).
+  if (proposalData.optionsState) {
+    for (const k of Object.keys(proposalData.optionsState)) {
+      if (k.startsWith(`${location}|${date}|`)) delete proposalData.optionsState[k];
+    }
+  }
+
+  return {
+    op: 'set_holiday_package',
+    description: `Set the ${pkg.name} holiday package for ${proposalData.holidayPackage.headcount} people at ${location} on ${date}`
+  };
+}
 
 /**
  * Add a new service to a location/date.

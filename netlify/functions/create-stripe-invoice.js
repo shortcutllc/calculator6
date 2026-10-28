@@ -128,6 +128,17 @@ function buildLineItems(proposalData, pricingOptions, selectedOptions) {
     });
   });
 
+  // Holiday package combine-and-save: a summary line, so the services above
+  // are at full price and the saving goes on as a credit.
+  const holidaySavings = Number(proposalData.summary?.holidayDiscountAmount) || 0;
+  if (holidaySavings > 0) {
+    lineItems.push({
+      description: `${proposalData.holidayPackage?.name || 'Holiday package'}: combine and save (${proposalData.summary?.holidayDiscountPercent || 10}%)`,
+      amount: -Math.round(holidaySavings * 100),
+      quantity: 1
+    });
+  }
+
   return lineItems;
 }
 

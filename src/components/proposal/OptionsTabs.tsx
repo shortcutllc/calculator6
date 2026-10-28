@@ -5,6 +5,7 @@ import { CheckCircle2 } from 'lucide-react';
 import { Eyebrow, T } from './shared/primitives';
 import { formatCurrency, SERVICE_DISPLAY } from './data';
 import { selectionKey, resolveVolumeDiscount } from './useServiceSelections';
+import { holidayComboActive, holidayComboSavings, COMBINE_PCT } from '../../../netlify/functions/lib/holiday-packages.js';
 
 // Whether a service counts toward the option's price, mirroring
 // useServiceSelections: persisted client pick wins, then per-service
@@ -71,9 +72,11 @@ const optionMetrics = (option: ProposalOption) => {
   let appointmentCount = 0;
   let subtotal = 0;
   let totalEvents = 0;
+  const visits: { serviceTypes: string[]; subtotal: number }[] = [];
   Object.entries(services).forEach(([loc, byDate]: [string, any]) => {
     Object.entries(byDate || {}).forEach(([date, dd]: [string, any]) => {
       dateCount += 1;
+      const visit = { serviceTypes: [] as string[], subtotal: 0 };
       (dd?.services || []).forEach((s: any, idx: number) => {
         const key = selectionKey(loc, date, idx);
         if (!serviceIncluded(option, s, key)) return;
@@ -81,7 +84,10 @@ const optionMetrics = (option: ProposalOption) => {
         subtotal += (Number(s?.serviceCost) || 0) * freq;
         totalEvents += freq;
         appointmentCount += Number(s?.totalAppointments) || 0;
+        visit.serviceTypes.push(s?.serviceType);
+        visit.subtotal += (Number(s?.serviceCost) || 0) * freq;
       });
+      visits.push(visit);
     });
   });
   // Volume discount mirrors the hook exactly: the staff setting (or a
@@ -92,7 +98,12 @@ const optionMetrics = (option: ProposalOption) => {
   const override = resolveVolumeDiscount(option.data);
   const discountPercent =
     typeof override === 'number' ? override : totalEvents >= 9 ? 15 : totalEvents >= 4 ? 10 : 0;
-  const cost = subtotal - (subtotal * discountPercent) / 100;
+  // A holiday package's combine-and-save, the same rule as the hook: the
+  // larger of it and the volume discount, never both.
+  const holidaySavings = holidayComboActive(option.data)
+    ? holidayComboSavings(visits, option.data?.holidayPackage?.combinePercent ?? COMBINE_PCT)
+    : 0;
+  const cost = subtotal - Math.max((subtotal * discountPercent) / 100, holidaySavings);
   const locationCount = Object.keys(services).length;
   return { locationCount, dateCount, appointmentCount, cost };
 };

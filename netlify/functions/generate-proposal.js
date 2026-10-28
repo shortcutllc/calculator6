@@ -32,6 +32,11 @@
  *   GET   ?action=sponsor-page&page=<id|slug|link> → Get one
  *   GET   ?action=sponsor-pages[&search=<>]        → List them
  *
+ *   HOLIDAY PACKAGES (lib/holiday-packages.js, priced like www.getshortcut.co/holiday):
+ *   GET  ?action=holiday-packages      → The packages and the offer
+ *   GET  ?action=holiday-quote&package=<id|name>&headcount=<n>[&services=a,b][&classMinutes=60] → A price, nothing saved
+ *   POST ?action=create-holiday-proposal → Create a holiday package proposal (draft)
+ *
  * Auth: Authorization: Bearer <personal API key or Supabase sign-in token>
  * (lib/staff-auth.js). Payloads and setup: docs/AI_INTEGRATION.md.
  */
@@ -47,6 +52,10 @@ import { createOption, linkProposals, unlinkProposal, renameOption, reorderOptio
 import { createLandingPage, updateLandingPage, getLandingPage, searchLandingPages } from './lib/landing-page-assembler.js';
 import { createSponsorPage, updateSponsorPage, getSponsorPage, listSponsorPages, SponsorPageError } from './lib/sponsor-pages.js';
 import { authenticate } from './lib/staff-auth.js';
+import {
+  HOLIDAY_PACKAGES, FREE_CLASS, COMBINE_PCT, VISIT_HOURS,
+  quoteHolidayPackage, holidayServices, holidayPackageRecord, HolidayPackageError,
+} from './lib/holiday-packages.js';
 
 // --- CORS ---
 
@@ -103,6 +112,7 @@ export default async (req) => {
         if (action === 'reorder-option') return await handleReorderOption(rawBody, supabase);
         if (action === 'create-landing-page') return await handleCreateLandingPage(rawBody, user, supabase);
         if (action === 'create-sponsor-page') return await handleCreateSponsorPage(rawBody, user, supabase);
+        if (action === 'create-holiday-proposal') return await handleCreateHolidayProposal(rawBody, user, supabase);
         return await handleCreate(rawBody, user, supabase);
 
       case 'PATCH':
@@ -117,6 +127,8 @@ export default async (req) => {
         if (action === 'search-landing-pages') return await handleSearchLandingPages(params, supabase);
         if (action === 'sponsor-page') return await handleGetSponsorPage(params, supabase);
         if (action === 'sponsor-pages') return await handleListSponsorPages(params, supabase);
+        if (action === 'holiday-packages') return handleHolidayPackages();
+        if (action === 'holiday-quote') return handleHolidayQuote(params);
         if (params.search) return await handleSearch(params, supabase);
         if (params.id) return await handleGetById(params, supabase);
         return errorResponse(400, 'GET requires ?search=, ?id=, or a valid ?action=', 'VALIDATION_ERROR');
@@ -676,6 +688,92 @@ async function handleListSponsorPages(params, supabase) {
   } catch (err) {
     return sponsorError(err, 'SPONSOR_PAGE_LIST_FAILED');
   }
+}
+
+// --- GET ?action=holiday-packages ---
+
+function handleHolidayPackages() {
+  return jsonResponse(200, {
+    success: true,
+    visitHours: VISIT_HOURS,
+    combinePercent: COMBINE_PCT,
+    freeClass: FREE_CLASS,
+    packages: HOLIDAY_PACKAGES.map((p) => ({
+      id: p.id,
+      name: p.name,
+      inside: p.inside,
+      custom: !!p.custom,
+      services: p.lines.map((l) => ({ key: l.key, name: l.label, minutes: l.minutes, groupClass: !!l.group })),
+    })),
+  });
+}
+
+const holidayInput = (src) => ({
+  packageId: src.package,
+  headcount: src.headcount,
+  services: Array.isArray(src.services)
+    ? src.services
+    : src.services ? String(src.services).split(',').map((x) => x.trim()).filter(Boolean) : undefined,
+  classMinutes: src.classMinutes,
+});
+
+// --- GET ?action=holiday-quote&package=&headcount= ---
+
+function handleHolidayQuote(params) {
+  try {
+    return jsonResponse(200, { success: true, quote: quoteHolidayPackage(holidayInput(params)) });
+  } catch (err) {
+    if (err instanceof HolidayPackageError) return errorResponse(400, err.message, 'VALIDATION_ERROR');
+    return errorResponse(500, err.message, 'HOLIDAY_QUOTE_FAILED');
+  }
+}
+
+// --- POST ?action=create-holiday-proposal ---
+
+async function handleCreateHolidayProposal(rawBody, user, supabase) {
+  const body = parseBody(rawBody);
+  if (!body) return errorResponse(400, 'Invalid JSON body', 'VALIDATION_ERROR');
+  if (!body.date) return errorResponse(400, 'date is required: YYYY-MM-DD, or "TBD"', 'VALIDATION_ERROR');
+  if (!body.locationName) return errorResponse(400, 'locationName is required: a short label like "NYC"', 'VALIDATION_ERROR');
+
+  let quote;
+  let events;
+  let holidayPackage;
+  try {
+    const input = holidayInput(body);
+    quote = quoteHolidayPackage(input);
+    events = holidayServices(input).map((svc) => ({
+      ...svc,
+      locationName: body.locationName,
+      officeAddress: body.officeAddress,
+      date: body.date,
+    }));
+    holidayPackage = holidayPackageRecord(input);
+  } catch (err) {
+    if (err instanceof HolidayPackageError) return errorResponse(400, err.message, 'VALIDATION_ERROR');
+    return errorResponse(500, err.message, 'HOLIDAY_PROPOSAL_FAILED');
+  }
+
+  const [first = '', ...rest] = String(body.contactName || '').trim().split(/\s+/);
+  const customization = { ...(body.customization || {}) };
+  if (body.contactName) {
+    customization.contactFirstName = first;
+    customization.contactLastName = rest.join(' ');
+  }
+  if (body.customNote) customization.customNote = String(body.customNote).trim();
+
+  const res = await handleCreate(JSON.stringify({
+    clientName: body.clientName,
+    clientEmail: body.clientEmail,
+    clientLogoUrl: body.clientLogoUrl,
+    notes: body.notes || `Holiday package via API by ${user.email}`,
+    customization,
+    events,
+    holidayPackage,
+  }), user, supabase);
+  if (res.status !== 201) return res;
+  const created = await res.json();
+  return jsonResponse(201, { ...created, holidayPackage: holidayPackage.name, quote });
 }
 
 // ============================================================
