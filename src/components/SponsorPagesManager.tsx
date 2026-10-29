@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Copy, ExternalLink, Lock, Pencil, Trash2, X, Check, ImagePlus } from 'lucide-react';
+import { Copy, ExternalLink, Lock, Pencil, Trash2, X, Check, ImagePlus, Search } from 'lucide-react';
 import { Button } from './Button';
 import {
   listSponsorPages, createSponsorPage, updateSponsorPage, deleteSponsorPage,
@@ -273,6 +273,7 @@ export default function SponsorPagesManager() {
   const [error, setError] = useState('');
   const [formFor, setFormFor] = useState<SponsorPageRecord | 'new' | null>(null);
   const [copied, setCopied] = useState('');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     listSponsorPages()
@@ -282,6 +283,19 @@ export default function SponsorPagesManager() {
   }, []);
 
   const sorted = useMemo(() => [...pages].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)), [pages]);
+  // Search, the same way as the History page: every word of what's on the
+  // card (conference, organizer, dates, who it's from, the link).
+  const shown = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return sorted;
+    return sorted.filter((p) =>
+      [p.conferenceName, p.organizerName, p.dateLabel, p.contactName, p.slug]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [sorted, search]);
 
   const copy = async (slug: string) => {
     try {
@@ -327,8 +341,38 @@ export default function SponsorPagesManager() {
       ) : !error && sorted.length === 0 ? (
         <div className="card-medium text-center text-text-dark-60">No sponsor pages yet. Create the first one.</div>
       ) : (
+        <>
+        {sorted.length > 0 && (
+          <div className="relative mb-6">
+            <Search
+              size={20}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-text-dark-60 pointer-events-none"
+            />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by conference, organizer, dates or who it's from"
+              aria-label="Search sponsor pages"
+              className="w-full pl-12 pr-12 py-3 text-base border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-teal focus:border-shortcut-teal [&::-webkit-search-cancel-button]:hidden"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                aria-label="Clear search"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-text-dark-60 hover:text-shortcut-blue hover:bg-gray-100"
+              >
+                <X size={18} />
+              </button>
+            )}
+          </div>
+        )}
+        {sorted.length > 0 && shown.length === 0 && (
+          <div className="card-medium text-center text-text-dark-60">No sponsor pages match "{search.trim()}".</div>
+        )}
         <div className="flex flex-col gap-3">
-          {sorted.map((p) => (
+          {shown.map((p) => (
             <div key={p.id} className="card-medium flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
@@ -363,6 +407,7 @@ export default function SponsorPagesManager() {
             </div>
           ))}
         </div>
+        </>
       )}
 
       {formFor && (
