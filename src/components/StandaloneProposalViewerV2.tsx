@@ -783,7 +783,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
               clientName: displayData.clientName || 'Unknown',
               clientEmail: displayData.clientEmail,
               proposalType: 'event',
-              totalCost: 0,
+              totalCost: grandTotal,
               eventDates: displayData.eventDates || [],
               locations: displayData.locations || [],
             }),
@@ -798,7 +798,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
         alert('We hit an issue sending your request. Please try again.');
       }
     },
-    [id, displayData, isApproved]
+    [id, displayData, isApproved, grandTotal]
   );
 
   // ---- Client edit mode handlers ----------------------------------------

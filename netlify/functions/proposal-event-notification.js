@@ -1,5 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
 
+const SERVICE_LABELS = {
+  massage: 'Massage', facial: 'Facials', nails: 'Nails', hair: 'Hair', makeup: 'Makeup',
+  'hair-makeup': 'Hair + makeup', headshot: 'Headshots', 'headshot-hair-makeup': 'Hair + makeup for headshots',
+  mindfulness: 'Mindfulness', 'sound-bath': 'Sound bath', yoga: 'Yoga', stretch: 'Assisted stretch',
+  'crystal-sound-bath': 'Crystal sound bath', 'somatic-sound-bath': 'Somatic movement + sound bath',
+  'stretch-mobility': 'Stretch & mobility', 'dance-cardio': 'Dance cardio', 'strength-sculpt': 'Strength & sculpt',
+};
+
+/** "Massage (chair)", "Mindfulness (30 min)" for the change-request alert. */
+function serviceLabel(svc) {
+  const name = SERVICE_LABELS[svc.serviceType] || svc.serviceType;
+  if (svc.serviceType === 'massage' && svc.massageType && svc.massageType !== 'massage') return `${name} (${svc.massageType})`;
+  if (svc.classLength) return `${name} (${svc.classLength} min)`;
+  return name;
+}
+
 export default async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -265,6 +281,53 @@ export default async (req) => {
             fields: surveyFields.slice(i, i + 10)
           });
         }
+      }
+    }
+
+    // A client's change request: their note and what the proposal holds now,
+    // read from the row, so the alert says what they asked for instead of
+    // just that something changed.
+    if (eventType === 'changes_submitted' && proposalId) {
+      try {
+        const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        const supabase = createClient(supabaseUrl, serviceRoleKey);
+        const { data: row } = await supabase
+          .from('proposals')
+          .select('data, customization')
+          .eq('id', proposalId)
+          .single();
+        const d = row?.data || {};
+        const who = row?.customization?.contactFirstName?.trim() || 'the client';
+        const note = String(d.clientChangesNote || '').trim();
+        if (note) {
+          slackMessage.blocks.push({
+            type: 'section',
+            text: { type: 'mrkdwn', text: `*Note from ${who}:*\n>${note.slice(0, 2800).replace(/\n/g, '\n>')}` },
+          });
+        }
+        const lines = [];
+        Object.entries(d.services || {}).forEach(([loc, byDate]) => {
+          Object.entries(byDate || {}).forEach(([date, day]) => {
+            (day?.services || []).forEach((svc, i) => {
+              const picked = d.optionsState?.[`${loc}|${date}|${i}`];
+              const included = picked
+                ? picked.included !== false
+                : svc.optionsSelectedDefault !== false && d.startUnselected !== true;
+              const option = svc.pricingOptions?.[svc.selectedOption ?? 0]?.name;
+              const cost = Number(svc.serviceCost || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+              lines.push(`${included ? '✅' : '⬜️'} ${loc}, ${date}: ${serviceLabel(svc)}${option ? ` (${option})` : ''}, ${cost}`);
+            });
+          });
+        });
+        if (lines.length) {
+          slackMessage.blocks.push({
+            type: 'section',
+            text: { type: 'mrkdwn', text: `*What the proposal holds now* (✅ included, ⬜️ switched off):\n${lines.join('\n').slice(0, 2900)}` },
+          });
+        }
+      } catch (err) {
+        console.error('Could not add the client note to the alert:', err);
       }
     }
 

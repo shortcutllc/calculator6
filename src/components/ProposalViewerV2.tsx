@@ -3697,6 +3697,47 @@ const ProposalViewerV2: React.FC = () => {
           </div>
         </div>
       )}
+      {/* The client's note from "Request changes" (data.clientChangesNote).
+          Read from the current version, so it stays up while staff toggle
+          to the original to compare. */}
+      {(() => {
+        const live: any = currentProposal?.data || displayData;
+        const note = String(live?.clientChangesNote || '').trim();
+        if (!note) return null;
+        const who = currentProposal?.customization?.contactFirstName?.trim() || 'the client';
+        const at = live?.clientChangesAt
+          ? new Date(live.clientChangesAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+          : '';
+        return (
+          <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px 12px' }}>
+            <div
+              style={{
+                background: '#fff',
+                border: '1px solid rgba(0,0,0,0.08)',
+                borderLeft: `4px solid ${T.coral}`,
+                borderRadius: 12,
+                padding: '14px 18px',
+              }}
+            >
+              <Eyebrow color={T.navy}>
+                Note from {who}{at ? ` · ${at}` : ''}
+              </Eyebrow>
+              <p
+                style={{
+                  margin: '8px 0 0',
+                  fontFamily: T.fontD,
+                  fontSize: 15,
+                  lineHeight: 1.5,
+                  color: T.navy,
+                  whiteSpace: 'pre-wrap',
+                }}
+              >
+                {note}
+              </p>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ===== 2-col body grid ===== */}
       <section
