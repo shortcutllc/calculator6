@@ -5,6 +5,7 @@
  */
 
 import { holidayComboActive, holidayComboSavings, COMBINE_PCT } from './holiday-packages.js';
+import { OPTION_FIELDS } from './client-picks.js';
 
 // Service defaults matching src/components/Calculator.tsx SERVICE_DEFAULTS
 const SERVICE_DEFAULTS = {
@@ -321,6 +322,35 @@ function isFlatPriceService(serviceType) {
 }
 
 /**
+ * Re-prices every guest-count option against the service as it stands (the
+ * service's discount wins over any stored on an option), then mirrors the
+ * selected option's price onto the service. Same rules as the client engine,
+ * so an edit from Pro or the API never moves a price the client view shows.
+ */
+function priceOptions(service) {
+  const discountPercent = service.discountPercent || 0;
+  service.pricingOptions = service.pricingOptions.map((option) => {
+    const optionService = { ...service, discountPercent };
+    for (const k of OPTION_FIELDS) if (option[k] !== undefined) optionService[k] = option[k];
+    const r = calculateServiceResults(optionService);
+    return {
+      ...option,
+      totalAppointments: r.totalAppointments,
+      serviceCost: r.serviceCost,
+      originalPrice: r.originalPrice || option.originalPrice,
+      discountPercent,
+      proRevenue: r.proRevenue,
+    };
+  });
+  const chosen = service.pricingOptions[service.selectedOption || 0];
+  if (!chosen) return;
+  service.totalAppointments = chosen.totalAppointments;
+  service.serviceCost = chosen.serviceCost;
+  service.proRevenue = chosen.proRevenue;
+  service.originalPrice = chosen.originalPrice;
+}
+
+/**
  * How many portraits a headshot service bills retouching for: `retouchCount`
  * when set (holiday packages bill per person, like the www page), otherwise
  * every bookable slot. Mirrors retouchedPortraits in proposalGenerator.ts.
@@ -455,12 +485,14 @@ function recalculateProposalSummary(proposalData) {
         service.recurringDiscount = recurringDiscount;
         service.recurringSavings = recurringSavings;
         service.date = date;
+        // A guest-count option the client chose sets the price, not the base.
+        if (Array.isArray(service.pricingOptions) && service.pricingOptions.length > 0) priceOptions(service);
 
-        dayTotalCost += serviceCost;
-        if (typeof totalAppointments === 'number') {
-          dayTotalAppointments += totalAppointments;
+        dayTotalCost += service.serviceCost;
+        if (typeof service.totalAppointments === 'number') {
+          dayTotalAppointments += service.totalAppointments;
         }
-        dayTotalProRevenue += proRevenue;
+        dayTotalProRevenue += service.proRevenue;
       });
 
       dayData.totalCost = Number(dayTotalCost.toFixed(2));

@@ -8,6 +8,8 @@
  * `addEvent` Parse Cloud Function.
  */
 
+import { effectiveService, clientIncluded } from './client-picks.js';
+
 // Service type mapping: proposal serviceType → coordinator service title
 const SERVICE_TYPE_MAP = {
   'massage': 'Massage',
@@ -140,7 +142,11 @@ export function mapProposalToEvents(proposal) {
   // Iterate: location → date → services[]
   for (const [location, dateMap] of Object.entries(data.services)) {
     for (const [dateStr, dateData] of Object.entries(dateMap)) {
-      const services = dateData.services || [];
+      // Only what the client kept, staffed as they chose it (a guest-count
+      // option's hours and Pros, not the base service's).
+      const services = (dateData.services || [])
+        .filter((svc, i) => clientIncluded(data, location, dateStr, i, svc))
+        .map(effectiveService);
       if (!services.length) continue;
 
       const { startTime, endTime } = buildEventTimes(dateStr, services);

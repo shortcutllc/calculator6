@@ -3,6 +3,7 @@ import { X, AlertCircle, CheckCircle, ChevronDown, ChevronUp, Loader2, Zap } fro
 import { Proposal, Service } from '../types/proposal';
 import { Button } from './Button';
 import { createCoordinatorEvents } from '../services/generateProposalApi';
+import { effectiveService, clientIncluded } from '../../netlify/functions/lib/client-picks.js';
 
 // --- Types ---
 
@@ -335,7 +336,11 @@ function buildInitialEvents(proposal: Proposal, surveyResponse?: any): EventForm
 
   for (const [location, dateMap] of Object.entries(data.services)) {
     for (const [dateStr, dateData] of Object.entries(dateMap as Record<string, any>)) {
-      const services: Service[] = dateData.services || [];
+      // Only what the client kept, staffed as they chose it: a guest-count
+      // option's hours and Pros, not the base service's (client-picks.js).
+      const services: Service[] = ((dateData.services || []) as Service[])
+        .filter((svc, i) => clientIncluded(data, location, dateStr, i, svc))
+        .map((svc) => effectiveService(svc));
       if (!services.length) continue;
 
       // Get address for this location

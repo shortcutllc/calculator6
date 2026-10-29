@@ -38,6 +38,9 @@ function applyOperations(proposalData, customization, proposalRecord, operations
   }
 
   const changesSummary = [];
+  // Where every service sits before the edit, so the client's picks (keyed
+  // by position) can follow it wherever the operations move it.
+  const before = positionsOf(proposalData);
 
   for (const operation of operations) {
     if (!operation.op) {
@@ -55,6 +58,8 @@ function applyOperations(proposalData, customization, proposalRecord, operations
     }
   }
 
+  carryClientPicks(proposalData, proposalRecord, before);
+
   // Recalculate all totals after all operations
   proposalData = recalculateProposalSummary(proposalData);
 
@@ -64,6 +69,71 @@ function applyOperations(proposalData, customization, proposalRecord, operations
     proposalRecord,
     changesSummary
   };
+}
+
+// --- Client picks follow their service ---
+
+/** Each service object → { location, date, index }. */
+function positionsOf(proposalData) {
+  const map = new Map();
+  Object.entries(proposalData.services || {}).forEach(([location, byDate]) => {
+    Object.entries(byDate || {}).forEach(([date, day]) => {
+      (day.services || []).forEach((service, index) => map.set(service, { location, date, index }));
+    });
+  });
+  return map;
+}
+
+const pickKey = (p) => `${p.location}|${p.date}|${p.index}`;
+const columnKey = (p) => `${p.location}-${p.date}-${p.index}`;
+
+/**
+ * The client's on/off switches (data.optionsState) and guest-count choices
+ * (the selected_options and pricing_options columns) are keyed by a service's
+ * position. Operations move services (change_date, rename_location,
+ * move_service) or shift them (remove_service, remove_date), so re-key every
+ * pick to where its service is now, and drop picks of services that are gone.
+ * Without this a date change silently reset the client's choices.
+ * The columns are updated on proposalRecord when the caller passed them.
+ */
+function carryClientPicks(proposalData, proposalRecord, before) {
+  const after = positionsOf(proposalData);
+  const moves = []; // [old position, new position]
+  for (const [service, now] of after) {
+    const was = before.get(service);
+    if (was) moves.push([was, now]);
+  }
+
+  if (proposalData.optionsState) {
+    const next = {};
+    for (const [was, now] of moves) {
+      const v = proposalData.optionsState[pickKey(was)];
+      if (v !== undefined) next[pickKey(now)] = v;
+    }
+    proposalData.optionsState = next;
+  }
+
+  for (const col of ['selected_options', 'pricing_options']) {
+    if (!proposalRecord || !proposalRecord[col]) continue;
+    const next = {};
+    for (const [was, now] of moves) {
+      const v = proposalRecord[col][columnKey(was)];
+      if (v !== undefined) next[columnKey(now)] = v;
+    }
+    proposalRecord[col] = next;
+  }
+
+  // The chosen option lives on the service too; keep the column in step with
+  // it (select_pricing_option and the option ops change the service).
+  if (proposalRecord && proposalRecord.selected_options) {
+    for (const [service, now] of after) {
+      if (Array.isArray(service.pricingOptions) && service.pricingOptions.length > 0) {
+        proposalRecord.selected_options[columnKey(now)] = service.selectedOption || 0;
+      } else {
+        delete proposalRecord.selected_options[columnKey(now)];
+      }
+    }
+  }
 }
 
 // --- Operation Handlers ---
@@ -894,25 +964,8 @@ function handleMoveService(proposalData, customization, proposalRecord, op) {
 
   [services[serviceIndex], services[other]] = [services[other], services[serviceIndex]];
 
-  // Swap the matching keys in optionsState and on the proposalRecord
-  // (pricing_options / selected_options live in separate DB columns the
-  // edit handler will sync). Key format for optionsState follows
-  // useServiceSelections.selectionKey(): `${loc}|${date}|${idx}`.
-  const swapInMap = (obj, sep) => {
-    if (!obj || typeof obj !== 'object') return obj;
-    const keyA = `${location}${sep}${normalizedDate}${sep}${serviceIndex}`;
-    const keyB = `${location}${sep}${normalizedDate}${sep}${other}`;
-    if (!(keyA in obj) && !(keyB in obj)) return obj;
-    const out = { ...obj };
-    const a = out[keyA];
-    const b = out[keyB];
-    if (b !== undefined) out[keyA] = b; else delete out[keyA];
-    if (a !== undefined) out[keyB] = a; else delete out[keyB];
-    return out;
-  };
-  if (proposalData.optionsState) {
-    proposalData.optionsState = swapInMap(proposalData.optionsState, '|');
-  }
+  // The client's picks swap with the services in carryClientPicks, after
+  // all operations, the same as every other move.
 
   return {
     op: 'move_service',
@@ -1017,16 +1070,11 @@ function handleSelectPricingOption(proposalData, customization, proposalRecord, 
     );
   }
   service.selectedOption = idx;
-
-  // Mirror the selected option's totals onto the base service so
-  // recalculateProposalSummary picks up the right numbers.
+  // recalculateProposalSummary prices the selected option and mirrors it onto
+  // the service. The option's hours and Pros stay on the option, as in the
+  // client engine, which never copies them onto the base service: the base
+  // keeps the staff's own setup for later recalculations.
   const opt = service.pricingOptions[idx];
-  if (opt) {
-    if (typeof opt.serviceCost === 'number') service.serviceCost = opt.serviceCost;
-    if (typeof opt.totalAppointments === 'number') service.totalAppointments = opt.totalAppointments;
-    if (typeof opt.totalHours === 'number') service.totalHours = opt.totalHours;
-    if (typeof opt.numPros === 'number') service.numPros = opt.numPros;
-  }
 
   return {
     op: 'select_pricing_option',

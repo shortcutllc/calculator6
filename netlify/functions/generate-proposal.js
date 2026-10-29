@@ -266,7 +266,11 @@ async function handleEdit(rawBody, user, supabase) {
       status: existing.status,
       client_name: existing.client_name,
       client_email: existing.client_email,
-      client_logo_url: existing.client_logo_url
+      client_logo_url: existing.client_logo_url,
+      // The client's guest-count choices, keyed by position: applyOperations
+      // re-keys them when services move.
+      selected_options: existing.selected_options,
+      pricing_options: existing.pricing_options
     };
 
     const { proposalData: updatedData, customization: updatedCustomization, proposalRecord: updatedRecord, changesSummary } =
@@ -284,6 +288,9 @@ async function handleEdit(rawBody, user, supabase) {
     if (updatedRecord.client_name !== existing.client_name) updatePayload.client_name = updatedRecord.client_name;
     if (updatedRecord.client_email !== existing.client_email) updatePayload.client_email = updatedRecord.client_email;
     if (updatedRecord.client_logo_url !== existing.client_logo_url) updatePayload.client_logo_url = updatedRecord.client_logo_url;
+    for (const col of ['selected_options', 'pricing_options']) {
+      if (JSON.stringify(updatedRecord[col] ?? null) !== JSON.stringify(existing[col] ?? null)) updatePayload[col] = updatedRecord[col];
+    }
 
     const { data: updated, error: updateError } = await supabase
       .from('proposals')

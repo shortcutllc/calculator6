@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { clientIncluded } from './lib/client-picks.js';
 
 const SERVICE_LABELS = {
   massage: 'Massage', facial: 'Facials', nails: 'Nails', hair: 'Hair', makeup: 'Makeup',
@@ -310,10 +311,7 @@ export default async (req) => {
         Object.entries(d.services || {}).forEach(([loc, byDate]) => {
           Object.entries(byDate || {}).forEach(([date, day]) => {
             (day?.services || []).forEach((svc, i) => {
-              const picked = d.optionsState?.[`${loc}|${date}|${i}`];
-              const included = picked
-                ? picked.included !== false
-                : svc.optionsSelectedDefault !== false && d.startUnselected !== true;
+              const included = clientIncluded(d, loc, date, i, svc);
               const option = svc.pricingOptions?.[svc.selectedOption ?? 0]?.name;
               const cost = Number(svc.serviceCost || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
               lines.push(`${included ? '✅' : '⬜️'} ${loc}, ${date}: ${serviceLabel(svc)}${option ? ` (${option})` : ''}, ${cost}`);

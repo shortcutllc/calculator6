@@ -895,7 +895,11 @@ async function handleEditProposal(params, supabase, userId) {
     client_name: existing.client_name,
     client_email: existing.client_email,
     client_logo_url: existing.client_logo_url,
-    notes: existing.notes
+    notes: existing.notes,
+    // The client's guest-count choices, keyed by position: applyOperations
+    // re-keys them when services move.
+    selected_options: existing.selected_options,
+    pricing_options: existing.pricing_options
   };
 
   let updatedData, updatedCustomization, updatedRecord, changesSummary;
@@ -928,6 +932,9 @@ async function handleEditProposal(params, supabase, userId) {
   // notes column — driven by set_admin_notes op
   if (Object.prototype.hasOwnProperty.call(updatedRecord, 'notes') && updatedRecord.notes !== existing.notes) {
     updatePayload.notes = updatedRecord.notes;
+  }
+  for (const col of ['selected_options', 'pricing_options']) {
+    if (JSON.stringify(updatedRecord[col] ?? null) !== JSON.stringify(existing[col] ?? null)) updatePayload[col] = updatedRecord[col];
   }
 
   const { error: updateError } = await supabase
