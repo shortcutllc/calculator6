@@ -42,6 +42,7 @@ import TrustCard from './proposal/sidebar/TrustCard';
 import FaqCard from './proposal/sidebar/FaqCard';
 import GalleryCard from './proposal/sidebar/GalleryCard';
 import MobileSignupModule from './proposal/MobileSignupModule';
+import { buildDemoSignupLink } from '../utils/demoSignupLink';
 import OptionsTabs, { ProposalOption } from './proposal/OptionsTabs';
 import EventDaySummaryCard from './proposal/EventDaySummaryCard';
 import DayByDayCards from './proposal/DayByDayCards';
@@ -1165,6 +1166,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
   const customNote = displayData?.customization?.customNote;
   const initial = (clientName[0] || '?').toUpperCase();
   const clientLogoUrl = displayData?.clientLogoUrl || proposal?.client_logo_url || null;
+  // "Try it yourself" under the sign-up demo: a test event an admin pasted wins, else the
+  // coordinator's demo day shown as this client's (utils/demoSignupLink).
+  const signupDemoUrl =
+    displayData?.signupLink || buildDemoSignupLink(clientName, clientLogoUrl, serviceTypes);
 
   // Resolve the office address for a given location.
   //  1. `data.officeLocations` (per-location map) — preferred
@@ -1546,7 +1551,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
           {mDemoOpen && (
             <div className="pvm-demo-panel">
               <MobileSignupModule
-                url={displayData?.signupLink}
+                url={signupDemoUrl}
                 title={displayData?.signupLinkTitle}
                 description={displayData?.signupLinkDescription}
               />
@@ -4408,7 +4413,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
             }}
           >
             <MobileSignupModule
-              url={displayData?.signupLink}
+              url={signupDemoUrl}
               title={displayData?.signupLinkTitle}
               description={displayData?.signupLinkDescription}
             />

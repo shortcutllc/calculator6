@@ -90,6 +90,7 @@ import AccountTeamCard, {
 } from './proposal/sidebar/AccountTeamCard';
 import WhatsNextCard from './proposal/sidebar/WhatsNextCard';
 import MobileSignupModule from './proposal/MobileSignupModule';
+import { buildDemoSignupLink } from '../utils/demoSignupLink';
 import EventDaySummaryCard from './proposal/EventDaySummaryCard';
 import DaySummaryBox from './proposal/DaySummaryBox';
 import ServiceAgreementCard from './proposal/ServiceAgreementCard';
@@ -2813,6 +2814,9 @@ const ProposalViewerV2: React.FC = () => {
   const customNote = displayData?.customization?.customNote || '';
   const clientLogoUrl =
     displayData?.clientLogoUrl || currentProposal?.clientLogoUrl || null;
+  // Same rule as the client viewer: a pasted test event wins, else the branded demo day.
+  const signupDemoUrl =
+    displayData?.signupLink || buildDemoSignupLink(clientName, clientLogoUrl, serviceTypes);
   const initial = (clientName[0] || '?').toUpperCase();
 
   const resolveOfficeAddress = (loc: string): string | null => {
@@ -5334,10 +5338,11 @@ const ProposalViewerV2: React.FC = () => {
 
           {/* The employee sign-up — same self-playing demo module the client
               viewer renders, so staff preview matches exactly. The CTAs (Copy
-              link + Try it yourself) appear once an admin pastes a test-event
-              URL in the "Demo sign-up link" edit row above the sidebar. */}
+              link + Try it yourself) open the coordinator's demo day branded for
+              this client, or a test-event URL an admin pastes in the "Demo
+              sign-up link" edit row above the sidebar. */}
           <MobileSignupModule
-            url={displayData?.signupLink}
+            url={signupDemoUrl}
             title={displayData?.signupLinkTitle}
             description={displayData?.signupLinkDescription}
           />
