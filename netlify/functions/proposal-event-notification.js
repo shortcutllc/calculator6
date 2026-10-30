@@ -237,6 +237,14 @@ export default async (req) => {
         });
       }
       
+      const entries = Object.entries(surveyResults.entry_and_parking || {}).filter(([, v]) => v);
+      if (entries.length) {
+        surveyFields.push({
+          type: 'mrkdwn',
+          text: `*Entry and parking:*\n${entries.map(([location, text]) => `*${location}:* ${text}`).join('\n').slice(0, 1900)}`
+        });
+      }
+
       if (surveyResults.massage_space_name) {
         surveyFields.push({
           type: 'mrkdwn',
@@ -262,6 +270,18 @@ export default async (req) => {
         surveyFields.push({
           type: 'mrkdwn',
           text: `*COI Required:* ${surveyResults.coi_required ? 'Yes' : 'No'}`
+        });
+      }
+
+      // The optional sample COI from their building. The bucket is private, so
+      // the link goes to the staff proposal page, whose card opens the file.
+      const coiFiles = Array.isArray(surveyResults.coi_sample_files) ? surveyResults.coi_sample_files : [];
+      if (surveyResults.coi_required) {
+        surveyFields.push({
+          type: 'mrkdwn',
+          text: coiFiles.length
+            ? `*Sample COI:* ${coiFiles.map((f) => f.name).join(', ')}\n<${proposalUrl}|Open it on the proposal page>`
+            : '*Sample COI:* none uploaded',
         });
       }
 

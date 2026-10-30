@@ -5,6 +5,7 @@ import { Button } from './Button';
 import { useProposal } from '../contexts/ProposalContext';
 import { Proposal } from '../types/proposal';
 import ChangeReviewModal from './ChangeReviewModal';
+import CoiSampleLinks from './CoiSampleLinks';
 import { format, parseISO } from 'date-fns';
 import { supabase } from '../lib/supabaseClient';
 
@@ -362,6 +363,7 @@ const AdminDashboard: React.FC = () => {
                             {surveyResponses[proposal.id].coi_required !== null && (
                               <div><strong>COI Required:</strong> {surveyResponses[proposal.id].coi_required ? 'Yes' : 'No'}</div>
                             )}
+                            <CoiSampleLinks files={surveyResponses[proposal.id].coi_sample_files} />
                           </div>
                         </div>
                       )}

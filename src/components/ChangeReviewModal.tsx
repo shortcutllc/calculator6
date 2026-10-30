@@ -6,6 +6,7 @@ import { trackProposalChanges, getChangeDisplayInfo } from '../utils/changeTrack
 import { Button } from './Button';
 import { ChangeSourceBadge } from './ChangeSourceBadge';
 import CreateEventModal from './CreateEventModal';
+import CoiSampleLinks from './CoiSampleLinks';
 import { buildQuestionPromptMap } from '../utils/serviceSurveyQuestions';
 
 const surveyQuestionPrompts = buildQuestionPromptMap();
@@ -309,6 +310,17 @@ const ChangeReviewModal: React.FC<ChangeReviewModalProps> = ({
                     <p className="text-sm text-text-dark whitespace-pre-wrap">{surveyResponse.office_address}</p>
                   </div>
                 )}
+
+                {surveyResponse.entry_and_parking && Object.values(surveyResponse.entry_and_parking).some(Boolean) && (
+                  <div className="bg-white rounded p-3">
+                    <p className="text-sm font-bold text-shortcut-blue mb-1">Building entry and parking</p>
+                    {Object.entries(surveyResponse.entry_and_parking as Record<string, string>).filter(([, v]) => v).map(([location, text]) => (
+                      <p key={location} className="text-sm text-text-dark whitespace-pre-wrap">
+                        <strong>{location}:</strong> {text}
+                      </p>
+                    ))}
+                  </div>
+                )}
                 
                 {surveyResponse.massage_space_name && (
                   <div className="bg-white rounded p-3">
@@ -335,6 +347,7 @@ const ChangeReviewModal: React.FC<ChangeReviewModalProps> = ({
                   <div className="bg-white rounded p-3">
                     <p className="text-sm font-bold text-shortcut-blue mb-1">7. Will a Certificate of Insurance (COI) be Required?</p>
                     <p className="text-sm text-text-dark">{surveyResponse.coi_required ? 'Yes' : 'No'}</p>
+                    <CoiSampleLinks files={surveyResponse.coi_sample_files} className="mt-2" />
                   </div>
                 )}
 

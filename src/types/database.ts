@@ -100,6 +100,8 @@ export interface Database {
           point_of_contact: string | null
           billing_contact: string | null
           coi_required: boolean | null
+          coi_sample_files: Json | null
+          entry_and_parking: Json | null
           submitted_at: string
           created_at: string
           updated_at: string
@@ -114,6 +116,8 @@ export interface Database {
           point_of_contact?: string | null
           billing_contact?: string | null
           coi_required?: boolean | null
+          coi_sample_files?: Json | null
+          entry_and_parking?: Json | null
           submitted_at?: string
           created_at?: string
           updated_at?: string
@@ -128,6 +132,8 @@ export interface Database {
           point_of_contact?: string | null
           billing_contact?: string | null
           coi_required?: boolean | null
+          coi_sample_files?: Json | null
+          entry_and_parking?: Json | null
           submitted_at?: string
           created_at?: string
           updated_at?: string

@@ -8,6 +8,7 @@ import { Button } from './Button';
 import { getProposalUrl } from '../utils/url';
 import { supabase } from '../lib/supabaseClient';
 import { buildQuestionPromptMap } from '../utils/serviceSurveyQuestions';
+import CoiSampleLinks from './CoiSampleLinks';
 
 // Read-only modal that surfaces a completed pre-event survey (fixed columns +
 // per-service `responses` JSONB). History's old "View Survey" button navigated
@@ -55,12 +56,17 @@ const SurveyDetailModal: React.FC<{
           )}
           {response.preferred_gender && <Row label="Preferred Gender" value={response.preferred_gender} />}
           {response.office_address && <Row label="Office Address" value={response.office_address} />}
+          {response.entry_and_parking &&
+            Object.entries(response.entry_and_parking as Record<string, string>)
+              .filter(([, v]) => v)
+              .map(([location, text]) => <Row key={location} label={`Entry and parking (${location})`} value={text} />)}
           {response.massage_space_name && <Row label="Space Name" value={response.massage_space_name} />}
           {response.point_of_contact && <Row label="Point of Contact" value={response.point_of_contact} />}
           {response.billing_contact && <Row label="Billing Contact" value={response.billing_contact} />}
           {response.coi_required !== null && response.coi_required !== undefined && (
             <Row label="COI Required" value={response.coi_required ? 'Yes' : 'No'} />
           )}
+          <CoiSampleLinks files={response.coi_sample_files} />
 
           {Object.keys(perService).length > 0 && (
             <div className="pt-2 border-t border-neutral-200 space-y-3">
@@ -980,6 +986,7 @@ const History: React.FC = () => {
                         {surveyResponses[proposal.id].coi_required !== null && (
                           <div><strong>COI Required:</strong> {surveyResponses[proposal.id].coi_required ? 'Yes' : 'No'}</div>
                         )}
+                        <CoiSampleLinks files={surveyResponses[proposal.id].coi_sample_files} />
                       </div>
                     </div>
                   )}

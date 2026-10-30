@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { CheckCircle2, AlertCircle, Loader2, Edit } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { Button } from './Button';
+import CoiSampleUpload from './CoiSampleUpload';
+import EntryParkingField, { isNycAddress } from './EntryParkingField';
+import type { CoiSampleFile } from '../services/coiSampleService';
 import { format, parseISO } from 'date-fns';
 import type { SurveyAnswer, SurveyQuestion } from '../types/survey';
 import {
@@ -196,6 +199,14 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [existingResponse, setExistingResponse] = useState<any>(null);
+  // Optional sample COI files from their building (coi_sample_files column).
+  const [coiFiles, setCoiFiles] = useState<CoiSampleFile[]>([]);
+  const [coiUploading, setCoiUploading] = useState(false);
+  // Building entry and parking, per location (entry_and_parking column). A
+  // single-location proposal keys it by that location too.
+  const [entryParking, setEntryParking] = useState<Record<string, string>>({});
+  const entryKey = (location?: string) => location || locations[0] || 'Office';
+  const setEntry = (key: string, value: string) => setEntryParking((prev) => ({ ...prev, [key]: value }));
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
   const [showReadOnlyView, setShowReadOnlyView] = useState(false);
 
@@ -375,6 +386,10 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
             billing_contact: data.billing_contact || '',
             coi_required: data.coi_required,
           });
+          const savedCoi = (data as any).coi_sample_files;
+          if (Array.isArray(savedCoi)) setCoiFiles(savedCoi);
+          const savedEntry = (data as any).entry_and_parking;
+          if (savedEntry && typeof savedEntry === 'object') setEntryParking(savedEntry);
           // Per-service answers (hair / headshot / nails / facial …)
           if (data.responses && typeof data.responses === 'object') {
             setResponses(data.responses as ServiceResponses);
@@ -440,6 +455,15 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
         point_of_contact: formData.point_of_contact || null,
         billing_contact: formData.billing_contact || null,
         coi_required: formData.coi_required,
+        // Optional, only when a COI is required.
+        coi_sample_files: formData.coi_required && coiFiles.length ? coiFiles : null,
+        // Optional, per location; only the ones filled in.
+        entry_and_parking: (() => {
+          const filled = Object.fromEntries(
+            Object.entries(entryParking).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v)
+          );
+          return Object.keys(filled).length ? filled : null;
+        })(),
         // Per-service answers (hair / headshot / nails / facial …)
         responses,
       };
@@ -474,6 +498,17 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
           'proposal_survey_responses.responses missing — saving without per-service answers (apply migration 20260622000000).'
         );
         ({ error: writeError } = await writeSurvey(withoutResponses));
+      }
+      // Same for the sample COI and entry and parking columns (migration
+      // 20261029000000): save the rest of the survey rather than fail it.
+      let payload: Record<string, any> = surveyData;
+      for (const col of ['coi_sample_files', 'entry_and_parking']) {
+        if (writeError && new RegExp(col, 'i').test((writeError.message || '') + (writeError.details || ''))) {
+          const { [col]: _omit, ...rest } = payload;
+          payload = rest;
+          console.warn(`proposal_survey_responses.${col} missing — saving without it (apply migration 20261029000000).`);
+          ({ error: writeError } = await writeSurvey(payload));
+        }
       }
       if (writeError) throw writeError;
 
@@ -719,6 +754,24 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
                 </div>
               );
             })()}
+
+            {(() => {
+              const entries = Object.entries((existingResponse.entry_and_parking || {}) as Record<string, string>).filter(([, v]) => v);
+              if (!entries.length) return null;
+              return (
+                <div className="bg-white rounded p-4">
+                  <p className="text-sm font-semibold text-gray-900 mb-2">Building Entry and Parking</p>
+                  <div className="space-y-2">
+                    {entries.map(([location, text]) => (
+                      <div key={location} className={entries.length > 1 ? 'border-l-2 border-shortcut-teal pl-3' : ''}>
+                        {entries.length > 1 && <p className="text-xs font-bold text-shortcut-navy-blue mb-1">{location}:</p>}
+                        <p className="text-gray-700 whitespace-pre-wrap">{text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
             
             <div className="bg-white rounded p-4">
               <p className="text-sm font-semibold text-gray-900 mb-1">Name of the Space(s) Where Services Will Take Place</p>
@@ -748,6 +801,11 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
                   ? (existingResponse.coi_required ? 'Yes' : 'No')
                   : <span className="text-gray-400 italic">Not provided</span>}
               </p>
+              {Array.isArray(existingResponse.coi_sample_files) && existingResponse.coi_sample_files.length > 0 && (
+                <p className="mt-2 text-sm text-gray-700">
+                  Sample COI: {existingResponse.coi_sample_files.map((f: CoiSampleFile) => f.name).join(', ')}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -946,6 +1004,12 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
                     <p className="text-xs text-text-dark-60 mt-2">
                       Address autocomplete will appear as you type
                     </p>
+                    <EntryParkingField
+                      id={`entry-parking-${location}`}
+                      value={entryParking[location] || ''}
+                      onChange={(v) => setEntry(location, v)}
+                      nyc={isNycAddress(currentAddress, location)}
+                    />
                   </div>
                 );
               })}
@@ -974,6 +1038,12 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
             <p className="text-xs text-text-dark-60 mt-2">
               Address autocomplete will appear as you type
             </p>
+            <EntryParkingField
+              id="entry-parking"
+              value={entryParking[entryKey()] || ''}
+              onChange={(v) => setEntry(entryKey(), v)}
+              nyc={isNycAddress(formData.office_address, locations[0])}
+            />
           </div>
         )}
 
@@ -1048,13 +1118,21 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
               <span className="text-gray-700">No</span>
             </label>
           </div>
+          {formData.coi_required === true && (
+            <CoiSampleUpload
+              proposalId={proposalId}
+              files={coiFiles}
+              onChange={setCoiFiles}
+              onBusyChange={setCoiUploading}
+            />
+          )}
         </div>
 
         <div className="pt-4 border-t border-gray-200">
           <Button
             type="submit"
             variant="primary"
-            disabled={submitting}
+            disabled={submitting || coiUploading}
             loading={submitting}
             className="w-full sm:w-auto"
           >

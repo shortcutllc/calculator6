@@ -100,6 +100,7 @@ import { generateLineItems } from './StripeInvoiceButton';
 import type { InvoiceLineItem } from './InvoiceConfirmationModal';
 import InvoiceConfirmationModalV2 from './proposal/InvoiceConfirmationModalV2';
 import { holidayComboActive, holidayComboSavings, COMBINE_PCT } from '../../netlify/functions/lib/holiday-packages.js';
+import { openCoiSample, type CoiSampleFile } from '../services/coiSampleService';
 
 // ============================================================================
 // ProposalViewerV2 — internal/admin proposal viewer in the redesign-2026 visual
@@ -422,6 +423,27 @@ const ProposalViewerV2: React.FC = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [editedData, setEditedData] = useState<any>(null);
   const [displayData, setDisplayData] = useState<any>(null);
+  // The client's COI answer and any sample COI from their building, from the
+  // post-approval survey (proposal_survey_responses).
+  const [coiSurvey, setCoiSurvey] = useState<{ required: boolean | null; files: CoiSampleFile[] } | null>(null);
+  useEffect(() => {
+    if (!id) return;
+    let alive = true;
+    supabase
+      .from('proposal_survey_responses')
+      .select('coi_required, coi_sample_files')
+      .eq('proposal_id', id)
+      .maybeSingle()
+      .then(({ data }) => {
+        const row = data as { coi_required: boolean | null; coi_sample_files: CoiSampleFile[] | null } | null;
+        if (!alive || !row) return;
+        setCoiSurvey({
+          required: row.coi_required ?? null,
+          files: Array.isArray(row.coi_sample_files) ? row.coi_sample_files : [],
+        });
+      });
+    return () => { alive = false; };
+  }, [id]);
   const [originalData, setOriginalData] = useState<any>(null);
   const [showingOriginal, setShowingOriginal] = useState(false);
 
@@ -3738,6 +3760,58 @@ const ProposalViewerV2: React.FC = () => {
           </div>
         );
       })()}
+
+      {/* Sample COI from the client's building (post-approval survey). The
+          place to find the file: Slack's survey alert links here. */}
+      {coiSurvey?.required && (
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px 12px' }}>
+          <div
+            style={{
+              background: '#fff',
+              border: '1px solid rgba(0,0,0,0.08)',
+              borderLeft: `4px solid ${T.teal}`,
+              borderRadius: 12,
+              padding: '14px 18px',
+            }}
+          >
+            <Eyebrow color={T.navy}>COI required · sample from their building</Eyebrow>
+            {coiSurvey.files.length === 0 ? (
+              <p style={{ margin: '8px 0 0', fontFamily: T.fontD, fontSize: 15, color: T.navy }}>
+                They said a COI is required and didn't upload a sample. Ask them for the building's requirements.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
+                {coiSurvey.files.map((f) => (
+                  <div key={f.path} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: T.fontD, fontSize: 15, color: T.navy, minWidth: 0 }}>
+                      <FileText size={16} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => openCoiSample(f.path)}
+                      style={{
+                        flex: 'none',
+                        padding: '6px 14px',
+                        background: T.navy,
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 8,
+                        cursor: 'pointer',
+                        fontFamily: T.fontUi,
+                        fontWeight: 700,
+                        fontSize: 13,
+                      }}
+                    >
+                      Open
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ===== 2-col body grid ===== */}
       <section
