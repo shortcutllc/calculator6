@@ -13,7 +13,9 @@ import {
   MINDFULNESS_TYPES,
   isMindfulnessService,
   calculateServiceResults,
-  recalculateProposalSummary
+  recalculateProposalSummary,
+  conferenceRate,
+  applyConferenceRates
 } from './pricing-engine.js';
 import { applyServiceDefaults, normalizeDate, sortDates } from './proposal-assembler.js';
 import {
@@ -252,6 +254,10 @@ function handleAddService(proposalData, customization, proposalRecord, op) {
     location,
     date
   });
+  // On a conference it starts at the $165 conference rate unless a rate was given.
+  if (proposalData.eventType === 'conference' && op.service.hourlyRate === undefined) {
+    service.hourlyRate = conferenceRate(service.hourlyRate);
+  }
 
   // Calculate results
   const { totalAppointments, serviceCost, proRevenue } = calculateServiceResults(service);
@@ -1029,6 +1035,21 @@ function handleSetProposalField(proposalData, customization, proposalRecord, op)
     if (value === '' || value == null) value = undefined;
   }
 
+  // Turning a proposal into a conference, or back, moves its hourly services
+  // between $150 and the $165 conference rate, and puts the volume discount
+  // back on automatic: none for a conference, the date tiers for an office.
+  // A saved automatic discount looks the same as one staff set, so it can't
+  // carry over. The admin toggle does the same.
+  let rateNote = '';
+  if (field === 'eventType' && (proposalData.eventType === 'conference') !== (value === 'conference')) {
+    applyConferenceRates(proposalData, value === 'conference');
+    delete proposalData.isAutoRecurring;
+    delete proposalData.autoRecurringDiscount;
+    rateNote = value === 'conference'
+      ? ' ($150 hourly rates moved to $165, no automatic discount)'
+      : ' ($165 hourly rates moved back to $150, automatic discount)';
+  }
+
   if (value === undefined) {
     delete proposalData[field];
   } else {
@@ -1044,7 +1065,7 @@ function handleSetProposalField(proposalData, customization, proposalRecord, op)
 
   return {
     op: 'set_proposal_field',
-    description: `Set ${field} → ${value === undefined ? '(cleared)' : value}`
+    description: `Set ${field} → ${value === undefined ? '(cleared)' : value}${rateNote}`
   };
 }
 

@@ -996,10 +996,11 @@ export const recalculateServiceTotals = (proposalData: ProposalData): ProposalDa
     // Use manually set value
     autoRecurringDiscount = updatedData.autoRecurringDiscount;
   } else if (!hasManualRecurring && summaryShape(updatedData.services, updatedData.eventType).multiDay) {
-    // A conference or multi-day event gets a flat 10% (Will, 2026-10-21).
-    // Its days are usually TBD or close together, so the date count below
-    // would give it nothing, or 15% for a long one.
-    autoRecurringDiscount = 10;
+    // A conference or multi-day event gets no automatic discount: it is
+    // priced at the conference rate instead (utils/conferenceRate, Will
+    // 2026-11-02). Its days are one event, so the date count below doesn't
+    // apply either. Staff can still set a discount in the editor.
+    autoRecurringDiscount = undefined;
   } else if (uniqueDateCount >= 4 && !hasManualRecurring) {
     // Auto-calculate: 10% for 4-8 dates, 15% for 9+ dates
     autoRecurringDiscount = uniqueDateCount >= 9 ? 15 : 10;

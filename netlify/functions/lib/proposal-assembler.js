@@ -14,7 +14,8 @@ import {
   isMindfulnessService,
   isFlatPriceService,
   calculateServiceResults,
-  recalculateProposalSummary
+  recalculateProposalSummary,
+  conferenceRate
 } from './pricing-engine.js';
 
 import { getCLEStateConfig } from './cle-state-configs.js';
@@ -227,8 +228,17 @@ function buildProposalData(input) {
     throw new Error('At least one event is required');
   }
 
+  // A conference or multi-day event: its days are one event on the client
+  // view, its hourly services are priced at the $165 conference rate unless
+  // the request gives a rate, and it gets no automatic discount.
+  const conference = String(input.eventType || '').toLowerCase() === 'conference';
+
   // Apply defaults and build full service objects
-  const services = events.map(event => applyServiceDefaults(event));
+  const services = events.map(event => {
+    const service = applyServiceDefaults(event);
+    if (conference && event.hourlyRate === undefined) service.hourlyRate = conferenceRate(service.hourlyRate);
+    return service;
+  });
 
   // Group services by location → date
   const servicesByLocation = {};
@@ -295,6 +305,8 @@ function buildProposalData(input) {
   // A holiday package proposal (lib/holiday-packages.js): set before the
   // recalculation below, which applies its combine-and-save.
   if (input.holidayPackage) proposalData.holidayPackage = input.holidayPackage;
+  // Also before the recalculation, which reads it for the discount.
+  if (conference) proposalData.eventType = 'conference';
 
   // Determine CLE state if any CLE service is present
   const hasCLE = services.some(s => s.serviceType === 'mindfulness-cle');

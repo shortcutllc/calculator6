@@ -444,6 +444,35 @@ function isMultiDayEvent(proposalData) {
   return locations.length > 1 && locations.every((l) => /(?:^|[,·|–-]\s*|\s)day\s*(\d+)\s*$/i.test(l));
 }
 
+/** Conference and multi-day proposals: $165 per pro per hour for the hourly
+ *  services, no automatic discount (Will, 2026-11-02). Client twin:
+ *  src/utils/conferenceRate.ts. */
+const CONFERENCE_HOURLY_RATE = 165;
+const STANDARD_HOURLY_RATE = 150;
+
+/** One hourly rate for a proposal turning into a conference ($150 becomes
+ *  $165) or back ($165 becomes $150). Any other rate is one staff chose, and
+ *  fixed-price services have none, so both are kept. */
+function conferenceRate(rate, conference = true) {
+  if (conference) return rate === STANDARD_HOURLY_RATE ? CONFERENCE_HOURLY_RATE : rate;
+  return rate === CONFERENCE_HOURLY_RATE ? STANDARD_HOURLY_RATE : rate;
+}
+
+/** Moves every hourly service, and any guest-count option that carries its
+ *  own rate, by conferenceRate. In place; recalculateProposalSummary reprices. */
+function applyConferenceRates(proposalData, conference) {
+  for (const byDate of Object.values((proposalData && proposalData.services) || {})) {
+    for (const day of Object.values(byDate || {})) {
+      for (const service of (day && day.services) || []) {
+        if (typeof service.hourlyRate === 'number') service.hourlyRate = conferenceRate(service.hourlyRate, conference);
+        for (const option of service.pricingOptions || []) {
+          if (typeof option.hourlyRate === 'number') option.hourlyRate = conferenceRate(option.hourlyRate, conference);
+        }
+      }
+    }
+  }
+}
+
 function recalculateProposalSummary(proposalData) {
   const summary = {
     totalAppointments: 0,
@@ -568,9 +597,10 @@ function recalculateProposalSummary(proposalData) {
   } else if (hasManualAutoRecurring) {
     autoRecurringDiscount = proposalData.autoRecurringDiscount;
   } else if (!hasManualRecurring && isMultiDayEvent(proposalData)) {
-    // Conference or multi-day event: flat 10%, the same rule as the client
-    // viewer (src/utils/proposalGenerator.ts, proposal/summaryGroups.ts).
-    autoRecurringDiscount = 10;
+    // Conference or multi-day event: no automatic discount, it is priced at
+    // the conference rate instead. The same rule as the client viewer
+    // (src/utils/proposalGenerator.ts, proposal/summaryGroups.ts).
+    autoRecurringDiscount = undefined;
   } else if (uniqueDateCount >= 4 && !hasManualRecurring) {
     autoRecurringDiscount = uniqueDateCount >= 9 ? 15 : 10;
   }
@@ -719,5 +749,8 @@ export {
   isFlatPriceService,
   calculateRecurringDiscount,
   calculateServiceResults,
-  recalculateProposalSummary
+  recalculateProposalSummary,
+  CONFERENCE_HOURLY_RATE,
+  conferenceRate,
+  applyConferenceRates
 };

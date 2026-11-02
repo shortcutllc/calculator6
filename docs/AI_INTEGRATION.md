@@ -133,6 +133,8 @@ Reply (shortened):
                 "summary": { "totalAppointments": 24, "totalEventCost": 1200 } } }
 ```
 
+For a conference, trade show or other multi-day event, add `"eventType": "conference"` and name each day as its own location (`"LegalOps, Day 1"`, `"LegalOps, Day 2"`). The client view then lists the days as one event, and the hourly services are priced at $165 per Pro hour with no automatic discount. Leave `hourlyRate` out and the server sets it.
+
 ### Create a holiday package proposal
 
 The five packages on www.getshortcut.co/holiday, priced exactly as the page prices them: a 4 hour visit staffed for the headcount, $150 per Pro hour, headshots at $450 per photographer hour plus $25 per person, group classes at one flat price, and 10% off any visit with two or more services (hair + makeup counts as two). The client view shows the package, the 10%, and the free 30 minute class and holiday treat. `package` is `sleigh`, `grinch`, `styled`, `bright` or `custom` (or the package's name); Create Your Own takes `services`.

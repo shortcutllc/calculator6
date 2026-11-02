@@ -5,6 +5,7 @@ import { useProposal } from '../contexts/ProposalContext';
 import ProposalOptionsModal from './ProposalOptionsModal';
 import { Button } from './Button';
 import { prepareProposalFromCalculation, recalculateServiceTotals, retouchedPortraits } from '../utils/proposalGenerator';
+import { conferenceRate, withConferenceRates } from '../utils/conferenceRate';
 import HolidayPackagePicker, { HolidayChoice } from './HolidayPackagePicker';
 import { holidayPackageRecord } from '../../netlify/functions/lib/holiday-packages.js';
 import {
@@ -808,8 +809,11 @@ const Home: React.FC = () => {
       }
       // A conference's days read as one event on the client view
       // (proposal/summaryGroups): Day 1, Day 2... and no repeat-visit banner.
+      // Any service still at the standard $150 goes to the $165 conference
+      // rate, and a conference gets no automatic discount (utils/conferenceRate).
       if (eventTypeRef.current === 'conference') {
         (proposalData as any).eventType = 'conference';
+        Object.assign(proposalData, recalculateServiceTotals(withConferenceRates(proposalData, true)));
       }
       // A holiday package (HolidayPackagePicker): the proposal carries the
       // package's offer, and recalculating applies its combine-and-save.
@@ -875,10 +879,15 @@ const Home: React.FC = () => {
     setShowDashboard(true);
   };
 
+  // A conference's hourly services start at the $165 conference rate
+  // (utils/conferenceRate); staff can still type another.
+  const startingRate = (rate: number) => (eventTypeRef.current === 'conference' ? conferenceRate(rate) : rate);
+
   const showEventModalForLocation = (location: string) => {
     setCurrentLocation(location);
     setServices([{
       ...DEFAULT_SERVICE,
+      hourlyRate: startingRate(DEFAULT_SERVICE.hourlyRate),
       location: location,
       date: ''
     }]);
@@ -890,6 +899,7 @@ const Home: React.FC = () => {
 
     const newService: Service = {
       ...DEFAULT_SERVICE,
+      hourlyRate: startingRate(DEFAULT_SERVICE.hourlyRate),
       date: dateValue,
       location: currentLocation
     };
@@ -929,6 +939,7 @@ const Home: React.FC = () => {
         updatedServices[index] = {
           ...updatedServices[index],
           ...serviceDefaults,
+          ...(serviceDefaults ? { hourlyRate: startingRate(serviceDefaults.hourlyRate) } : {}),
           serviceType: updates.serviceType,
           date: updatedServices[index].date,
           location: updatedServices[index].location,

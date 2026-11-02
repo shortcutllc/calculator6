@@ -69,6 +69,7 @@ import {
   isMovementServiceType,
 } from '../utils/movementCatalog';
 import { parseLocalDate } from '../utils/dateHelpers';
+import { conferenceRate, withConferenceRates } from '../utils/conferenceRate';
 import { trackProposalChanges } from '../utils/changeTracker';
 import { ProposalChangeSet } from '../types/proposal';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -300,6 +301,14 @@ const SERVICE_DEFAULTS: Record<string, any> = {
   'stretch-mobility': movementDefault('stretch-mobility'),
   'dance-cardio': movementDefault('dance-cardio'),
   'strength-sculpt': movementDefault('strength-sculpt'),
+};
+
+/** A new service's defaults. On a conference its hourly rate starts at the
+ *  $165 conference rate (utils/conferenceRate). */
+const serviceDefaultsFor = (serviceType: string, data: any): any => {
+  const defaults = SERVICE_DEFAULTS[serviceType] || {};
+  if (data?.eventType !== 'conference' || typeof defaults.hourlyRate !== 'number') return defaults;
+  return { ...defaults, hourlyRate: conferenceRate(defaults.hourlyRate) };
 };
 
 const SERVICE_TYPE_OPTIONS: Array<{ value: string; label: string }> = [
@@ -859,13 +868,20 @@ const ProposalViewerV2: React.FC = () => {
   // Toggle "Conference or multi-day event" (data.eventType = 'conference').
   // The client view then treats the days as one event: the pricing summary
   // lists Day 1, Day 2..., option cards say days, and the repeat-visit
-  // discount banner is hidden (proposal/summaryGroups).
+  // discount banner is hidden (proposal/summaryGroups). Hourly services move
+  // between $150 and the $165 conference rate (utils/conferenceRate), and the
+  // volume discount goes back to automatic: none for a conference, the date
+  // tiers for an office. A saved automatic discount looks the same as one
+  // staff set, so it can't carry over; staff can set one again below.
   const handleSetEventType = (conference: boolean) => {
     if (!editedData || !isEditing) return;
-    const updated: any = { ...editedData };
+    const updated: any = withConferenceRates({ ...editedData }, conference);
     updated.eventType = conference ? 'conference' : undefined;
-    setEditedData({ ...updated });
-    setDisplayData({ ...updated });
+    delete updated.isAutoRecurring;
+    delete updated.autoRecurringDiscount;
+    const recalc = recalculateServiceTotals(updated);
+    setEditedData({ ...recalc, customization: currentProposal?.customization });
+    setDisplayData({ ...recalc, customization: currentProposal?.customization });
   };
 
   const handleSetOptionsSelectedDefault = (
@@ -912,7 +928,7 @@ const ProposalViewerV2: React.FC = () => {
 
   const handleServiceTypeChange = (loc: string, date: string, idx: number, newType: string) => {
     if (!editedData || !isEditing) return;
-    const defaults = SERVICE_DEFAULTS[newType] || {};
+    const defaults = serviceDefaultsFor(newType, editedData);
     const current = editedData.services[loc][date].services[idx];
     const next: any = {
       ...current,
@@ -1051,7 +1067,7 @@ const ProposalViewerV2: React.FC = () => {
     if (!editedData || !isEditing) return;
     const next: any = {
       serviceType: 'massage',
-      ...SERVICE_DEFAULTS.massage,
+      ...serviceDefaultsFor('massage', editedData),
       date,
       location: loc,
       discountPercent: 0,
@@ -1154,7 +1170,7 @@ const ProposalViewerV2: React.FC = () => {
     }
     const next: any = {
       serviceType: 'massage',
-      ...SERVICE_DEFAULTS.massage,
+      ...serviceDefaultsFor('massage', editedData),
       date: key,
       location: loc,
       discountPercent: 0,
@@ -2135,7 +2151,7 @@ const ProposalViewerV2: React.FC = () => {
       Object.entries(ld).forEach(([date, dd]: [string, any]) => {
         (dd.services || []).forEach((s: any, idx: number) => {
           if (s.serviceType === bulkSwapFrom) {
-            const defaults = SERVICE_DEFAULTS[bulkSwapTo] || {};
+            const defaults = serviceDefaultsFor(bulkSwapTo, updated);
             const next: any = {
               ...s,
               serviceType: bulkSwapTo,
@@ -3588,7 +3604,7 @@ const ProposalViewerV2: React.FC = () => {
                   lineHeight: 1.45,
                 }}
               >
-                Treats the days as <strong>one event</strong> on the client view: the pricing summary lists each day, option cards say days instead of visits, and the banner about booking more events a year is hidden. Leave off for a regular office client.
+                Treats the days as <strong>one event</strong> on the client view: the pricing summary lists each day, option cards say days instead of visits, and the banner about booking more events a year is hidden. Hourly services move from $150 to <strong>$165 per pro hour</strong>, with no automatic discount. Leave off for a regular office client.
               </div>
             </div>
           </div>

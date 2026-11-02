@@ -749,11 +749,9 @@ async function handleCreateProposal(params, supabase, userId) {
     customization: { ...(params.customization || {}), ...contactCustomization },
   };
 
+  // params.eventType 'conference' is handled by the assembler: Day 1, Day 2...
+  // on the client view and the $165 conference rate.
   const { proposalData, customization, proposalType } = assembleProposal(paramsWithCustomization);
-  // A conference's days read as one event on the client view (Day 1, Day 2...).
-  if (String(params.eventType || '').toLowerCase() === 'conference') {
-    proposalData.eventType = 'conference';
-  }
 
   // Handle logo
   if (params.clientLogoUrl) {

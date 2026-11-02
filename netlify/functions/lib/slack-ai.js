@@ -159,6 +159,7 @@ For CLE proposals, set cleState to the state where accreditation applies (NY, PA
 - 4-8 occurrences (quarterly): 10% discount
 - 9+ occurrences (monthly): 15% discount
 Discounts apply to the service cost.
+- A conference or multi-day event gets NO automatic discount, however many days it runs. It is priced at the conference rate instead (see "Conference or multi-day event").
 
 ## Holiday Packages (holiday 2026)
 The five packages on www.getshortcut.co/holiday, as proposals. When someone asks for a holiday proposal or names a package, use these, never create_proposal:
@@ -301,8 +302,9 @@ The redesigned client viewer lets staff shape how the proposal lands for the pro
 
 ### Conference or multi-day event
 - A conference, trade show or summit is several days of ONE event, not repeat office visits. Mark it so the client view lists Day 1, Day 2..., the option cards say days instead of visits, and the "commit to 4 events a year" banner is hidden.
+- Price: $165 per pro per hour for the hourly services (massage, facials, nails, hair, makeup, assisted stretch), with no automatic discount (Will, 2026-11-02). The server sets it when the proposal is a conference, so don't pass hourlyRate. Headshots and classes keep their own prices. Staff can still set a discount or a different rate on request.
 - When creating: pass \`eventType: "conference"\` to create_proposal, and name each day as its own location: "<Event name>, Day 1", "<Event name>, Day 2".
-- On an existing proposal: \`{ op: "set_proposal_field", field: "eventType", value: "conference" }\`. Value "office" (or empty) switches it back to a regular office proposal.
+- On an existing proposal: \`{ op: "set_proposal_field", field: "eventType", value: "conference" }\`. Value "office" (or empty) switches it back to a regular office proposal. Switching moves $150 hourly rates to $165, or $165 back to $150; other rates stay as they are.
 - If the rep says conference, expo, summit, offsite program, booth or "multi-day", it is a conference. A client's office on several dates is still "office".
 
 ### Account team override
@@ -394,7 +396,7 @@ const TOOLS = [
           }
         },
         notes: { type: 'string', description: 'Internal notes about this proposal' },
-        eventType: { type: 'string', enum: ['office', 'conference'], description: 'Use "conference" for a conference, trade show, summit or any multi-day event where the days are one program (the client view then lists Day 1, Day 2..., says days instead of visits, and hides the book-more-events-a-year banner). For a conference, name each day as its own location: "<Event name>, Day 1", "<Event name>, Day 2". Default "office" for services at a client\'s office, once or recurring.' },
+        eventType: { type: 'string', enum: ['office', 'conference'], description: 'Use "conference" for a conference, trade show, summit or any multi-day event where the days are one program (the client view then lists Day 1, Day 2..., says days instead of visits, and hides the book-more-events-a-year banner). A conference is priced at $165 per pro hour for hourly services with no automatic discount; the server sets the rate, so leave hourlyRate out. For a conference, name each day as its own location: "<Event name>, Day 1", "<Event name>, Day 2". Default "office" for services at a client\'s office, once or recurring.' },
         cleState: { type: 'string', enum: ['NY', 'PA', 'CA', 'TX', 'FL'], description: 'For CLE proposals: which state\'s CLE accreditation applies. Inferred from office address if not set. Defaults to NY.' }
       },
       required: ['clientName', 'events']

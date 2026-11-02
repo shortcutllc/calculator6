@@ -370,11 +370,11 @@ export function resolveVolumeDiscount(data: any): number | null {
   if (data.isAutoRecurring === false) return 0;
   const v = data.autoRecurringDiscount;
   if (typeof v !== 'number' || !Number.isFinite(v)) {
-    // No staff opinion. A conference or multi-day event gets a flat 10%
-    // (Will, 2026-10-21): its days are one event, so the 4+/9+ tiers, which
-    // count each service-day as an event, would hand a three-day,
-    // three-service conference 15%. Everything else uses the auto tiers.
-    return summaryShape(data.services, data.eventType).multiDay ? 10 : null;
+    // No staff opinion. A conference or multi-day event gets no discount: it
+    // is priced at the conference rate instead (utils/conferenceRate, Will
+    // 2026-11-02), and the 4+/9+ tiers, which count each service-day as an
+    // event, don't apply to one event. Everything else uses the auto tiers.
+    return summaryShape(data.services, data.eventType).multiDay ? 0 : null;
   }
   // CRITICAL: recalculateServiceTotals BAKES the staff discount into each
   // service cost and records the delta as autoRecurringSavings. The hook sums
