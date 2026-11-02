@@ -69,7 +69,7 @@ for (const p of www.PACKS) {
   if (!o) continue;
   same(`${p.id} name`, p.name, o.name);
   same(`${p.id} inside`, p.inside, o.inside);
-  same(`${p.id} lines`, p.svcs.map((v) => [v[3], v[1], v[4], v[5] === 'group']), o.lines.map((l) => [l.key, l.label, l.minutes, !!l.group]));
+  same(`${p.id} lines`, p.svcs.map((v) => [v[3], v[1], v[4], v[5] === 'group']), o.lines.filter((l) => !l.proposalOnly).map((l) => [l.key, l.label, l.minutes, !!l.group]));
 }
 
 /* Prices. A ready-made package prices every line; a Create Your Own set is
@@ -113,6 +113,24 @@ for (const g of HEADCOUNTS) {
         const t = proposalTotals(input);
         if (t.server !== w.total) fail(`${label}: Pro's engine ${t.server}, the page ${w.total}`);
         if (t.client !== w.total) fail(`${label}: client engine ${t.client}, the page ${w.total}`);
+        checked++;
+      }
+    }
+  }
+}
+
+/* Proposal-only lines (not on the page): the module and both proposal
+   engines must still agree, 10% included. */
+for (const p of ours.HOLIDAY_PACKAGES) {
+  for (const l of p.lines.filter((x) => x.proposalOnly)) {
+    for (const g of HEADCOUNTS) {
+      for (const set of [[l.key], ['massage', l.key]]) {
+        const input = { packageId: p.id, headcount: g, services: set };
+        const q = ours.quoteHolidayPackage(input);
+        const t = proposalTotals(input);
+        const label = `${p.name} [${set.join(', ')}], ${g} people (proposal only)`;
+        if (t.server !== q.total) fail(`${label}: Pro's engine ${t.server}, the module ${q.total}`);
+        if (t.client !== q.total) fail(`${label}: client engine ${t.client}, the module ${q.total}`);
         checked++;
       }
     }

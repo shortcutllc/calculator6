@@ -8,6 +8,8 @@ const getServiceDisplayName = (serviceType: string): string => {
   switch (serviceType.toLowerCase()) {
     case 'hair-makeup':
       return 'Hair + Makeup';
+    case 'beard-trim':
+      return 'Beard Trim';
     case 'headshot-hair-makeup':
       return 'Hair + Makeup for Headshots';
     case 'headshot':

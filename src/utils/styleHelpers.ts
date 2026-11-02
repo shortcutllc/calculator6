@@ -6,6 +6,7 @@ export const getServiceBorderClass = (serviceType: string): string => {
     case 'nails':
       return 'border-l-[5px] border-l-shortcut-pink';
     case 'hair':
+    case 'beard-trim':
       return 'border-l-[5px] border-l-shortcut-service-yellow';
     case 'facial':
       return 'border-l-[5px] border-l-shortcut-pink';

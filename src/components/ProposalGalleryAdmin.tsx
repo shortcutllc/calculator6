@@ -55,6 +55,7 @@ const ALL_SERVICE_TYPES = [
   'massage',
   'facial',
   'hair',
+  'beard-trim',
   'nails',
   'makeup',
   'headshot',

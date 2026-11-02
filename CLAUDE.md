@@ -232,6 +232,7 @@ Teammates connect their own AI (Muse, Claude, ChatGPT, Cursor, scripts) with a p
 - A proposal stores `data.holidayPackage`, a snapshot of the package and its offer. Combine-and-save (10% of each visit with 2+ services; hair + makeup counts as two) is a **summary line, not baked into service prices**, so the viewer can drop it live when a Create Your Own service is switched off. It is computed in `applyHolidayCombo` (pricing-engine.js and proposalGenerator.ts), `useServiceSelections`, `OptionsTabs`, the staff summary in ProposalViewerV2, and invoices add it as a credit line. A baked volume discount wins instead, never both.
 - Package headshots are $450/hr plus $25 per PERSON (`retouchCount`); every other headshot stays on the $400 basic tier (Will, 2026-10-28). Ready-made packages hide the client's switches; Create Your Own keeps them.
 - **The www page is the source.** Change `frontend/data/holiday-data.js` in the shortcut repo first, then this module, then run `node scripts/check-holiday-parity.mjs`, which prices every package with the page's file and both proposal engines.
+- **Beard trims are proposal only** (Will, 2026-11-02): a Create Your Own line marked `proposalOnly` (15 minute appointments, service type `beard-trim`) that the page does not list. It uses the same math and the same 10%; the parity check skips it in the page comparison and checks it against both proposal engines instead.
 
 ---
 

@@ -21,6 +21,7 @@ export const SERVICE_DISPLAY: Record<string, string> = {
   facials: 'Facial',
   nails: 'Nails',
   hair: 'Hair',
+  'beard-trim': 'Beard Trim',
   'hair-makeup': 'Hair + Makeup',
   'headshot-hair-makeup': 'Hair + Makeup for Headshots',
   makeup: 'Makeup',
@@ -49,6 +50,8 @@ export const SERVICE_DESC: Record<string, string> = {
     'Experience manicures and pedicures that blend relaxation with elegance, offering a pampered escape that leaves employees refreshed and polished.',
   hair:
     'Our office hair services menu offers precision cuts, professional styling, and grooming essentials, designed to keep employees looking sharp and feeling confident right at the workplace.',
+  // The Coordinator's own Beard Trim description (EventService e_07).
+  'beard-trim': 'Shape and even your beard and mustache.',
   'hair-makeup':
     'Enjoy a personalized makeup look, from natural to glamorous, paired with a quick hair touch-up using hot tools for a polished finish. Perfect for any occasion.',
   'headshot-hair-makeup':
@@ -117,6 +120,7 @@ export const SERVICE_CHIP_COLORS: Record<string, { bg: string; color: string }> 
   facials: { bg: 'rgba(255,176,136,.30)', color: '#9F4517' },
   nails: { bg: 'rgba(254,220,100,.40)', color: '#7A5400' },
   hair: { bg: 'rgba(201,232,255,.50)', color: '#1A4F7A' },
+  'beard-trim': { bg: 'rgba(201,232,255,.50)', color: '#1A4F7A' },
   'hair-makeup': { bg: 'rgba(251,194,235,.40)', color: '#7A2E6B' },
   'headshot-hair-makeup': { bg: 'rgba(251,194,235,.40)', color: '#7A2E6B' },
   makeup: { bg: 'rgba(251,194,235,.40)', color: '#7A2E6B' },
@@ -152,6 +156,7 @@ export const SERVICE_GRAPHIC: Record<
   facials: { bg: 'linear-gradient(135deg,#FFE4D6,#FFB088)', glyph: 'Sparkles', accent: '#7A2E0F' },
   nails: { bg: 'linear-gradient(135deg,#FEDC64,#EFA31E)', glyph: 'Sparkles', accent: '#5A3700' },
   hair: { bg: 'linear-gradient(135deg,#C9E8FF,#5A91C2)', glyph: 'Sparkles', accent: '#fff' },
+  'beard-trim': { bg: 'linear-gradient(135deg,#C9E8FF,#5A91C2)', glyph: 'Sparkles', accent: '#fff' },
   'hair-makeup': { bg: 'linear-gradient(135deg,#FBC2EB,#A18CD1)', glyph: 'Sparkles', accent: '#fff' },
   'headshot-hair-makeup': {
     bg: 'linear-gradient(135deg,#9EFAFF,#A18CD1)',
@@ -184,6 +189,8 @@ export const SERVICE_IMAGE_PATH: Record<string, string> = {
   facial: '/Facials Slider.png',
   facials: '/Facials Slider.png',
   hair: '/Hair Slider.png',
+  // The Coordinator's Beard Trim photo, cut out onto the Hair card's yellow.
+  'beard-trim': '/Beard Trim Slider.png',
   nails: '/Nails Slider.png',
   mindfulness: '/Mindfulness Slider.png',
   'mindfulness-soles': '/Mindfulness Slider.png',

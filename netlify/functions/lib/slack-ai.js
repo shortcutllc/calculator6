@@ -51,6 +51,7 @@ Be concise, calm, and practical. Format your responses for easy reading in Slack
 1. *NEVER claim you did something unless a tool returned a success result.* If a tool returned an error, say it failed and what went wrong. If you didn't call a tool, don't say the action happened.
 2. *ALWAYS use the EXACT URL returned by a tool.* Never construct, rewrite, guess, or shorten URLs. Copy the "url" field from the tool result verbatim. This applies to proposal URLs, landing page URLs, and all other links. If you don't have a URL from a tool result, say you don't have the link — never make one up.
 3. *ALWAYS confirm details with the user BEFORE creating a proposal.* Summarize what you're about to build and ask "Want me to go ahead?" UNLESS they gave you every detail (service type, hours, pros, date, location).
+3a. *Before Christmas, ask whether it should be a holiday proposal.* When someone asks for a proposal for an event that is not a conference or multi-day event, and its date is before December 25 (or not set yet), ask before you build it: "Should this be a holiday proposal? It gives them 10% off two or more services, a free 30 minute mind or body class and a holiday treat." Skip the question only when they already said holiday or said standard. Yes means the holiday tools (see "Holiday Packages"); no means create_proposal. Never ask it for a conference.
 4. *After editing a proposal, check the "verifiedState" in the tool result.* Report what you see in verifiedState as the confirmed current state — not what you assumed would happen.
 5. *ONLY report numbers, services, and totals that appear in the tool result.* Never calculate or assume costs on your own — always use the summary/verifiedState data from the tool.
 5a. *VERIFY before claiming.* When you pass customNote or clientLogoUrl to create_proposal or edit_proposal, the tool returns a verifiedState. CHECK IT before reporting success:
@@ -100,14 +101,15 @@ When a user mentions a client:
 ### Standard Services
 | Service | Appt Time | Default Hours | Default Pros | Hourly Rate | Pro Rate | Early Arrival |
 |---------|-----------|---------------|--------------|-------------|----------|---------------|
-| massage | 20 min | 4 hrs | 2 | $135/hr | $50/hr | $25 |
-| facial | 20 min | 4 hrs | 2 | $135/hr | $50/hr | $25 |
-| nails | 30 min | 6 hrs | 2 | $135/hr | $50/hr | $25 |
-| nails (hand massage) | 35 min | 6 hrs | 2 | $135/hr | $50/hr | $25 |
-| hair | 30 min | 6 hrs | 2 | $135/hr | $50/hr | $25 |
-| makeup | 30 min | 4 hrs | 2 | $135/hr | $50/hr | $25 |
-| hair-makeup | 20 min | 4 hrs | 2 | $135/hr | $50/hr | $25 |
-| headshot-hair-makeup | 20 min | 4 hrs | 2 | $135/hr | $50/hr | $25 |
+| massage | 20 min | 4 hrs | 2 | $150/hr | $50/hr | $25 |
+| facial | 20 min | 4 hrs | 2 | $150/hr | $50/hr | $25 |
+| nails | 30 min | 6 hrs | 2 | $150/hr | $50/hr | $25 |
+| nails (hand massage) | 35 min | 6 hrs | 2 | $150/hr | $50/hr | $25 |
+| hair | 30 min | 6 hrs | 2 | $150/hr | $50/hr | $25 |
+| beard-trim | 15 min | 6 hrs | 2 | $150/hr | $50/hr | $25 |
+| makeup | 30 min | 4 hrs | 2 | $150/hr | $50/hr | $25 |
+| hair-makeup | 20 min | 4 hrs | 2 | $150/hr | $50/hr | $25 |
+| headshot-hair-makeup | 20 min | 4 hrs | 2 | $150/hr | $50/hr | $25 |
 
 ### Massage Types
 Massage services have an optional massageType field: "chair", "table", or "massage" (general).
@@ -167,9 +169,10 @@ The five packages on www.getshortcut.co/holiday, as proposals. When someone asks
 - create_holiday_proposal: builds the proposal as a draft and returns its link. It needs the client, the package, the headcount, the date and the location (a short locationName plus officeAddress). Ask for anything missing, say what you are about to create, and wait for an OK.
 - On an existing proposal, edit_proposal with op set_holiday_package switches the package or re-staffs it for a new headcount.
 
-The packages: Sleigh the Stress (chair massage + group meditation), Resting Grinch Face (hair + makeup), Tis the Season to Be Styled (hair + manicures), Merry and Bright (headshots + hair and makeup touch-up), and Create Your Own Holiday Magic (any of: massage, hair, nails, facials, headshots, assisted stretch, mindfulness, sound bath, yoga, strength & sculpt, dance cardio, somatic movement, passed as services).
+The packages: Sleigh the Stress (chair massage + group meditation), Resting Grinch Face (hair + makeup), Tis the Season to Be Styled (hair + manicures), Merry and Bright (headshots + hair and makeup touch-up), and Create Your Own Holiday Magic (any of: massage, hair, beard trims, nails, facials, headshots, assisted stretch, mindfulness, sound bath, yoga, strength & sculpt, dance cardio, somatic movement, passed as services).
 The tools do the math the page does: a 4 hour visit staffed for the headcount, $150 per Pro hour, headshots at $450 per photographer hour plus $25 per person, and group classes at one flat price (30 minutes unless classMinutes is 60). Two or more services in one visit save 10%, and hair + makeup counts as two. Every holiday booking also gets a free 30 minute group mind or body class, a $1,250 value, on site or virtual, to use by March 2027, and a special holiday treat. The proposal shows all of that to the client by itself.
 Ready-made packages are fixed sets, so the client cannot switch a service off. Create Your Own keeps the switches, and below two services the 10% goes away.
+Beard trims are their own service, not hair: 15 minute appointments with a barber (serviceType beard-trim). In Create Your Own pass "beard trims". The holiday page does not list them, but a holiday proposal can include them at the same $150 per Pro hour, and they count toward the 10%.
 Never add the free class as a service, never set a discount on holiday services (the 10% is automatic), and never hand-build a package with create_proposal: the headshot rate, the retouching and the 10% would not match the page.
 
 ## Locations
@@ -355,7 +358,7 @@ const SYSTEM_PROMPT = [
 const TOOLS = [
   {
     name: 'create_proposal',
-    description: 'Create a new wellness service proposal for a client. Returns the proposal ID, URL, and cost summary. When the rep names a specific contact ("for Anna Maria at Bank of Princeton"), CALL lookup_lead FIRST to resolve their email, title, company URL, and any personal-note context, then pass that info through contactName + contactEmail (and clientLogoUrl via search_logo on the resolved company domain). Otherwise the proposal won\'t address them by name and you\'ll miss the lead\'s context.',
+    description: 'Create a new wellness service proposal for a client. Returns the proposal ID, URL, and cost summary. When the rep names a specific contact ("for Anna Maria at Bank of Princeton"), CALL lookup_lead FIRST to resolve their email, title, company URL, and any personal-note context, then pass that info through contactName + contactEmail (and clientLogoUrl via search_logo on the resolved company domain). Otherwise the proposal won\'t address them by name and you\'ll miss the lead\'s context. Before Christmas (December 25), for anything but a conference, ask first whether it should be a holiday package proposal (create_holiday_proposal) unless the rep already said; see critical rule 3a.',
     input_schema: {
       type: 'object',
       properties: {
@@ -372,7 +375,7 @@ const TOOLS = [
           items: {
             type: 'object',
             properties: {
-              serviceType: { type: 'string', enum: ['massage', 'facial', 'nails', 'hair', 'makeup', 'hair-makeup', 'headshot-hair-makeup', 'headshot', 'mindfulness', 'mindfulness-soles', 'mindfulness-movement', 'mindfulness-pro', 'mindfulness-cle', 'mindfulness-pro-reactivity'], description: 'Service type. For CLE mindfulness use "mindfulness-cle". For soles of the feet use "mindfulness-soles".' },
+              serviceType: { type: 'string', enum: ['massage', 'facial', 'nails', 'hair', 'beard-trim', 'makeup', 'hair-makeup', 'headshot-hair-makeup', 'headshot', 'mindfulness', 'mindfulness-soles', 'mindfulness-movement', 'mindfulness-pro', 'mindfulness-cle', 'mindfulness-pro-reactivity'], description: 'Service type. For CLE mindfulness use "mindfulness-cle". For soles of the feet use "mindfulness-soles".' },
               massageType: { type: 'string', enum: ['chair', 'table', 'massage'], description: 'For massage services only: chair, table, or general massage' },
               nailsType: { type: 'string', enum: ['nails', 'nails-hand-massage'], description: 'For nails services only: classic nails (30 min) or nails + hand massages (35 min)' },
               headshotTier: { type: 'string', enum: ['basic', 'premium', 'executive'], description: 'For headshot services only: basic ($400/hr), premium ($500/hr), executive ($600/hr)' },
@@ -410,7 +413,7 @@ const TOOLS = [
       properties: {
         package: { type: 'string', description: 'The holiday package, by id or name: sleigh (Sleigh the Stress: chair massage + group meditation), grinch (Resting Grinch Face: hair + makeup), styled (Tis the Season to Be Styled: hair + manicures), bright (Merry and Bright: headshots + hair and makeup touch-up), custom (Create Your Own Holiday Magic: pass services).' },
         headcount: { type: 'number', description: 'How many people the visit is for. The tool staffs the 4 hour visit for them.' },
-        services: { type: 'array', items: { type: 'string' }, description: 'Create Your Own only: the services, by plain name. Any of: massage, hair, nails, facials, headshots, assisted stretch, mindfulness, sound bath, yoga, strength & sculpt, dance cardio, somatic movement.' },
+        services: { type: 'array', items: { type: 'string' }, description: 'Create Your Own only: the services, by plain name. Any of: massage, hair, beard trims, nails, facials, headshots, assisted stretch, mindfulness, sound bath, yoga, strength & sculpt, dance cardio, somatic movement.' },
         classMinutes: { type: 'number', enum: [30, 60], description: 'Length of the group class in the package (meditation, sound bath, yoga and the other classes): 30 (default) or 60.' },
       },
       required: ['package', 'headcount']
@@ -429,7 +432,7 @@ const TOOLS = [
         customNote: { type: 'string', description: 'A short personal intro note at the top of the proposal, grounded in real context. Optional.' },
         package: { type: 'string', description: 'The holiday package, by id or name: sleigh (Sleigh the Stress: chair massage + group meditation), grinch (Resting Grinch Face: hair + makeup), styled (Tis the Season to Be Styled: hair + manicures), bright (Merry and Bright: headshots + hair and makeup touch-up), custom (Create Your Own Holiday Magic: pass services).' },
         headcount: { type: 'number', description: 'How many people the visit is for. The tool staffs the 4 hour visit for them.' },
-        services: { type: 'array', items: { type: 'string' }, description: 'Create Your Own only: the services, by plain name. Any of: massage, hair, nails, facials, headshots, assisted stretch, mindfulness, sound bath, yoga, strength & sculpt, dance cardio, somatic movement.' },
+        services: { type: 'array', items: { type: 'string' }, description: 'Create Your Own only: the services, by plain name. Any of: massage, hair, beard trims, nails, facials, headshots, assisted stretch, mindfulness, sound bath, yoga, strength & sculpt, dance cardio, somatic movement.' },
         classMinutes: { type: 'number', enum: [30, 60], description: 'Length of the group class in the package (meditation, sound bath, yoga and the other classes): 30 (default) or 60.' },
         date: { type: 'string', description: 'The visit date, YYYY-MM-DD, or "TBD".' },
         locationName: { type: 'string', description: 'Short location label, like "NYC" or "Main Office". Never a street address.' },
@@ -512,7 +515,7 @@ const TOOLS = [
     input_schema: {
       type: 'object',
       properties: {
-        serviceType: { type: 'string', enum: ['massage', 'facial', 'nails', 'hair', 'makeup', 'hair-makeup', 'headshot-hair-makeup', 'headshot'] },
+        serviceType: { type: 'string', enum: ['massage', 'facial', 'nails', 'hair', 'beard-trim', 'makeup', 'hair-makeup', 'headshot-hair-makeup', 'headshot'] },
         targetAppointments: { type: 'integer', description: 'Desired number of appointments' }
       },
       required: ['serviceType', 'targetAppointments']

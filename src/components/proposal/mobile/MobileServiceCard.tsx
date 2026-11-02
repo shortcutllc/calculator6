@@ -31,6 +31,7 @@ const DOT: Record<string, string> = {
   facials: 'var(--sc-pink)',
   nails: 'var(--sc-pink)',
   hair: 'var(--sc-yellow)',
+  'beard-trim': 'var(--sc-yellow)',
   // 2026 movement & sound services.
   reiki: 'var(--sc-pink)',
   'crystal-sound-bath': 'var(--sc-aqua)',

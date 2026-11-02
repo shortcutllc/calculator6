@@ -31,6 +31,7 @@ export function formatServiceType(type: string): string {
     'nails': 'Manicure',
     'nails-hand-massage': 'Nails & Hand Massage',
     'hair': 'Hair & Styling',
+    'beard-trim': 'Beard Trims',
     'blowout': 'Blowout & Styling',
     'grooming': 'Grooming',
     'facials': 'Facials',

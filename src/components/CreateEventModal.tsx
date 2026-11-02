@@ -147,6 +147,7 @@ const PROPOSAL_TO_COORDINATOR_TYPE: Record<string, string> = {
   'table-massage': 'Massage',
   'facial': 'Beauty',
   'hair': 'Hair',
+  'beard-trim': 'Hair',
   'nails': 'Nails',
   'nails-hand-massage': 'Nails',
   'headshot': 'Photo',
@@ -161,6 +162,7 @@ const DEFAULT_SERVICE_MATCH: Record<string, string> = {
   'table-massage': 'm_04',    // Table Massage
   'facial': 'beauty_06',      // Facial
   'hair': 'e_01',             // Haircut
+  'beard-trim': 'e_07',       // Beard Trim
   'nails': 'mani_01',         // Classic Manicure
   'nails-hand-massage': 'nails_handmassage_01',
   'headshot': 'headshot_04',  // Headshot Only

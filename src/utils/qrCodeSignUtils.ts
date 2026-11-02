@@ -77,6 +77,7 @@ export const mapProposalServiceToQRType = (proposalType: string): ServiceType =>
     'chair-massage': 'massage',
     'table-massage': 'massage',
     'hair': 'hair-beauty',
+    'beard-trim': 'hair-beauty',
     'blowout': 'hair-beauty',
     'grooming': 'hair-beauty',
     'headshots': 'headshot',

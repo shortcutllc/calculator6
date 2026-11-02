@@ -9,6 +9,7 @@ const SERVICE_DISPLAY_NAMES: Record<string, string> = {
   massage: 'Chair Massage',
   facial: 'Facial',
   hair: 'Hair Services',
+  'beard-trim': 'Beard Trims',
   nails: 'Nail Services',
   makeup: 'Makeup Services',
   headshot: 'Corporate Headshots',

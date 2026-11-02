@@ -393,6 +393,69 @@ export const SERVICE_CONTENT: Record<string, ServiceSectionContent> = {
     ],
   },
 
+  // Beard trims (Will, 2026-11-02): 15 minute barber appointments. The card's
+  // one-line description is the Coordinator's own Beard Trim copy (e_07).
+  'beard-trim': {
+    label: 'Beard Trim',
+    whyShortcut: [
+      {
+        title: 'Licensed Barbers',
+        description:
+          'All barbers are licensed, insured, and approved for access to any office building.',
+      },
+      {
+        title: 'Premium Products',
+        description: 'We use only brand-name, professional-grade grooming products.',
+      },
+      {
+        title: 'Clean & Pristine',
+        description:
+          'Tools are sanitized between appointments, and we leave your space in pristine condition.',
+      },
+    ],
+    benefitsHeading: 'Employee Benefits',
+    benefits: [
+      {
+        iconName: 'Clock',
+        title: '15 Minutes',
+        description:
+          'Each trim is a 15 minute appointment, so people step out between meetings and are back at their desks right after.',
+      },
+      {
+        iconName: 'Sparkles',
+        title: 'Event-Ready',
+        description:
+          'People walk into a client meeting, a team photo, or the holiday party with a clean, even beard.',
+      },
+      {
+        iconName: 'Users',
+        title: 'No Barbershop Trip',
+        description:
+          'The barber comes to the office, so nobody has to fit a trim into a lunch break or a weekend.',
+      },
+    ],
+    whatsIncludedHeading: "What's Included",
+    whatsIncluded: [
+      {
+        iconName: 'Sparkles',
+        title: 'Beard Trim',
+        description: 'Beard and mustache shaped and evened',
+      },
+      {
+        iconName: 'Clock',
+        title: '15 Minute Appointments',
+        description: 'Each person books a time ahead',
+      },
+    ],
+    featuresHeading: 'Every beard trim event comes with:',
+    features: [
+      'Licensed, insured barbers',
+      'Premium grooming products',
+      'Sanitation between clients',
+      'Space left pristine',
+    ],
+  },
+
   'hair-makeup': {
     label: 'Hair + Makeup',
     whyShortcut: [

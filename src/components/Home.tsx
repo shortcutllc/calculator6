@@ -170,6 +170,15 @@ const SERVICE_DEFAULTS = {
     earlyArrival: 25,
     retouchingCost: 0
   },
+  'beard-trim': {
+    appTime: 15,
+    totalHours: 6,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 150,
+    earlyArrival: 25,
+    retouchingCost: 0
+  },
   nails: {
     appTime: 30,
     totalHours: 6,
@@ -1695,6 +1704,7 @@ const Home: React.FC = () => {
                         <option value="massage">Massage</option>
                         <option value="facial">Facial</option>
                         <option value="hair">Hair</option>
+                        <option value="beard-trim">Beard Trim</option>
                         <option value="nails">Nails</option>
                         <option value="makeup">Makeup</option>
                         <option value="headshot">Headshots</option>

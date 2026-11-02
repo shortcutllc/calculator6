@@ -25,6 +25,10 @@
  *
  * The basic headshot tier stays $400 for every other proposal (Will,
  * 2026-10-28); only holiday packages use the page's $450.
+ *
+ * PROPOSAL-ONLY LINES. A line marked proposalOnly is not on the page (beard
+ * trims, Will 2026-11-02). It prices with the same math, takes the same 10%,
+ * and the parity check leaves it out of the page comparison.
  */
 
 export const HOLIDAY_SEASON = '2026';
@@ -56,6 +60,7 @@ const APPOINTMENT = {
   massage: { serviceType: 'massage', massageType: 'chair' },
   'hair-makeup': { serviceType: 'hair-makeup' },
   hair: { serviceType: 'hair' },
+  'beard-trim': { serviceType: 'beard-trim' },
   nails: { serviceType: 'nails', nailsType: 'nails' },
   facials: { serviceType: 'facial' },
   headshots: { serviceType: 'headshot' },
@@ -101,7 +106,7 @@ GROUP.mindfulness = GROUP.meditation;
 
 /**
  * The packages, in the page's order. A line is { key, label, minutes,
- * group? }: `key` is the page's builder key, `minutes` the appointment
+ * group?, proposalOnly? }: `key` is the page's builder key, `minutes` the appointment
  * length (group classes default to 30 and can be 60).
  */
 export const HOLIDAY_PACKAGES = [
@@ -135,6 +140,7 @@ export const HOLIDAY_PACKAGES = [
     lines: [
       { key: 'massage', label: 'Massage', minutes: 20 },
       { key: 'hair', label: 'Hair', minutes: 30 },
+      { key: 'beard-trim', label: 'Beard trims', minutes: 15, proposalOnly: true },
       { key: 'nails', label: 'Nails', minutes: 30 },
       { key: 'facials', label: 'Facials', minutes: 20 },
       { key: 'headshots', label: 'Headshots', minutes: 10 },
@@ -176,6 +182,7 @@ const ALIASES = {
   dancecardio: 'dance-cardio', dance: 'dance-cardio',
   somaticmovement: 'somatic-movement', somatic: 'somatic-movement',
   haircut: 'hair', hairstyling: 'hair', blowouts: 'hair',
+  beard: 'beard-trim', beards: 'beard-trim', beardtrimming: 'beard-trim',
 };
 
 function customLine(pkg, ref) {

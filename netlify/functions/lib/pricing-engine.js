@@ -36,6 +36,15 @@ const SERVICE_DEFAULTS = {
     earlyArrival: 25,
     retouchingCost: 0
   },
+  'beard-trim': {
+    appTime: 15,
+    totalHours: 6,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 150,
+    earlyArrival: 25,
+    retouchingCost: 0
+  },
   nails: {
     appTime: 30,
     totalHours: 6,

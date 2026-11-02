@@ -178,6 +178,15 @@ const SERVICE_DEFAULTS: Record<string, any> = {
     earlyArrival: 25,
     retouchingCost: 0,
   },
+  'beard-trim': {
+    appTime: 15,
+    totalHours: 6,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 150,
+    earlyArrival: 25,
+    retouchingCost: 0,
+  },
   nails: {
     appTime: 30,
     totalHours: 6,
@@ -315,6 +324,7 @@ const SERVICE_TYPE_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'massage', label: 'Massage' },
   { value: 'facial', label: 'Facial' },
   { value: 'hair', label: 'Hair' },
+  { value: 'beard-trim', label: 'Beard Trim' },
   { value: 'nails', label: 'Nails' },
   { value: 'makeup', label: 'Makeup' },
   { value: 'headshot', label: 'Headshot' },

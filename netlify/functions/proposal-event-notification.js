@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { clientIncluded } from './lib/client-picks.js';
 
 const SERVICE_LABELS = {
-  massage: 'Massage', facial: 'Facials', nails: 'Nails', hair: 'Hair', makeup: 'Makeup',
+  massage: 'Massage', facial: 'Facials', nails: 'Nails', hair: 'Hair', 'beard-trim': 'Beard trims', makeup: 'Makeup',
   'hair-makeup': 'Hair + makeup', headshot: 'Headshots', 'headshot-hair-makeup': 'Hair + makeup for headshots',
   mindfulness: 'Mindfulness', 'sound-bath': 'Sound bath', yoga: 'Yoga', stretch: 'Assisted stretch',
   'crystal-sound-bath': 'Crystal sound bath', 'somatic-sound-bath': 'Somatic movement + sound bath',

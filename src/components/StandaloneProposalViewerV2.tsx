@@ -2383,7 +2383,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
           {!isCompact && serviceTypes.length > 0 && (() => {
             const FILL: Record<string, string> = {
               massage: '#9EFAFF', stretch: '#FFCBA6', reiki: '#9EFAFF', headshot: '#FFCBA6',
-              hair: '#FEDC64', makeup: '#FEDC64', 'hair-makeup': '#FEDC64', 'headshot-hair-makeup': '#FEDC64',
+              hair: '#FEDC64', 'beard-trim': '#FEDC64', makeup: '#FEDC64', 'hair-makeup': '#FEDC64', 'headshot-hair-makeup': '#FEDC64',
               nails: '#F7BBFF', facial: '#F7BBFF',
               mindfulness: '#C7CBFB', 'sound-bath': '#C7CBFB', yoga: '#A9F0CC',
             };

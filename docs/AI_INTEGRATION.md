@@ -137,7 +137,9 @@ For a conference, trade show or other multi-day event, add `"eventType": "confer
 
 ### Create a holiday package proposal
 
-The five packages on www.getshortcut.co/holiday, priced exactly as the page prices them: a 4 hour visit staffed for the headcount, $150 per Pro hour, headshots at $450 per photographer hour plus $25 per person, group classes at one flat price, and 10% off any visit with two or more services (hair + makeup counts as two). The client view shows the package, the 10%, and the free 30 minute class and holiday treat. `package` is `sleigh`, `grinch`, `styled`, `bright` or `custom` (or the package's name); Create Your Own takes `services`.
+The five packages on www.getshortcut.co/holiday, priced exactly as the page prices them: a 4 hour visit staffed for the headcount, $150 per Pro hour, headshots at $450 per photographer hour plus $25 per person, group classes at one flat price, and 10% off any visit with two or more services (hair + makeup counts as two). The client view shows the package, the 10%, and the free 30 minute class and holiday treat. `package` is `sleigh`, `grinch`, `styled`, `bright` or `custom` (or the package's name); Create Your Own takes `services`. Create Your Own can also include beard trims (`"beard trims"`, 15 minute appointments), which the holiday page doesn't list but a proposal can.
+
+**Ask first before Christmas.** When a teammate asks for a proposal for an event before December 25 that isn't a conference, ask whether it should be a holiday proposal before calling `create-proposal`, unless they already said. A holiday proposal gives the client 10% off two or more services, the free 30 minute class and the holiday treat.
 
 ```bash
 curl -X POST "https://proposals.getshortcut.co/.netlify/functions/generate-proposal?action=create-holiday-proposal" \

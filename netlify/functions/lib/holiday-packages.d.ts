@@ -15,6 +15,8 @@ export interface HolidayPackageLine {
   label: string;
   minutes: number;
   group?: boolean;
+  /** Not on the www page (beard trims): same math, left out of the parity check. */
+  proposalOnly?: boolean;
 }
 
 export interface HolidayPackage {

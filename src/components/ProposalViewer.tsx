@@ -49,6 +49,15 @@ const SERVICE_DEFAULTS: { [key: string]: any } = {
     earlyArrival: 25,
     retouchingCost: 0
   },
+  'beard-trim': {
+    appTime: 15,
+    totalHours: 6,
+    numPros: 2,
+    proHourly: 50,
+    hourlyRate: 150,
+    earlyArrival: 25,
+    retouchingCost: 0
+  },
   nails: {
     appTime: 30,
     totalHours: 6,
@@ -223,6 +232,8 @@ const getServiceImagePath = (serviceType: string): string => {
       return '/Facials Slider.png';
     case 'hair':
       return '/Hair Slider.png';
+    case 'beard-trim':
+      return '/Beard Trim Slider.png';
     case 'nails':
       return '/Nails Slider.png';
     case 'makeup':
@@ -332,6 +343,8 @@ const getServiceDescription = (service: any): string => {
       return "Experience manicures and pedicures that blend relaxation with elegance, offering a pampered escape that leaves employees refreshed and polished.";
     case 'hair':
       return "Our office hair services menu offers precision cuts, professional styling, and grooming essentials, designed to keep employees looking sharp and feeling confident right at the workplace.";
+    case 'beard-trim':
+      return "Shape and even your beard and mustache.";
     case 'headshot':
     case 'headshots':
       return "Our in-office headshot experience creates a consistent, professional appearance across your team. Elevate the experience with optional hair and makeup touch-ups so employees feel confident and camera-ready.";
@@ -3259,6 +3272,7 @@ The Shortcut Team`);
                                           <option value="massage">Massage</option>
                                           <option value="facial">Facial</option>
                                           <option value="hair">Hair</option>
+                                          <option value="beard-trim">Beard Trim</option>
                                           <option value="nails">Nails</option>
                                           <option value="makeup">Makeup</option>
                                           <option value="headshot">Headshots</option>

@@ -40,6 +40,7 @@ const DOT_CLASS: Record<string, string> = {
   facials: 'is-pink',
   nails: 'is-pink',
   hair: 'is-yellow',
+  'beard-trim': 'is-yellow',
 };
 
 const ServiceCardRefresh: React.FC<ServiceCardProps> = (props) => {
