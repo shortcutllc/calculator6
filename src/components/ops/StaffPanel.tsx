@@ -13,6 +13,7 @@ import {
   SKIP_REASON_TEXT,
 } from '../../services/opsService';
 import { ProBadges, seatSummary } from './ProBadges';
+import { OpsSearch } from './OpsSearch';
 import {
   cityFrom,
   dayLabel,
@@ -180,7 +181,8 @@ export const StaffPanel: React.FC<{ target: StaffTarget; onClose: () => void; on
       setPros(roster.pros);
       setRosterCenter(roster.center);
       setTruncated(roster.truncated);
-      setGroups(g.groups);
+      // The automated tests' "[test] ..." groups share the dev database: never Pedro's.
+      setGroups(g.groups.filter((x) => !/^\[test\]/i.test(x.name || '')));
       setSelected(new Set());
       setVisible(PAGE);
     } catch (e) {
@@ -346,18 +348,14 @@ export const StaffPanel: React.FC<{ target: StaffTarget; onClose: () => void; on
                     </select>
                   </label>
                 </div>
-                <div className="relative">
-                  <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-shortcut-blue" />
-                  <input
-                    className="ops-input w-full pl-11"
-                    placeholder="Filter by name"
-                    value={nameFilter}
-                    onChange={(e) => {
-                      setNameFilter(e.target.value);
-                      setVisible(PAGE);
-                    }}
-                  />
-                </div>
+                <OpsSearch
+                  value={nameFilter}
+                  onChange={(v) => {
+                    setNameFilter(v);
+                    setVisible(PAGE);
+                  }}
+                  placeholder="Filter by name"
+                />
 
                 <div className="ops-chips">
                   {pros.some((p) => textable(p) && p.clientEvents) && (

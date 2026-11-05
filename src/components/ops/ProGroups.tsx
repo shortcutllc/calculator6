@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Plus, ChevronDown, ChevronUp, Search, Archive, X } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Plus, ChevronDown, ChevronUp, Archive, X, Check } from 'lucide-react';
 import { ops, OpsGroup, OpsPro, PRO_TYPES } from '../../services/opsService';
 import { initials, shortDate } from './opsFormat';
 import { ProBadges } from './ProBadges';
+import { OpsSearch } from './OpsSearch';
 
 // Pedro's lists of Pros per city and service, each Pro in a tier (Tier 1 = first
 // call). Stored on the Shortcut backend next to the Pros (ProGroup), so the admin
@@ -27,18 +28,23 @@ function proMeta(p: OpsPro): string {
     .join(' · ');
 }
 
-export const ProGroups: React.FC = () => {
+// The automated tests' groups ("[test] ...") share the dev database: never Pedro's.
+const isTestGroup = (g: OpsGroup) => /^\[test\]/i.test(g.name || '');
+
+export const ProGroups: React.FC<{ cities?: string[] }> = ({ cities = [] }) => {
   const [groups, setGroups] = useState<OpsGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [openID, setOpenID] = useState('');
+  const [newID, setNewID] = useState('');
   const [creating, setCreating] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      setGroups((await ops.groups()).groups);
+      setGroups((await ops.groups()).groups.filter((g) => !isTestGroup(g)));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -50,21 +56,47 @@ export const ProGroups: React.FC = () => {
     load();
   }, [load]);
 
+  // A group just made goes first, open, and scrolled to, so it's obvious it worked.
+  useEffect(() => {
+    if (!newID) return;
+    const el = document.getElementById(`ops-group-${newID}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [newID, groups]);
+  const ordered = newID ? [...groups.filter((g) => g.id === newID), ...groups.filter((g) => g.id !== newID)] : groups;
+
   return (
     <div>
       <div className="ops-sec">
         <p className="ops-sec-note">Your go-to Pros per city and service. Tier 1 is who you text first.</p>
-        <button className="lt-btn lt-btn-navy lt-btn-sm" onClick={() => setCreating((c) => !c)}>
-          <Plus size={16} /> New group
-        </button>
+        {!creating && (
+          <button
+            className="lt-btn lt-btn-navy lt-btn-sm"
+            onClick={() => {
+              setCreating(true);
+              setNotice('');
+            }}
+          >
+            <Plus size={16} /> New group
+          </button>
+        )}
       </div>
       {error && <div className="ops-error">{error}</div>}
+      {notice && (
+        <div className="ops-notice mb-4">
+          <Check size={16} /> {notice}
+        </div>
+      )}
       {creating && (
         <NewGroup
+          cities={cities}
           onCancel={() => setCreating(false)}
           onSaved={(g) => {
             setCreating(false);
+            setError('');
+            setNotice(`Made ${g.name}. Add your go-to Pros to it below, one click per tier.`);
+            setGroups((prev) => [g, ...prev.filter((x) => x.id !== g.id)]);
             setOpenID(g.id);
+            setNewID(g.id);
             load();
           }}
           onError={setError}
@@ -76,7 +108,7 @@ export const ProGroups: React.FC = () => {
           <p className="lt-body">No groups yet. Make one per city and service, like NYC Massage, then add your go-to Pros to it by tier.</p>
         </div>
       )}
-      {groups.map((g) => (
+      {ordered.map((g) => (
         <GroupCard
           key={g.id}
           group={g}
@@ -90,21 +122,32 @@ export const ProGroups: React.FC = () => {
   );
 };
 
-const NewGroup: React.FC<{ onSaved: (g: OpsGroup) => void; onCancel: () => void; onError: (m: string) => void }> = ({
-  onSaved,
-  onCancel,
-  onError,
-}) => {
+const NewGroup: React.FC<{
+  cities: string[];
+  onSaved: (g: OpsGroup) => void;
+  onCancel: () => void;
+  onError: (m: string) => void;
+}> = ({ cities, onSaved, onCancel, onError }) => {
   const [city, setCity] = useState('');
   const [proType, setProType] = useState('Massage');
   const [radius, setRadius] = useState(30);
   const [saving, setSaving] = useState(false);
+  const [hint, setHint] = useState('');
+  const cityRef = useRef<HTMLInputElement>(null);
+  const name = city.trim() ? `${city.trim()} ${proType}` : '';
+
   const save = async () => {
-    if (!city.trim()) return;
+    if (!city.trim()) {
+      // The button always answers: an empty city says so instead of doing nothing.
+      setHint('Type a city first, or pick one below.');
+      cityRef.current?.focus();
+      return;
+    }
     setSaving(true);
+    setHint('');
     try {
       const res = await ops.saveGroup({
-        name: `${city.trim()} ${proType}`,
+        name,
         city: city.trim(),
         proType,
         addressString: city.trim(),
@@ -117,23 +160,29 @@ const NewGroup: React.FC<{ onSaved: (g: OpsGroup) => void; onCancel: () => void;
       setSaving(false);
     }
   };
+
   return (
-    <div className="lt-card ops-new ops-stack">
+    <div className="lt-card ops-new">
       <div className="ops-flag-head">
-        <span className="ops-flag-title">New group</span>
+        <span className="ops-flag-title">New Pro group</span>
         <button className="ops-icon-btn" onClick={onCancel} aria-label="Cancel">
           <X size={16} />
         </button>
       </div>
-      <div className="ops-row">
-        <label className="ops-field flex-1">
+      <p className="ops-meta mt-1">One group per city and service, like Chicago Massage. Next you add Pros near that city, by tier.</p>
+      <div className="ops-new-grid">
+        <label className="ops-field">
           <span className="ops-label">City</span>
           <input
-            className="ops-input"
+            ref={cityRef}
+            className={`ops-input${hint ? ' is-invalid' : ''}`}
             value={city}
-            onChange={(e) => setCity(e.target.value)}
+            onChange={(e) => {
+              setCity(e.target.value);
+              setHint('');
+            }}
             onKeyDown={(e) => e.key === 'Enter' && save()}
-            placeholder="New York, NY"
+            placeholder="Type a city"
             autoFocus
           />
         </label>
@@ -155,11 +204,31 @@ const NewGroup: React.FC<{ onSaved: (g: OpsGroup) => void; onCancel: () => void;
             ))}
           </select>
         </label>
-        <button className="lt-btn lt-btn-navy lt-btn-sm" onClick={save} disabled={saving || !city.trim()}>
-          {saving ? 'Making it...' : `Make ${city.trim() ? `${city.trim()} ${proType}` : 'group'}`}
+        <button className="lt-btn lt-btn-navy lt-btn-sm ops-new-go" onClick={save} disabled={saving}>
+          {saving ? 'Making it...' : 'Make group'}
         </button>
       </div>
-      <p className="ops-meta">Next you'll see the Pros near that city, and add the ones you want with one click per tier.</p>
+      {hint && <p className="ops-hint">{hint}</p>}
+      {!!cities.length && (
+        <div className="ops-new-picks">
+          <span className="ops-label">Cities with events coming up</span>
+          <div className="ops-chips">
+            {cities.map((c) => (
+              <button
+                key={c}
+                className={`ops-chip${city.trim().toLowerCase() === c.toLowerCase() ? ' is-navy' : ''}`}
+                onClick={() => {
+                  setCity(c);
+                  setHint('');
+                }}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {name && <p className="ops-meta mt-3">Makes <b className="ops-strong">{name}</b>: {proType.toLowerCase()} Pros within {radius} miles of {city.trim()}.</p>}
     </div>
   );
 };
@@ -188,7 +257,7 @@ const GroupCard: React.FC<{
   };
 
   return (
-    <div className="lt-card ops-group">
+    <div className="lt-card ops-group" id={`ops-group-${group.id}`}>
       <button className="ops-group-head" onClick={onToggle} aria-expanded={open}>
         <div>
           <p className="lt-eyebrow">{[group.city, group.proType, group.radiusMiles ? `within ${group.radiusMiles} miles` : ''].filter(Boolean).join(' · ')}</p>
@@ -348,18 +417,14 @@ const AddPros: React.FC<{ group: OpsGroup; onAdded: () => void; onError: (m: str
   return (
     <div>
       <p className="lt-eyebrow">Add Pros</p>
-      <div className="relative">
-        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-shortcut-blue" />
-        <input
-          className="ops-input w-full pl-11"
-          placeholder={`Search ${group.proType ? group.proType.toLowerCase() + ' ' : ''}Pros by name`}
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value);
-            setVisible(PAGE);
-          }}
-        />
-      </div>
+      <OpsSearch
+        value={q}
+        onChange={(v) => {
+          setQ(v);
+          setVisible(PAGE);
+        }}
+        placeholder={`Search ${group.proType ? group.proType.toLowerCase() + ' ' : ''}Pros by name`}
+      />
       <p className="ops-meta mt-2">
         {results
           ? `${results.length} match${results.length === 1 ? '' : 'es'} for "${q.trim()}", anywhere.`

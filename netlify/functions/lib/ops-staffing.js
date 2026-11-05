@@ -230,6 +230,38 @@ export function needDay(date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/**
+ * One proposal for the "flag a deal" list: its dates still ahead (YYYY-MM-DD, from
+ * `today` on), where, which services, and the History page's total. nextDate is null
+ * when every date has passed.
+ */
+export function upcomingSummary(proposal, needs, today) {
+  const data = (proposal && proposal.data) || {};
+  const upcoming = needs.filter((n) => (needDay(n.date) || '') >= today);
+  const ahead = Array.from(new Set(upcoming.map((n) => needDay(n.date)))).sort();
+  const services = [];
+  for (const n of upcoming) {
+    for (const s of n.services) {
+      if (!services.some((x) => x.serviceType === s.serviceType)) services.push({ serviceType: s.serviceType, title: s.title });
+    }
+  }
+  return {
+    id: proposal.id,
+    clientName: clientName(proposal),
+    status: proposal.status,
+    changesSubmitted: !!(proposal.has_changes && proposal.pending_review),
+    optionName: proposal.option_name || null,
+    createdAt: proposal.created_at,
+    updatedAt: proposal.updated_at,
+    nextDate: ahead[0] || null,
+    numDates: ahead.length,
+    locations: Array.from(new Set(upcoming.map((n) => n.location))),
+    services,
+    totalPros: upcoming.reduce((sum, n) => sum + n.totalPros, 0),
+    totalCost: Number((data.summary && data.summary.totalEventCost) || 0),
+  };
+}
+
 /** YYYY-MM-DD an event falls on in its own city (timezoneOffset = minutes behind UTC). */
 export function eventDay(event) {
   const iso = event && event.startTime && (event.startTime.iso || event.startTime);

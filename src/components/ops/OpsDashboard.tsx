@@ -1,12 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { RefreshCw, MapPin, Flag, Search, AlertCircle, X } from 'lucide-react';
+import { RefreshCw, MapPin, AlertCircle } from 'lucide-react';
 import '../../styles/proposal-refresh.css';
 import '../../styles/ops-dashboard.css';
 import { ops, OpsBoard, OpsError, OpsEvent, OpsProposal } from '../../services/opsService';
-import { EventSeats, StaffPanel, StaffTarget } from './StaffPanel';
+import { StaffPanel, StaffTarget } from './StaffPanel';
+import { OpenProposals } from './OpenProposals';
+import { seatSummary } from './ProBadges';
 import ProGroups from './ProGroups';
 import {
+  cityFrom,
   dayLabel,
   dotClassFor,
   eventAddress,
@@ -47,7 +50,7 @@ interface Item {
 const FILTERS: { id: Filter; label: string; help: string }[] = [
   { id: 'need', label: 'Need staff', help: 'Upcoming events with open seats, and approved proposals with no event yet. Soonest first.' },
   { id: 'staffed', label: 'Staffed', help: 'Upcoming events and approved proposals with every seat filled. Soonest first.' },
-  { id: 'likely', label: 'Likely to close', help: 'Deals sales has flagged before they are signed, so you can line up Pros early.' },
+  { id: 'likely', label: 'Likely to close', help: 'Deals flagged as likely to close, so you can line up Pros before they are signed.' },
 ];
 
 function startOfToday(): number {
@@ -87,7 +90,6 @@ const OpsDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<OpsError | null>(null);
   const [target, setTarget] = useState<StaffTarget | null>(null);
-  const [flagOpen, setFlagOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -136,6 +138,19 @@ const OpsDashboard: React.FC = () => {
   }, [items]);
 
   const shown = items.filter((i) => i.status === filter);
+
+  // Cities with something coming up: one-click picks when making a Pro group.
+  const cities = useMemo(() => {
+    if (!board) return [];
+    const seen = new Map<string, number>();
+    const add = (city: string) => city && seen.set(city, (seen.get(city) || 0) + 1);
+    board.proposals.forEach((p) => p.needs.forEach((n) => add(cityFrom(n.address))));
+    board.otherEvents.forEach((e) => add(e.address.city || ''));
+    return Array.from(seen.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([c]) => c)
+      .slice(0, 8);
+  }, [board]);
   const filterInfo = FILTERS.find((f) => f.id === filter)!;
 
   if (error && error.status === 403) {
@@ -182,7 +197,7 @@ const OpsDashboard: React.FC = () => {
         </div>
 
         {tab === 'groups' ? (
-          <ProGroups />
+          <ProGroups cities={cities} />
         ) : (
           <>
             <div className="ops-filters" role="tablist" aria-label="Show">
@@ -205,11 +220,6 @@ const OpsDashboard: React.FC = () => {
 
             <div className="ops-sec">
               <p className="ops-sec-note">{filterInfo.help}</p>
-              {filter === 'likely' && (
-                <button className="lt-btn lt-btn-ghost lt-btn-sm" onClick={() => setFlagOpen((o) => !o)}>
-                  <Flag size={15} /> {flagOpen ? 'Close' : 'Flag a deal'}
-                </button>
-              )}
             </div>
 
             {error && <div className="ops-error">{error.message}</div>}
@@ -219,8 +229,6 @@ const OpsDashboard: React.FC = () => {
               </div>
             ))}
 
-            {filter === 'likely' && flagOpen && <FlagLikely onChanged={load} onClose={() => setFlagOpen(false)} />}
-
             {loading && !board && <p className="ops-muted">Loading...</p>}
             {board && !shown.length && (
               <div className="lt-card">
@@ -228,8 +236,8 @@ const OpsDashboard: React.FC = () => {
                   {filter === 'need'
                     ? 'Every upcoming event is staffed. Nice.'
                     : filter === 'staffed'
-                      ? 'No fully staffed proposals right now.'
-                      : 'No deals flagged as likely to close. Flag one when a deal is close, and Pedro gets a heads up.'}
+                      ? 'No fully staffed events right now.'
+                      : 'Nothing flagged yet. Flag a deal from the open proposals below, and Pedro gets a heads up.'}
                 </p>
               </div>
             )}
@@ -240,6 +248,8 @@ const OpsDashboard: React.FC = () => {
                 <EventCard key={i.key} item={i} onStaff={() => setTarget({ event: i.event })} />
               )
             )}
+
+            {filter === 'likely' && <OpenProposals onChanged={load} />}
           </>
         )}
 
@@ -274,51 +284,134 @@ const Progress: React.FC<{ staffed: number; needed: number }> = ({ staffed, need
   );
 };
 
+// Every card is the same shape whatever the event's size (Will, Nov 2026: cards of
+// different heights read as noise): at most two need lines and one line of events,
+// the full seat list lives in Find Pros.
+const MAX_LINES = 2;
+const MAX_CHIPS = 4;
+
+const EventChips: React.FC<{ events: OpsEvent[] }> = ({ events }) => {
+  const shownEvents = events.slice(0, MAX_CHIPS);
+  return (
+    <div className="ops-evchips">
+      {shownEvents.map((e) => {
+        const { staffed, needed } = staffedCount(e);
+        const full = needed > 0 && staffed >= needed;
+        return (
+          <span
+            key={e.id}
+            className={`ops-evchip${full ? ' is-full' : ' is-short'}`}
+            title={e.matchedBy === 'name' ? 'Matched by client name and date: made in the coordinator, not from this proposal.' : undefined}
+          >
+            <span className="ops-evchip-name">{e.name}</span>
+            <b>
+              {staffed}/{needed}
+            </b>
+          </span>
+        );
+      })}
+      {events.length > MAX_CHIPS && <span className="ops-more">+{events.length - MAX_CHIPS} more</span>}
+    </div>
+  );
+};
+
+const SeatChips: React.FC<{ event: OpsEvent }> = ({ event }) => {
+  const all = [
+    ...event.seats.map((s, i) => ({
+      key: `${s.barberID}-${i}`,
+      label: s.placeholder ? `${s.fullName}: open` : s.fullName,
+      open: s.placeholder,
+      confirmed: !s.placeholder && s.confirmedInApp,
+    })),
+    ...Array.from({ length: event.emptySeats }).map((_, i) => ({ key: `empty-${i}`, label: 'Empty seat', open: true, confirmed: false })),
+  ];
+  // Open seats first: they are what the card is for.
+  all.sort((a, b) => Number(b.open) - Number(a.open));
+  const shownSeats = all.slice(0, MAX_CHIPS);
+  return (
+    <div className="ops-evchips">
+      {shownSeats.map((s) => (
+        <span
+          key={s.key}
+          className={`ops-seat${s.open ? ' is-open' : ''}${s.confirmed ? ' is-confirmed' : ''}`}
+          title={s.open ? 'Open seat' : s.confirmed ? 'Confirmed in the app' : 'Not confirmed in the app yet'}
+        >
+          {s.label}
+        </span>
+      ))}
+      {all.length > MAX_CHIPS && <span className="ops-more">+{all.length - MAX_CHIPS} more</span>}
+    </div>
+  );
+};
+
+const CardShell: React.FC<{
+  photo: string | null;
+  pill: React.ReactNode;
+  eyebrow: string;
+  title: string;
+  sub: React.ReactNode;
+  item: Item;
+  onStaff: () => void;
+  link?: { href: string; label: string };
+  children: React.ReactNode;
+}> = ({ photo, pill, eyebrow, title, sub, item, onStaff, link, children }) => (
+  <div className="ops-card">
+    <div className="ops-card-photo">
+      {photo && <img src={photo} alt="" />}
+      {pill}
+    </div>
+    <div className="ops-card-body">
+      <div className="ops-card-main">
+        <p className="lt-eyebrow ops-oneline">{eyebrow}</p>
+        <h3 className="lt-h3 ops-oneline">{title}</h3>
+        <div className="ops-card-sub ops-oneline">{sub}</div>
+        <div className="ops-card-detail">{children}</div>
+      </div>
+      <div className="ops-card-side">
+        <Progress staffed={item.staffed} needed={item.needed} />
+        <div className="ops-card-actions">
+          <button className="lt-btn lt-btn-navy lt-btn-sm" onClick={onStaff}>
+            Find Pros
+          </button>
+          {link && (
+            <a className="ops-view-link" href={link.href} target="_blank" rel="noreferrer">
+              {link.label}
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 const ProposalCard: React.FC<{ item: Item; onStaff: () => void }> = ({ item, onStaff }) => {
   const p = item.proposal!;
   const firstService = p.needs[0]?.services[0];
-  const photo = photoForService(firstService?.serviceType);
   const cities = Array.from(new Set(p.needs.map((n) => n.location))).join(', ');
   const approved = p.status === 'approved';
-  const byName = p.events.some((e) => e.matchedBy === 'name');
+  const days = new Set(p.needs.map((n) => n.date)).size;
+  const summary = seatSummary(p.events.flatMap((e) => e.seats));
   return (
-    <div className="ops-card">
-      <div className="ops-card-photo">
-        {photo && <img src={photo} alt="" />}
-        <span className={`ops-status ${approved ? 'is-approved' : 'is-likely'}`}>{approved ? 'Approved' : 'Likely to close'}</span>
-      </div>
-      <div className="ops-card-body">
-        <div className="ops-card-top">
-          <div>
-            <p className="lt-eyebrow">
-              {Number.isFinite(item.next) ? dayLabel(item.next) : 'Date TBD'}
-              {p.needs.length > 1 ? ` + ${p.needs.length - 1} more day${p.needs.length > 2 ? 's' : ''}` : ''} · {cities}
-            </p>
-            <h3 className="lt-h3">{p.clientName}</h3>
-            <div className="ops-card-sub">
-              {p.optionName ? `${p.optionName} · ` : ''}
-              {approved ? `Approved, updated ${shortDate(p.updatedAt)}` : p.likelySetBy ? `Flagged by ${p.likelySetBy} on ${shortDate(p.likelySetAt)}` : ''}
-              {' · '}
-              <a href={`/proposal/${p.id}`} target="_blank" rel="noreferrer">
-                Open proposal
-              </a>
-            </div>
-          </div>
-          <div className="ops-card-side">
-            <Progress staffed={item.staffed} needed={item.needed} />
-            <button className="lt-btn lt-btn-navy lt-btn-sm" onClick={onStaff}>
-              Find Pros
-            </button>
-          </div>
-        </div>
-
-        <div className="ops-needs">
-          {p.needs.map((n, i) => (
-            <div key={i} className="ops-need">
-              <span>{dayLabel(n.date)}</span>
-              <span className="ops-need-where">
-                <MapPin size={14} className="inline" /> {n.address}
-              </span>
+    <CardShell
+      photo={photoForService(firstService?.serviceType)}
+      pill={<span className={`ops-status ${approved ? 'is-approved' : 'is-likely'}`}>{approved ? 'Approved' : 'Likely to close'}</span>}
+      eyebrow={`${Number.isFinite(item.next) ? dayLabel(item.next) : 'Date TBD'}${days > 1 ? ` + ${days - 1} more day${days > 2 ? 's' : ''}` : ''} · ${cities}`}
+      title={p.clientName}
+      sub={
+        <>
+          {p.optionName ? `${p.optionName} · ` : ''}
+          {approved ? `Approved, updated ${shortDate(p.updatedAt)}` : p.likelySetBy ? `Flagged by ${p.likelySetBy} on ${shortDate(p.likelySetAt)}` : 'Flagged'}
+        </>
+      }
+      item={item}
+      onStaff={onStaff}
+      link={{ href: `/proposal/${p.id}`, label: 'Open proposal' }}
+    >
+      <div className="ops-needs">
+        {p.needs.slice(0, MAX_LINES).map((n, i) => (
+          <div key={i} className="ops-need">
+            <span className="ops-need-day">{dayLabel(n.date)}</span>
+            <span className="ops-need-svcs">
               {n.services.map((s, j) => (
                 <span key={j} className="ops-need-svc">
                   <span className={`pv-dot ${dotClassFor(s.serviceType)}`} aria-hidden />
@@ -326,137 +419,49 @@ const ProposalCard: React.FC<{ item: Item; onStaff: () => void }> = ({ item, onS
                   {s.totalHours ? ` (${hoursText(s.totalHours)})` : ''}
                 </span>
               ))}
-            </div>
-          ))}
-        </div>
-
-        {p.events.map((e) => (
-          <EventSeats key={e.id} event={e} />
+            </span>
+            <span className="ops-need-where" title={n.address}>
+              <MapPin size={14} aria-hidden /> {n.address}
+            </span>
+          </div>
         ))}
-        {byName && <p className="ops-meta">Events matched by client name and date: made in the coordinator, not from this proposal.</p>}
-        {approved && !p.eventIDs.length && (
-          <p className="ops-muted">No coordinator event yet. Create it from the Admin page and its seats show here.</p>
-        )}
-        {!!p.missingEventIDs.length && (
-          <p className="ops-muted">
-            {p.missingEventIDs.length} linked event{p.missingEventIDs.length === 1 ? '' : 's'} no longer found (deleted, cancelled or a test event).
-          </p>
+        {p.needs.length > MAX_LINES && (
+          <span className="ops-more">
+            +{p.needs.length - MAX_LINES} more in Find Pros
+          </span>
         )}
       </div>
-    </div>
+      {p.events.length ? (
+        <>
+          <EventChips events={p.events} />
+          {summary && <p className="ops-seat-summary ops-oneline">{summary}</p>}
+        </>
+      ) : (
+        <p className="ops-muted ops-oneline">
+          {approved ? 'No coordinator event yet. Create it from the Admin page and its seats show here.' : 'Not approved yet, so no coordinator event.'}
+        </p>
+      )}
+    </CardShell>
   );
 };
 
 const EventCard: React.FC<{ item: Item; onStaff: () => void }> = ({ item, onStaff }) => {
   const event = item.event!;
   const seatType = event.seats.find((s) => s.proType)?.proType;
-  const photo = photoForProType(seatType);
+  const summary = seatSummary(event.seats);
   return (
-    <div className="ops-card">
-      <div className="ops-card-photo">
-        {photo && <img src={photo} alt="" />}
-        <span className="ops-status">Coordinator event</span>
-      </div>
-      <div className="ops-card-body">
-        <div className="ops-card-top">
-          <div>
-            <p className="lt-eyebrow">
-              {eventDay(event)} · {eventHours(event)}
-            </p>
-            <h3 className="lt-h3">{event.name}</h3>
-            <div className="ops-card-sub">{eventAddress(event)}. Not from a proposal here.</div>
-          </div>
-          <div className="ops-card-side">
-            <Progress staffed={item.staffed} needed={item.needed} />
-            <button className="lt-btn lt-btn-navy lt-btn-sm" onClick={onStaff}>
-              Find Pros
-            </button>
-          </div>
-        </div>
-        <EventSeats event={event} />
-      </div>
-    </div>
-  );
-};
-
-// Sales flags a pending proposal so ops starts early; the first flag alerts Pedro.
-const FlagLikely: React.FC<{ onChanged: () => void; onClose: () => void }> = ({ onChanged, onClose }) => {
-  const [q, setQ] = useState('');
-  const [rows, setRows] = useState<{ id: string; clientName: string; status: string; optionName: string | null; updatedAt: string; likely: boolean }[]>([]);
-  const [busy, setBusy] = useState('');
-  const [msg, setMsg] = useState('');
-
-  const search = useCallback(async (text: string) => {
-    try {
-      setRows((await ops.pendingProposals(text)).proposals);
-    } catch (e) {
-      setMsg((e as Error).message);
-    }
-  }, []);
-
-  useEffect(() => {
-    const t = setTimeout(() => search(q), 250);
-    return () => clearTimeout(t);
-  }, [q, search]);
-
-  const toggle = async (id: string, name: string, likely: boolean) => {
-    setBusy(id);
-    setMsg('');
-    try {
-      const res = await ops.setLikely(id, likely);
-      setRows((prev) => prev.map((x) => (x.id === id ? { ...x, likely: res.likely } : x)));
-      if (res.alerted) setMsg(`Pedro has been told about ${name}.`);
-      onChanged();
-    } catch (err) {
-      setMsg((err as Error).message);
-    } finally {
-      setBusy('');
-    }
-  };
-
-  return (
-    <div className="lt-card ops-flag ops-stack">
-      <div className="ops-flag-head">
-        <span className="ops-flag-title">
-          <Flag size={18} className="text-shortcut-coral" /> Flag a deal as likely to close
-        </span>
-        <button className="ops-icon-btn" onClick={onClose} aria-label="Close">
-          <X size={16} />
-        </button>
-      </div>
-      <p className="lt-body">Pick a proposal that hasn't been approved yet. Pedro gets a Slack heads up to start finding Pros.</p>
-      <div className="relative">
-        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-shortcut-blue" />
-        <input className="ops-input w-full pl-11" placeholder="Search by client" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
-      </div>
-      {msg && <div className="ops-notice">{msg}</div>}
-      <div className="ops-list max-h-80 overflow-y-auto">
-        {rows.map((r) => (
-          <div key={r.id} className="ops-list-row">
-            <div className="min-w-0">
-              <div className="ops-name">{r.clientName}</div>
-              <div className="ops-meta">
-                {r.optionName ? `${r.optionName} · ` : ''}
-                {r.status} · updated {shortDate(r.updatedAt)}
-              </div>
-            </div>
-            <button
-              className={`ops-likely-btn${r.likely ? ' is-on' : ''}`}
-              disabled={busy === r.id}
-              aria-pressed={r.likely}
-              onClick={() => toggle(r.id, r.clientName, !r.likely)}
-            >
-              {r.likely ? 'Likely to close' : 'Flag as likely'}
-            </button>
-          </div>
-        ))}
-        {!rows.length && (
-          <div className="ops-list-row">
-            <p className="ops-muted">No matching proposals in the last 4 months.</p>
-          </div>
-        )}
-      </div>
-    </div>
+    <CardShell
+      photo={photoForProType(seatType)}
+      pill={<span className="ops-status">Coordinator event</span>}
+      eyebrow={`${eventDay(event)} · ${eventHours(event)}`}
+      title={event.name}
+      sub={`${eventAddress(event)}. Not from a proposal here.`}
+      item={item}
+      onStaff={onStaff}
+    >
+      <SeatChips event={event} />
+      {summary && <p className="ops-seat-summary ops-oneline">{summary}</p>}
+    </CardShell>
   );
 };
 

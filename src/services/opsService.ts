@@ -238,13 +238,28 @@ export async function opsCall<T>(action: string, params: Record<string, unknown>
   return body as T;
 }
 
+/** A proposal not yet approved with a date still ahead: a row in the "flag a deal" list. */
+export interface OpsOpenProposal {
+  id: string;
+  clientName: string;
+  status: string;
+  changesSubmitted: boolean;
+  optionName: string | null;
+  createdAt: string;
+  updatedAt: string;
+  nextDate: string; // YYYY-MM-DD
+  numDates: number;
+  locations: string[];
+  services: { serviceType: string; title: string }[];
+  totalPros: number;
+  totalCost: number;
+  likely: boolean;
+}
+
 export const ops = {
   me: () => opsCall<{ email: string; backend: OpsBoard['backend'] }>('me'),
   board: () => opsCall<OpsBoard>('board'),
-  pendingProposals: (q: string) =>
-    opsCall<{
-      proposals: { id: string; clientName: string; status: string; optionName: string | null; updatedAt: string; likely: boolean }[];
-    }>('pendingProposals', { q }),
+  pendingProposals: (q: string) => opsCall<{ proposals: OpsOpenProposal[] }>('pendingProposals', { q }),
   setLikely: (proposalId: string, likely: boolean) =>
     opsCall<{ proposalId: string; likely: boolean; alerted: boolean }>('setLikely', { proposalId, likely }),
   setNote: (proposalId: string, note: string) => opsCall<{ proposalId: string; note: string }>('setNote', { proposalId, note }),

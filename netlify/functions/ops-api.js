@@ -16,7 +16,7 @@
  *   board                      proposals to staff (approved + flagged likely) with what
  *                              each needs and its coordinator events' seats, plus other
  *                              upcoming events still short of Pros
- *   pendingProposals {q}       recent proposals not yet approved, to flag
+ *   pendingProposals {q}       proposals not yet approved with a date ahead, to flag
  *   setLikely {proposalId, likely}   flag / unflag; first flag alerts ops in Slack
  *   setNote {proposalId, note}
  *   roster {addressString | coordinates, proTypes, radiusMiles, includeInactive}
@@ -40,7 +40,9 @@ import {
   linkedEventIDs,
   looksLikeTest,
   matchEventsByName,
+  needDay,
   staffingNeeds,
+  upcomingSummary,
 } from './lib/ops-staffing.js';
 
 const json = (status, body) =>
@@ -317,29 +319,30 @@ const ACTIONS = {
   },
 
   async pendingProposals(body, { supabase }) {
-    const since = new Date(Date.now() - 120 * DAY_MS).toISOString();
+    // Every proposal not yet approved (or rejected) with a date still ahead, soonest
+    // first, so sales can flag the ones about to close in one click.
+    const since = new Date(Date.now() - 365 * DAY_MS).toISOString();
     let query = supabase
       .from('proposals')
-      .select('id, client_name, status, option_name, updated_at, is_test')
-      .neq('status', 'approved')
+      .select('id, client_name, status, option_name, created_at, updated_at, is_test, has_changes, pending_review, data')
+      .not('status', 'in', '(approved,rejected)')
       .gte('updated_at', since)
       .order('updated_at', { ascending: false })
-      .limit(30);
+      .limit(500);
     const q = String(body.q || '').trim().replace(/[%,()]/g, ' ');
     if (q) query = query.ilike('client_name', `%${q}%`);
     const { data, error } = await query;
     if (error) fail(500, `Proposals: ${error.message}`, 'DB_ERROR');
-    const rows = (data || []).filter((p) => !p.is_test && !looksLikeTest(p.client_name));
-    const flags = await flagsFor(supabase, rows.map((p) => p.id));
+    const today = needDay(new Date(Date.now() - DAY_MS).toISOString()); // a day's grace for time zones
+    const rows = (data || [])
+      .filter((p) => !p.is_test && !looksLikeTest(clientName(p)))
+      .map((p) => upcomingSummary(p, staffingNeeds(p), today))
+      .filter((r) => r.nextDate)
+      .sort((a, b) => (a.nextDate < b.nextDate ? -1 : a.nextDate > b.nextDate ? 1 : 0))
+      .slice(0, 100);
+    const flags = await flagsFor(supabase, rows.map((r) => r.id));
     return {
-      proposals: rows.map((p) => ({
-        id: p.id,
-        clientName: p.client_name || 'Unknown client',
-        status: p.status,
-        optionName: p.option_name || null,
-        updatedAt: p.updated_at,
-        likely: !!(flags.get(p.id) && flags.get(p.id).likely_to_close),
-      })),
+      proposals: rows.map((r) => ({ ...r, likely: !!(flags.get(r.id) && flags.get(r.id).likely_to_close) })),
     };
   },
 
