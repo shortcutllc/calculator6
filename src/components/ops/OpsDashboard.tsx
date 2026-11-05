@@ -290,19 +290,34 @@ const Progress: React.FC<{ staffed: number; needed: number }> = ({ staffed, need
 const MAX_LINES = 2;
 const MAX_CHIPS = 4;
 
-// A proposal's events often share the client's name (Smartly x3): then say where and what.
-function chipLabel(e: OpsEvent, sameNames: boolean): string {
-  if (!sameNames) return e.name;
-  const proType = e.seats.find((s) => s.proType)?.proType;
-  return [e.address.city, proType].filter(Boolean).join(' ') || e.name;
+// A proposal's events often share the client's name (Smartly x3, HRT x3): then each chip
+// says only what differs between them (day, city, service), adding the hours if two are
+// still alike. The service comes from a real Pro on the event ("Pro TBD" placeholders
+// carry a generic type), else from the proposal line the event was made for.
+function chipLabels(events: OpsEvent[], needs: OpsProposal['needs']): string[] {
+  const names = events.map((e) => e.name);
+  if (new Set(names).size === names.length) return names;
+  const parts = events.map((e) => {
+    let service = e.seats.find((s) => !s.placeholder && s.proType)?.proType || '';
+    if (!service) {
+      const need = needs.find((n) => n.eventIDs.includes(e.id));
+      if (need && need.services.length === 1) service = need.services[0].title;
+    }
+    return { day: eventDay(e), city: e.address.city || '', service, hours: eventHours(e).replace(/\s+[A-Z]{2,4}$/, '') };
+  });
+  const varies = (k: keyof (typeof parts)[number]) => new Set(parts.map((p) => p[k])).size > 1;
+  const keys = (['day', 'city', 'service'] as const).filter(varies);
+  let labels = parts.map((p) => keys.map((k) => p[k]).filter(Boolean).join(' · '));
+  if (new Set(labels).size < labels.length) labels = parts.map((p, i) => [labels[i], p.hours].filter(Boolean).join(' · '));
+  return labels.map((l, i) => l || names[i]);
 }
 
-const EventChips: React.FC<{ events: OpsEvent[] }> = ({ events }) => {
+const EventChips: React.FC<{ events: OpsEvent[]; needs: OpsProposal['needs'] }> = ({ events, needs }) => {
   const shownEvents = events.slice(0, MAX_CHIPS);
-  const sameNames = new Set(events.map((e) => e.name)).size < events.length;
+  const labels = chipLabels(events, needs);
   return (
     <div className="ops-evchips">
-      {shownEvents.map((e) => {
+      {shownEvents.map((e, i) => {
         const { staffed, needed } = staffedCount(e);
         const full = needed > 0 && staffed >= needed;
         return (
@@ -311,7 +326,7 @@ const EventChips: React.FC<{ events: OpsEvent[] }> = ({ events }) => {
             className={`ops-evchip${full ? ' is-full' : ' is-short'}`}
             title={e.matchedBy === 'name' ? 'Matched by client name and date: made in the coordinator, not from this proposal.' : undefined}
           >
-            <span className="ops-evchip-name">{chipLabel(e, sameNames)}</span>
+            <span className="ops-evchip-name">{labels[i]}</span>
             <b>
               {staffed}/{needed}
             </b>
@@ -441,7 +456,7 @@ const ProposalCard: React.FC<{ item: Item; onStaff: () => void }> = ({ item, onS
       </div>
       {p.events.length ? (
         <>
-          <EventChips events={p.events} />
+          <EventChips events={p.events} needs={p.needs} />
           {summary && <p className="ops-seat-summary ops-oneline">{summary}</p>}
         </>
       ) : (
