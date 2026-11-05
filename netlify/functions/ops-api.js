@@ -38,6 +38,7 @@ import {
   clientName,
   isOpsStaff,
   linkedEventIDs,
+  looksLikeTest,
   matchEventsByName,
   staffingNeeds,
 } from './lib/ops-staffing.js';
@@ -83,7 +84,9 @@ async function eventsByID(eventIDs, warnings) {
     try {
       const res = await callParse('pullEventStaffing_Admin', { eventIDs: unique.slice(i, i + 100) });
       // Test events never count (Will): not as seats, not as staffing.
-      (res.events || []).filter((e) => !e.isTestEvent && !e.cancelled).forEach((e) => map.set(e.id, e));
+      (res.events || [])
+        .filter((e) => !e.isTestEvent && !e.cancelled && !looksLikeTest(e.name))
+        .forEach((e) => map.set(e.id, e));
     } catch (e) {
       warnings.push(`Could not read event seats: ${e.message}`);
       break;
@@ -177,7 +180,7 @@ const ACTIONS = {
     // Only what is still ahead (or ended in the last two days).
     const cutoff = Date.now() - 2 * DAY_MS;
     const proposals = [...(approved || []), ...likely].filter((p) => {
-      if (p.is_test) return false;
+      if (p.is_test || looksLikeTest(clientName(p))) return false;
       const last = lastEventDate(staffingNeeds(p));
       return last === null || last >= cutoff;
     });
@@ -198,7 +201,7 @@ const ACTIONS = {
     try {
       const res = await callParse('pullEventStaffing_Admin', { upcomingDays: 60 });
       const linkedSet = new Set(linked);
-      otherEvents = (res.events || []).filter((e) => !linkedSet.has(e.id) && !e.isTestEvent);
+      otherEvents = (res.events || []).filter((e) => !linkedSet.has(e.id) && !e.isTestEvent && !looksLikeTest(e.name));
     } catch (e) {
       warnings.push(`Could not read upcoming events: ${e.message}`);
     }
@@ -223,7 +226,7 @@ const ACTIONS = {
     if (q) query = query.ilike('client_name', `%${q}%`);
     const { data, error } = await query;
     if (error) fail(500, `Proposals: ${error.message}`, 'DB_ERROR');
-    const rows = (data || []).filter((p) => !p.is_test);
+    const rows = (data || []).filter((p) => !p.is_test && !looksLikeTest(p.client_name));
     const flags = await flagsFor(supabase, rows.map((p) => p.id));
     return {
       proposals: rows.map((p) => ({
@@ -291,6 +294,10 @@ const ACTIONS = {
       coordinates: body.coordinates || undefined,
       proTypes: Array.isArray(body.proTypes) ? body.proTypes : [],
       radiusMiles: body.radiusMiles || undefined,
+      q: body.q || undefined,
+      clientName: body.clientName || undefined,
+      atSite: !!body.atSite,
+      siteCoordinates: body.siteCoordinates || undefined,
       includeInactive: !!body.includeInactive,
       // On the dev backend the test Pros (reserved numbers nothing can text) are the
       // ones to try things on; the live roster never shows them.

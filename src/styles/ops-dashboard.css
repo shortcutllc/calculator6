@@ -24,6 +24,32 @@
 .ops-root .ops-stat-label { margin-top: 8px; font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sw-ink-meta); }
 .ops-root .ops-stat.is-aqua .ops-stat-label { color: var(--sc-navy); }
 
+/* Filter cards: the stat tiles, clickable */
+.ops-root .ops-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 8px; }
+.ops-root .ops-filter { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; background: #fff; border: 1px solid var(--sw-rule); border-radius: 24px; padding: 20px 22px; box-shadow: var(--shadow-card-soft); cursor: pointer; transition: transform .2s var(--ease-out), border-color .2s, background .2s; }
+.ops-root .ops-filter:hover { transform: translateY(-2px); border-color: rgba(0,55,86,.3); }
+.ops-root .ops-filter .pv-bignum { font-size: 36px; }
+.ops-root .ops-filter-label { font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sw-ink-meta); }
+.ops-root .ops-filter-sub { font-family: var(--font-display); font-weight: 600; font-size: 13px; color: var(--sc-navy); }
+.ops-root .ops-filter.is-on { background: var(--sc-navy); border-color: var(--sc-navy); box-shadow: var(--shadow-navy); }
+.ops-root .ops-filter.is-on .pv-bignum, .ops-root .ops-filter.is-on .ops-filter-label, .ops-root .ops-filter.is-on .ops-filter-sub { color: #fff; }
+.ops-root .ops-filter.is-need.is-on { background: var(--sc-aqua); border-color: var(--sc-aqua); box-shadow: none; }
+.ops-root .ops-filter.is-need.is-on .pv-bignum, .ops-root .ops-filter.is-need.is-on .ops-filter-label, .ops-root .ops-filter.is-need.is-on .ops-filter-sub { color: var(--sc-navy); }
+
+/* Card side: progress + action */
+.ops-root .ops-card-side { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; min-width: 180px; }
+.ops-root .ops-progress { width: 180px; }
+.ops-root .ops-progress-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.ops-root .ops-progress .pv-bignum { font-size: 26px; }
+.ops-root .ops-progress .pv-bignum.is-short { color: var(--sc-coral); }
+.ops-root .ops-progress .ops-metric-sub { margin: 0; }
+.ops-root progress.ops-bar { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 8px; margin-top: 8px; border: none; border-radius: 9999px; background: var(--sc-light-gray); overflow: hidden; }
+.ops-root progress.ops-bar::-webkit-progress-bar { background: var(--sc-light-gray); border-radius: 9999px; }
+.ops-root progress.ops-bar::-webkit-progress-value { background: var(--sc-coral); border-radius: 9999px; }
+.ops-root progress.ops-bar::-moz-progress-bar { background: var(--sc-coral); border-radius: 9999px; }
+.ops-root progress.ops-bar.is-full::-webkit-progress-value { background: var(--status-success); }
+.ops-root progress.ops-bar.is-full::-moz-progress-bar { background: var(--status-success); }
+
 /* Tabs: the viewer's segmented control */
 .ops-root .ops-tabs { margin-bottom: 28px; }
 
@@ -114,6 +140,9 @@
 .ops-root .ops-pro-main { flex: 1; min-width: 0; }
 .ops-root .ops-pro-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .ops-root .ops-tier { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 9999px; background: var(--sc-navy); color: #fff; font-family: var(--font-ui); font-weight: 700; font-size: 11px; }
+.ops-root .ops-history { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.ops-root .ops-history-tag { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 9999px; background: var(--sc-light-gray); font-family: var(--font-ui); font-weight: 700; font-size: 11.5px; color: var(--sc-navy); }
+.ops-root .ops-history-tag.is-client { background: var(--sc-yellow); }
 .ops-root .ops-flagtext { font-family: var(--font-ui); font-weight: 700; font-size: 11.5px; color: #7A1A1A; }
 .ops-root .ops-oktext { font-family: var(--font-ui); font-weight: 700; font-size: 11.5px; color: #11613F; }
 
@@ -128,6 +157,7 @@
 .ops-root .ops-spot-title { font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--sc-navy); }
 .ops-root .ops-stack > * + * { margin-top: 14px; }
 .ops-root .ops-composer { position: sticky; bottom: 0; margin: 18px -32px 0; padding: 18px 32px 22px; background: #fff; border-top: 1px solid var(--sw-rule); box-shadow: 0 -10px 30px rgba(3,34,50,.06); }
+.ops-root .ops-composer.is-idle { padding-top: 14px; padding-bottom: 16px; }
 .ops-root .ops-composer-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
 .ops-root .ops-confirm { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--sc-navy); }
 
@@ -147,16 +177,36 @@
 .ops-root .ops-group-body .lt-eyebrow { margin: 18px 0 8px; }
 .ops-root .ops-tiers { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .ops-root .ops-new { padding: 26px 28px; margin-bottom: 20px; }
+.ops-root .ops-group-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+.ops-root .ops-group-grid > div > .lt-eyebrow { margin: 4px 0 10px; }
+.ops-root .ops-tier-block { margin-bottom: 14px; }
+.ops-root .ops-tier-block > .ops-label { display: block; margin: 0 0 6px; }
+.ops-root .ops-tier-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.ops-root .ops-tier-pick button { height: 28px; padding: 0 11px; border-radius: 9999px; border: 1px solid var(--sw-rule); background: #fff; font-family: var(--font-ui); font-weight: 700; font-size: 12px; color: var(--sc-navy); cursor: pointer; }
+.ops-root .ops-tier-pick button:hover { border-color: var(--sc-navy); }
+.ops-root .ops-tier-pick button.on { background: var(--sc-navy); border-color: var(--sc-navy); color: #fff; }
+.ops-root .ops-tier-pick button.is-remove { border-color: transparent; text-decoration: underline; text-underline-offset: 3px; }
+.ops-root .ops-tier-pick button:disabled { opacity: .5; cursor: wait; }
 
+@media (max-width: 1100px) {
+  .ops-root .ops-group-grid { grid-template-columns: 1fr; }
+}
 @media (max-width: 900px) {
   .ops-root .ops-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ops-root .ops-filters { gap: 10px; }
+  .ops-root .ops-filter { padding: 16px; }
+  .ops-root .ops-filter .pv-bignum { font-size: 28px; }
 }
 @media (max-width: 760px) {
   .ops-root .ops-wrap { padding: 28px 16px 80px; }
   .ops-root .ops-card { grid-template-columns: 1fr; }
   .ops-root .ops-card-photo { min-height: 150px; }
   .ops-root .ops-grid2 { grid-template-columns: 1fr; }
+  .ops-root .ops-group-grid { grid-template-columns: 1fr; }
   .ops-root .ops-drawer { border-radius: 0; padding: 22px 16px 0; }
   .ops-root .ops-composer { margin: 18px -16px 0; padding: 16px; }
   .ops-root .ops-metrics { gap: 24px; }
+  .ops-root .ops-card-side { align-items: stretch; width: 100%; }
+  .ops-root .ops-progress { width: 100%; }
+  .ops-root .ops-head-actions { flex-wrap: wrap; }
 }

@@ -46,6 +46,15 @@ interface Spot {
   event: OpsEvent | null;
 }
 
+const PAGE = 20;
+
+// "DraftKings" from "DraftKings LV Mind & Body"; the proposal's client name as it is.
+function shortClient(name: string): string {
+  const n = String(name || '').trim();
+  return n.length > 28 ? n.slice(0, 26).trim() + '…' : n || 'this client';
+}
+const RADII = [10, 20, 30, 50, 75, 100, 150];
+
 export interface StaffTarget {
   proposal?: OpsProposal;
   event?: OpsEvent;
@@ -119,8 +128,15 @@ export const StaffPanel: React.FC<{ target: StaffTarget; onClose: () => void; on
   const [confirming, setConfirming] = useState(false);
   const [notice, setNotice] = useState('');
   const [event, setEvent] = useState<OpsEvent | null>(spot?.event || null);
+  const [visible, setVisible] = useState(PAGE);
+  const [nameFilter, setNameFilter] = useState('');
+  const [sort, setSort] = useState<'best' | 'recent' | 'closest' | 'name'>('best');
+  const [rosterCenter, setRosterCenter] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [truncated, setTruncated] = useState(false);
 
   const proposalID = target.proposal?.id;
+  // Whose history to look for: the proposal's client, or the event's own name.
+  const clientLabel = target.proposal?.clientName || target.event?.name || '';
   const eventID = event?.id || spot?.event?.id;
 
   useEffect(() => {
@@ -153,28 +169,46 @@ export const StaffPanel: React.FC<{ target: StaffTarget; onClose: () => void; on
         ops.roster({
           coordinates: spot.coordinates || undefined,
           addressString: spot.coordinates ? undefined : spot.address,
-          proTypes: [proType],
+          proTypes: proType ? [proType] : [],
           radiusMiles: radius,
+          clientName: clientLabel,
+          atSite: true,
         }),
         ops.groups(),
       ]);
       setPros(roster.pros);
+      setRosterCenter(roster.center);
+      setTruncated(roster.truncated);
       setGroups(g.groups);
       setSelected(new Set());
+      setVisible(PAGE);
     } catch (e) {
       setError((e as Error).message);
       setPros([]);
     } finally {
       setLoading(false);
     }
-  }, [spot, proType, radius]);
+  }, [spot, proType, radius, clientLabel]);
 
   useEffect(() => {
     loadRoster();
   }, [loadRoster]);
 
-  const matchingGroups = groups.filter((g) => !g.proType || g.proType === proType);
+  const matchingGroups = groups.filter((g) => !g.proType || !proType || g.proType === proType);
   const textable = (p: OpsPro) => p.hasPhone && !p.optedOut;
+
+  const filtered = useMemo(() => {
+    const needle = nameFilter.trim().toLowerCase();
+    const list = needle ? pros.filter((p) => p.fullName.toLowerCase().includes(needle)) : pros.slice();
+    if (sort === 'recent') list.sort((a, b) => (b.lastEventDate ? Date.parse(b.lastEventDate) : 0) - (a.lastEventDate ? Date.parse(a.lastEventDate) : 0));
+    if (sort === 'closest') list.sort((a, b) => (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity));
+    if (sort === 'name') list.sort((a, b) => a.fullName.localeCompare(b.fullName));
+    return list;
+  }, [pros, nameFilter, sort]);
+  const page = filtered.slice(0, visible);
+  const left = filtered.length - page.length;
+  const wider = RADII.find((r) => r > radius);
+  const serviceWord = proType ? proType.toLowerCase() : 'any service';
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -288,24 +322,53 @@ export const StaffPanel: React.FC<{ target: StaffTarget; onClose: () => void; on
                       {PRO_TYPES.map((t) => (
                         <option key={t}>{t}</option>
                       ))}
+                      <option value="">Any service</option>
                     </select>
                   </label>
                   <label className="ops-field">
                     <span className="ops-label">Within</span>
                     <select className="ops-select" value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
-                      {[10, 20, 30, 50, 75, 100].map((r) => (
+                      {RADII.map((r) => (
                         <option key={r} value={r}>
                           {r} miles
                         </option>
                       ))}
                     </select>
                   </label>
-                  <button className="lt-btn lt-btn-ghost lt-btn-sm" onClick={loadRoster}>
-                    <Search size={16} /> Search again
-                  </button>
+                  <label className="ops-field">
+                    <span className="ops-label">Sort</span>
+                    <select className="ops-select" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
+                      <option value="best">Best match</option>
+                      <option value="recent">Worked most recently</option>
+                      <option value="closest">Closest first</option>
+                      <option value="name">Name</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="relative">
+                  <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-shortcut-blue" />
+                  <input
+                    className="ops-input w-full pl-11"
+                    placeholder="Filter by name"
+                    value={nameFilter}
+                    onChange={(e) => {
+                      setNameFilter(e.target.value);
+                      setVisible(PAGE);
+                    }}
+                  />
                 </div>
 
                 <div className="ops-chips">
+                  {pros.some((p) => textable(p) && p.clientEvents) && (
+                    <button className="ops-chip" onClick={() => selectWhere((p) => !!p.clientEvents)}>
+                      Worked for {shortClient(clientLabel)} ({pros.filter((p) => textable(p) && p.clientEvents).length})
+                    </button>
+                  )}
+                  {pros.some((p) => textable(p) && p.siteEvents) && (
+                    <button className="ops-chip" onClick={() => selectWhere((p) => !!p.siteEvents)}>
+                      Worked at this address ({pros.filter((p) => textable(p) && p.siteEvents).length})
+                    </button>
+                  )}
                   <button className="ops-chip" onClick={() => selectWhere((p) => p.eventsLast90 > 0)}>
                     Worked in the last 90 days
                   </button>
@@ -323,6 +386,11 @@ export const StaffPanel: React.FC<{ target: StaffTarget; onClose: () => void; on
                       ) : null;
                     })
                   )}
+                  {page.some(textable) && (
+                    <button className="ops-chip" onClick={() => selectWhere((p) => page.includes(p))}>
+                      Select all shown
+                    </button>
+                  )}
                   {selected.size > 0 && (
                     <button className="ops-chip is-navy" onClick={() => setSelected(new Set())}>
                       Clear {selected.size} selected
@@ -330,24 +398,35 @@ export const StaffPanel: React.FC<{ target: StaffTarget; onClose: () => void; on
                   )}
                 </div>
 
+                {!loading && (
+                  <p className="ops-meta">
+                    {filtered.length
+                      ? `Showing ${page.length} of ${filtered.length} ${serviceWord} Pro${filtered.length === 1 ? '' : 's'} within ${radius} miles${truncated ? ' (the nearest 1,000)' : ''}.`
+                      : ''}
+                  </p>
+                )}
+
                 <div className="ops-list">
                   {loading && (
                     <div className="ops-list-row">
                       <p className="ops-muted">Finding Pros...</p>
                     </div>
                   )}
-                  {!loading && !pros.length && (
+                  {!loading && !filtered.length && (
                     <div className="ops-list-row">
                       <p className="ops-muted">
-                        No {proType.toLowerCase()} Pros within {radius} miles. Try a wider search, or add new Pros from your lists.
+                        {nameFilter.trim()
+                          ? `Nobody named "${nameFilter.trim()}" within ${radius} miles.`
+                          : `No ${serviceWord} Pros within ${radius} miles.`}
                       </p>
                     </div>
                   )}
                   {!loading &&
-                    pros.map((p) => (
+                    page.map((p) => (
                       <ProRow
                         key={p.id}
                         pro={p}
+                        client={shortClient(clientLabel)}
                         checked={selected.has(p.id)}
                         disabled={!textable(p)}
                         onToggle={() => toggle(p.id)}
@@ -367,8 +446,43 @@ export const StaffPanel: React.FC<{ target: StaffTarget; onClose: () => void; on
                     ))}
                 </div>
 
+                {!loading && (left > 0 || wider) && (
+                  <div className="ops-chips">
+                    {left > 0 && (
+                      <button className="lt-btn lt-btn-ghost lt-btn-sm" onClick={() => setVisible((v) => v + PAGE)}>
+                        Show {Math.min(PAGE, left)} more ({left} left)
+                      </button>
+                    )}
+                    {left <= 0 && wider && (
+                      <button className="lt-btn lt-btn-ghost lt-btn-sm" onClick={() => setRadius(wider)}>
+                        <Search size={15} /> Search wider: {wider} miles
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {selected.size > 0 && (
                   <AddToGroup
+                    suggestedName={`${cityFrom(spot.address) || spot.address} ${proType || 'Pros'}`}
+                    onCreate={async (name) => {
+                      try {
+                        const res = await ops.saveGroup({
+                          name,
+                          city: cityFrom(spot.address) || spot.address,
+                          proType: proType || null,
+                          center: rosterCenter,
+                          radiusMiles: radius,
+                        });
+                        await ops.setGroupMembers(
+                          res.group.id,
+                          Array.from(selected).map((barberID) => ({ barberID, tier: 1 }))
+                        );
+                        setNotice(`Made "${res.group.name}" with ${selected.size} as Tier 1.`);
+                        loadRoster();
+                      } catch (e) {
+                        setError((e as Error).message);
+                      }
+                    }}
                     groups={matchingGroups}
                     count={selected.size}
                     onAdd={async (groupID, tier) => {
@@ -386,6 +500,11 @@ export const StaffPanel: React.FC<{ target: StaffTarget; onClose: () => void; on
                   />
                 )}
 
+                {selected.size === 0 ? (
+                  <div className="ops-composer is-idle">
+                    <p className="ops-meta">Tick the Pros to text, then write the message here. It goes from the Pros line, (888) 573-6871.</p>
+                  </div>
+                ) : (
                 <div className="ops-composer">
                   <label className="ops-field">
                     <span className="ops-label">Text from the Pros line, (888) 573-6871</span>
@@ -411,11 +530,12 @@ export const StaffPanel: React.FC<{ target: StaffTarget; onClose: () => void; on
                         onClick={() => setConfirming(true)}
                         disabled={!selected.size || !message.trim()}
                       >
-                        <Send size={16} /> {selected.size ? `Text ${selected.size} Pro${selected.size === 1 ? '' : 's'}` : 'Pick Pros to text'}
+                        <Send size={16} /> {`Text ${selected.size} Pro${selected.size === 1 ? '' : 's'}`}
                       </button>
                     )}
                   </div>
                 </div>
+                )}
               </>
             ) : (
               <SentTexts
@@ -456,9 +576,6 @@ export const EventSeats: React.FC<{ event: OpsEvent }> = ({ event }) => {
           </a>
         </div>
       </div>
-      {event.matchedBy === 'name' && (
-        <p className="ops-meta">Matched to this proposal by client name and date. Made in the coordinator, not from the proposal.</p>
-      )}
       <div className="ops-seats">
         {event.seats.map((s, i) => (
           <span
@@ -481,12 +598,13 @@ export const EventSeats: React.FC<{ event: OpsEvent }> = ({ event }) => {
 
 const ProRow: React.FC<{
   pro: OpsPro;
+  client: string;
   checked: boolean;
   disabled: boolean;
   onToggle: () => void;
   event: OpsEvent | null;
   onPut: (replaceBarberID?: string) => void;
-}> = ({ pro, checked, disabled, onToggle, event, onPut }) => {
+}> = ({ pro, client, checked, disabled, onToggle, event, onPut }) => {
   const onEvent = !!event?.seats.some((s) => s.barberID === pro.id);
   const tbd = event?.seats.find((s) => s.placeholder);
   const canAdd = !!event && !onEvent && (!!tbd || event.emptySeats > 0);
@@ -517,7 +635,22 @@ const ProRow: React.FC<{
           {pro.optedOut && <span className="ops-flagtext">Opted out of texts</span>}
           {!pro.hasPhone && <span className="ops-flagtext">No phone</span>}
           {onEvent && <span className="ops-oktext">On this event</span>}
+          {pro.locatedBy === 'address' && <span className="ops-meta">Placed by home address</span>}
         </div>
+        {(!!pro.clientEvents || !!pro.siteEvents) && (
+          <div className="ops-history">
+            {!!pro.clientEvents && (
+              <span className="ops-history-tag is-client">
+                Worked for {client} {pro.clientEvents}x, last {shortDate(pro.lastClientEventDate)}
+              </span>
+            )}
+            {!!pro.siteEvents && (
+              <span className="ops-history-tag">
+                At this address {pro.siteEvents}x, last {shortDate(pro.lastSiteEventDate)}
+              </span>
+            )}
+          </div>
+        )}
         <div className="ops-meta">{meta}</div>
       </div>
       {canAdd && (
@@ -533,14 +666,32 @@ const ProRow: React.FC<{
   );
 };
 
-const AddToGroup: React.FC<{ groups: OpsGroup[]; count: number; onAdd: (groupID: string, tier: number) => void }> = ({ groups, count, onAdd }) => {
+const AddToGroup: React.FC<{
+  groups: OpsGroup[];
+  count: number;
+  suggestedName: string;
+  onAdd: (groupID: string, tier: number) => void;
+  onCreate: (name: string) => void;
+}> = ({ groups, count, suggestedName, onAdd, onCreate }) => {
   const [groupID, setGroupID] = useState(groups[0]?.id || '');
   const [tier, setTier] = useState(1);
+  const [name, setName] = useState(suggestedName);
   useEffect(() => {
     if (!groupID && groups[0]) setGroupID(groups[0].id);
   }, [groups, groupID]);
+  useEffect(() => setName(suggestedName), [suggestedName]);
   if (!groups.length) {
-    return <p className="ops-muted">Make a group in the Pro groups tab to save these Pros by tier.</p>;
+    return (
+      <div className="ops-row">
+        <label className="ops-field flex-1">
+          <span className="ops-label">Save these {count} as a new group</span>
+          <input className="ops-input" value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <button className="lt-btn lt-btn-ghost lt-btn-sm" onClick={() => name.trim() && onCreate(name.trim())}>
+          Make group, as Tier 1
+        </button>
+      </div>
+    );
   }
   return (
     <div className="ops-row">

@@ -185,6 +185,12 @@ export function alertText(kind, proposal, { siteUrl, flaggedBy } = {}) {
   return [head, ...lines, link].join('\n');
 }
 
+/** A test event or proposal by its name ("TEST", "[test] Staffing", "Test proposal"),
+ *  for the ones nobody flagged. The whole word only: "Contest" and "Testa" are real. */
+export function looksLikeTest(name) {
+  return /(^|[^a-z])test(ing)?([^a-z]|$)/i.test(String(name || ''));
+}
+
 // ---- Events made by hand in the coordinator -----------------------------------------
 // Most events aren't made with Create Event, so the proposal never learns their ids
 // (Bisnow, DraftKings). Those are found by client name on the same calendar day.
@@ -256,7 +262,7 @@ export function matchEventsByName(needs, client, events) {
   const places = new Set(needs.map((n) => n.location));
   const byDay = new Map();
   for (const e of events || []) {
-    if (!e || e.isTestEvent || e.cancelled) continue;
+    if (!e || e.isTestEvent || e.cancelled || looksLikeTest(e.name)) continue;
     const day = eventDay(e);
     if (!day) continue;
     if (!byDay.has(day)) byDay.set(day, []);

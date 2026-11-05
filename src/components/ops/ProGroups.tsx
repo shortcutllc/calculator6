@@ -1,13 +1,30 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Plus, ChevronDown, ChevronUp, Search, Archive } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, Search, Archive, X } from 'lucide-react';
 import { ops, OpsGroup, OpsPro, PRO_TYPES } from '../../services/opsService';
 import { initials, shortDate } from './opsFormat';
 
 // Pedro's lists of Pros per city and service, each Pro in a tier (Tier 1 = first
 // call). Stored on the Shortcut backend next to the Pros (ProGroup), so the admin
 // site can use the same tiers later. Styled by ops-dashboard.css inside .pv-root.
+//
+// Make a group (city + service), then add Pros with one click per tier: from the Pros
+// near the group's city, or anyone by name. Members move between tiers in place.
 
 const TIERS = [1, 2, 3, 4, 5];
+const ADD_TIERS = [1, 2, 3];
+const PAGE = 20;
+
+function proMeta(p: OpsPro): string {
+  return [
+    p.lastEventDate ? `Last worked ${shortDate(p.lastEventDate)}` : 'No events this year',
+    p.eventsLast90 ? `${p.eventsLast90} in 90 days` : '',
+    p.distanceMiles !== null && p.distanceMiles !== undefined ? `${p.distanceMiles} mi` : '',
+    p.pinLocation || '',
+    p.phone || '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
 
 export const ProGroups: React.FC = () => {
   const [groups, setGroups] = useState<OpsGroup[]>([]);
@@ -35,10 +52,7 @@ export const ProGroups: React.FC = () => {
   return (
     <div>
       <div className="ops-sec">
-        <div>
-          <h2 className="lt-h3">Pro groups</h2>
-          <p className="ops-sec-note">Your go-to Pros per city and service. Tier 1 is who you text first.</p>
-        </div>
+        <p className="ops-sec-note">Your go-to Pros per city and service. Tier 1 is who you text first.</p>
         <button className="lt-btn lt-btn-navy lt-btn-sm" onClick={() => setCreating((c) => !c)}>
           <Plus size={16} /> New group
         </button>
@@ -46,6 +60,7 @@ export const ProGroups: React.FC = () => {
       {error && <div className="ops-error">{error}</div>}
       {creating && (
         <NewGroup
+          onCancel={() => setCreating(false)}
           onSaved={(g) => {
             setCreating(false);
             setOpenID(g.id);
@@ -54,10 +69,10 @@ export const ProGroups: React.FC = () => {
           onError={setError}
         />
       )}
-      {loading && <p className="ops-muted">Loading groups...</p>}
+      {loading && !groups.length && <p className="ops-muted">Loading groups...</p>}
       {!loading && !groups.length && !creating && (
         <div className="lt-card">
-          <p className="lt-body">No groups yet. Make one per city and service, like "NYC Massage", then add Pros to it by tier.</p>
+          <p className="lt-body">No groups yet. Make one per city and service, like NYC Massage, then add your go-to Pros to it by tier.</p>
         </div>
       )}
       {groups.map((g) => (
@@ -74,21 +89,24 @@ export const ProGroups: React.FC = () => {
   );
 };
 
-const NewGroup: React.FC<{ onSaved: (g: OpsGroup) => void; onError: (m: string) => void }> = ({ onSaved, onError }) => {
-  const [name, setName] = useState('');
+const NewGroup: React.FC<{ onSaved: (g: OpsGroup) => void; onCancel: () => void; onError: (m: string) => void }> = ({
+  onSaved,
+  onCancel,
+  onError,
+}) => {
   const [city, setCity] = useState('');
-  const [address, setAddress] = useState('');
   const [proType, setProType] = useState('Massage');
   const [radius, setRadius] = useState(30);
   const [saving, setSaving] = useState(false);
   const save = async () => {
+    if (!city.trim()) return;
     setSaving(true);
     try {
       const res = await ops.saveGroup({
-        name: name.trim() || `${city.trim()} ${proType}`,
+        name: `${city.trim()} ${proType}`,
         city: city.trim(),
         proType,
-        addressString: (address || city).trim() || undefined,
+        addressString: city.trim(),
         radiusMiles: radius,
       });
       onSaved(res.group);
@@ -100,11 +118,23 @@ const NewGroup: React.FC<{ onSaved: (g: OpsGroup) => void; onError: (m: string) 
   };
   return (
     <div className="lt-card ops-new ops-stack">
-      <p className="lt-eyebrow">New group</p>
-      <div className="ops-grid2">
-        <label className="ops-field">
+      <div className="ops-flag-head">
+        <span className="ops-flag-title">New group</span>
+        <button className="ops-icon-btn" onClick={onCancel} aria-label="Cancel">
+          <X size={16} />
+        </button>
+      </div>
+      <div className="ops-row">
+        <label className="ops-field flex-1">
           <span className="ops-label">City</span>
-          <input className="ops-input" value={city} onChange={(e) => setCity(e.target.value)} placeholder="New York, NY" />
+          <input
+            className="ops-input"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && save()}
+            placeholder="New York, NY"
+            autoFocus
+          />
         </label>
         <label className="ops-field">
           <span className="ops-label">Service</span>
@@ -115,11 +145,7 @@ const NewGroup: React.FC<{ onSaved: (g: OpsGroup) => void; onError: (m: string) 
           </select>
         </label>
         <label className="ops-field">
-          <span className="ops-label">Name (optional)</span>
-          <input className="ops-input" value={name} onChange={(e) => setName(e.target.value)} placeholder={`${city || 'City'} ${proType}`} />
-        </label>
-        <label className="ops-field">
-          <span className="ops-label">Search within</span>
+          <span className="ops-label">Pros within</span>
           <select className="ops-select" value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
             {[10, 20, 30, 50, 75, 100].map((r) => (
               <option key={r} value={r}>
@@ -128,16 +154,11 @@ const NewGroup: React.FC<{ onSaved: (g: OpsGroup) => void; onError: (m: string) 
             ))}
           </select>
         </label>
-      </div>
-      <label className="ops-field">
-        <span className="ops-label">Center the search on (optional)</span>
-        <input className="ops-input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="An address, or leave blank for the city" />
-      </label>
-      <div>
         <button className="lt-btn lt-btn-navy lt-btn-sm" onClick={save} disabled={saving || !city.trim()}>
-          {saving ? 'Saving...' : 'Save group'}
+          {saving ? 'Making it...' : `Make ${city.trim() ? `${city.trim()} ${proType}` : 'group'}`}
         </button>
       </div>
+      <p className="ops-meta">Next you'll see the Pros near that city, and add the ones you want with one click per tier.</p>
     </div>
   );
 };
@@ -151,14 +172,17 @@ const GroupCard: React.FC<{
 }> = ({ group, open, onToggle, onChanged, onError }) => {
   const members = group.members || [];
   const counts = TIERS.map((t) => members.filter((m) => m.tier === t).length);
-  const [adding, setAdding] = useState(false);
+  const [busy, setBusy] = useState('');
 
   const setTier = async (barberID: string, tier: number | null) => {
+    setBusy(barberID);
     try {
       await ops.setGroupMembers(group.id, [{ barberID, tier }]);
       onChanged();
     } catch (e) {
       onError((e as Error).message);
+    } finally {
+      setBusy('');
     }
   };
 
@@ -184,58 +208,58 @@ const GroupCard: React.FC<{
 
       {open && (
         <div className="ops-group-body">
-          {TIERS.map((tier) => {
-            const inTier = members.filter((m) => m.tier === tier);
-            if (!inTier.length) return null;
-            return (
-              <div key={tier}>
-                <p className="lt-eyebrow">Tier {tier}</p>
-                <div className="ops-list">
-                  {inTier.map((m) => (
-                    <div key={m.barberID} className="ops-pro">
-                      <div className="ops-avatar" aria-hidden>
-                        {initials(m.pro ? m.pro.fullName : '')}
-                      </div>
-                      <div className="ops-pro-main">
-                        <div className="ops-pro-line">
-                          <span className="ops-name">{m.pro ? m.pro.fullName : m.barberID}</span>
-                          {m.missing && <span className="ops-flagtext">No longer a Pro</span>}
-                          {m.pro?.optedOut && <span className="ops-flagtext">Opted out of texts</span>}
-                        </div>
-                        {m.pro && (
-                          <div className="ops-meta">
-                            {[
-                              m.pro.lastEventDate ? `Last worked ${shortDate(m.pro.lastEventDate)}` : 'No events this year',
-                              m.pro.eventsLast90 ? `${m.pro.eventsLast90} in 90 days` : '',
-                              m.pro.phone || '',
-                              m.pro.pinLocation || '',
-                            ]
-                              .filter(Boolean)
-                              .join(' · ')}
+          <div className="ops-group-grid">
+            <div>
+              <p className="lt-eyebrow">In this group</p>
+              {!members.length && <p className="ops-muted">Nobody yet. Add Pros from the list.</p>}
+              {TIERS.map((tier) => {
+                const inTier = members.filter((m) => m.tier === tier);
+                if (!inTier.length) return null;
+                return (
+                  <div key={tier} className="ops-tier-block">
+                    <p className="ops-label">Tier {tier}</p>
+                    <div className="ops-list">
+                      {inTier.map((m) => (
+                        <div key={m.barberID} className="ops-pro">
+                          <div className="ops-avatar" aria-hidden>
+                            {initials(m.pro ? m.pro.fullName : '')}
                           </div>
-                        )}
-                      </div>
-                      <select className="ops-select" value={m.tier} onChange={(e) => setTier(m.barberID, Number(e.target.value))} aria-label="Tier">
-                        {TIERS.map((t) => (
-                          <option key={t} value={t}>
-                            Tier {t}
-                          </option>
-                        ))}
-                      </select>
-                      <button className="lt-btn lt-btn-ghost lt-btn-sm" onClick={() => setTier(m.barberID, null)}>
-                        Remove
-                      </button>
+                          <div className="ops-pro-main">
+                            <div className="ops-pro-line">
+                              <span className="ops-name">{m.pro ? m.pro.fullName : m.barberID}</span>
+                              {m.missing && <span className="ops-flagtext">No longer a Pro</span>}
+                              {m.pro?.optedOut && <span className="ops-flagtext">Opted out of texts</span>}
+                            </div>
+                            {m.pro && <div className="ops-meta">{proMeta(m.pro)}</div>}
+                            <div className="ops-tier-pick" role="group" aria-label="Tier">
+                              {TIERS.map((t) => (
+                                <button
+                                  key={t}
+                                  className={m.tier === t ? 'on' : ''}
+                                  disabled={busy === m.barberID}
+                                  onClick={() => m.tier !== t && setTier(m.barberID, t)}
+                                  aria-pressed={m.tier === t}
+                                >
+                                  T{t}
+                                </button>
+                              ))}
+                              <button className="is-remove" disabled={busy === m.barberID} onClick={() => setTier(m.barberID, null)}>
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+                  </div>
+                );
+              })}
+            </div>
+
+            <AddPros group={group} onAdded={onChanged} onError={onError} />
+          </div>
 
           <div className="ops-chips mt-5">
-            <button className="lt-btn lt-btn-navy lt-btn-sm" onClick={() => setAdding((a) => !a)}>
-              <Search size={16} /> Add Pros near {group.city || 'this group'}
-            </button>
             <button
               className="lt-btn lt-btn-ghost lt-btn-sm"
               onClick={async () => {
@@ -247,10 +271,9 @@ const GroupCard: React.FC<{
                 }
               }}
             >
-              <Archive size={16} /> Archive group
+              <Archive size={16} /> Archive this group
             </button>
           </div>
-          {adding && <AddPros group={group} onAdded={onChanged} onError={onError} />}
         </div>
       )}
     </div>
@@ -258,11 +281,13 @@ const GroupCard: React.FC<{
 };
 
 const AddPros: React.FC<{ group: OpsGroup; onAdded: () => void; onError: (m: string) => void }> = ({ group, onAdded, onError }) => {
-  const [pros, setPros] = useState<OpsPro[]>([]);
+  const [nearby, setNearby] = useState<OpsPro[]>([]);
+  const [results, setResults] = useState<OpsPro[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [tier, setTier] = useState(1);
-  const memberIDs = new Set((group.members || []).map((m) => m.barberID));
+  const [q, setQ] = useState('');
+  const [visible, setVisible] = useState(PAGE);
+  const [busy, setBusy] = useState('');
+  const tierOf = new Map((group.members || []).map((m) => [m.barberID, m.tier]));
 
   useEffect(() => {
     (async () => {
@@ -274,7 +299,7 @@ const AddPros: React.FC<{ group: OpsGroup; onAdded: () => void; onError: (m: str
           proTypes: group.proType ? [group.proType] : [],
           radiusMiles: group.radiusMiles || 30,
         });
-        setPros(res.pros);
+        setNearby(res.pros);
       } catch (e) {
         onError((e as Error).message);
       } finally {
@@ -283,83 +308,102 @@ const AddPros: React.FC<{ group: OpsGroup; onAdded: () => void; onError: (m: str
     })();
   }, [group.center, group.city, group.proType, group.radiusMiles, onError]);
 
-  const candidates = pros.filter((p) => !memberIDs.has(p.id));
+  // Two or more letters: anyone by name, anywhere (same service). Falls back to the
+  // nearby list if the backend can't search by name yet.
+  useEffect(() => {
+    const term = q.trim();
+    if (term.length < 2) {
+      setResults(null);
+      return;
+    }
+    const t = setTimeout(async () => {
+      try {
+        const res = await ops.roster({ q: term, proTypes: group.proType ? [group.proType] : [] });
+        setResults(res.pros);
+      } catch {
+        setResults(nearby.filter((p) => p.fullName.toLowerCase().includes(term.toLowerCase())));
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [q, group.proType, nearby]);
+
+  const add = async (p: OpsPro, tier: number) => {
+    setBusy(p.id);
+    try {
+      await ops.setGroupMembers(group.id, [{ barberID: p.id, tier }]);
+      onAdded();
+    } catch (e) {
+      onError((e as Error).message);
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const list = results ?? nearby;
+  const page = list.slice(0, visible);
+  const left = list.length - page.length;
+
   return (
-    <div className="ops-stack mt-4">
-      <div className="ops-list max-h-96 overflow-y-auto">
-        {loading && (
+    <div>
+      <p className="lt-eyebrow">Add Pros</p>
+      <div className="relative">
+        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-shortcut-blue" />
+        <input
+          className="ops-input w-full pl-11"
+          placeholder={`Search ${group.proType ? group.proType.toLowerCase() + ' ' : ''}Pros by name`}
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setVisible(PAGE);
+          }}
+        />
+      </div>
+      <p className="ops-meta mt-2">
+        {results
+          ? `${results.length} match${results.length === 1 ? '' : 'es'} for "${q.trim()}", anywhere.`
+          : loading
+            ? 'Finding Pros...'
+            : `${nearby.length} ${group.proType ? group.proType.toLowerCase() + ' ' : ''}Pros within ${group.radiusMiles || 30} miles of ${group.city || 'the group'}, most recently worked first.`}
+      </p>
+      <div className="ops-list mt-3">
+        {!loading && !list.length && (
           <div className="ops-list-row">
-            <p className="ops-muted">Finding Pros...</p>
+            <p className="ops-muted">{results ? 'Nobody by that name.' : 'No Pros found near this city. Try a wider radius on a new group, or search by name.'}</p>
           </div>
         )}
-        {!loading && !candidates.length && (
-          <div className="ops-list-row">
-            <p className="ops-muted">Everyone nearby is already in this group.</p>
-          </div>
-        )}
-        {candidates.map((p) => (
-          <label key={p.id} className="ops-pro cursor-pointer">
-            <input
-              type="checkbox"
-              checked={selected.has(p.id)}
-              onChange={() =>
-                setSelected((prev) => {
-                  const next = new Set(prev);
-                  if (next.has(p.id)) next.delete(p.id);
-                  else next.add(p.id);
-                  return next;
-                })
-              }
-            />
-            <div className="ops-avatar" aria-hidden>
-              {initials(p.fullName)}
-            </div>
-            <div className="ops-pro-main">
-              <div className="ops-name">{p.fullName}</div>
-              <div className="ops-meta">
-                {[
-                  p.lastEventDate ? `Last worked ${shortDate(p.lastEventDate)}` : 'No events this year',
-                  p.eventsLast90 ? `${p.eventsLast90} in 90 days` : '',
-                  p.distanceMiles !== null && p.distanceMiles !== undefined ? `${p.distanceMiles} mi` : '',
-                  p.pinLocation || '',
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
+        {page.map((p) => {
+          const tier = tierOf.get(p.id);
+          return (
+            <div key={p.id} className="ops-pro">
+              <div className="ops-avatar" aria-hidden>
+                {initials(p.fullName)}
+              </div>
+              <div className="ops-pro-main">
+                <div className="ops-pro-line">
+                  <span className="ops-name">{p.fullName}</span>
+                  {p.optedOut && <span className="ops-flagtext">Opted out of texts</span>}
+                </div>
+                <div className="ops-meta">{proMeta(p)}</div>
+                <div className="ops-tier-pick" role="group" aria-label={`Add ${p.fullName}`}>
+                  {tier ? (
+                    <span className="ops-oktext">In Tier {tier}</span>
+                  ) : (
+                    ADD_TIERS.map((t) => (
+                      <button key={t} disabled={busy === p.id} onClick={() => add(p, t)}>
+                        + Tier {t}
+                      </button>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
-          </label>
-        ))}
+          );
+        })}
       </div>
-      {selected.size > 0 && (
-        <div className="ops-row">
-          <label className="ops-field">
-            <span className="ops-label">Add as</span>
-            <select className="ops-select" value={tier} onChange={(e) => setTier(Number(e.target.value))}>
-              {TIERS.map((t) => (
-                <option key={t} value={t}>
-                  Tier {t}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            className="lt-btn lt-btn-navy lt-btn-sm"
-            onClick={async () => {
-              try {
-                await ops.setGroupMembers(
-                  group.id,
-                  Array.from(selected).map((barberID) => ({ barberID, tier }))
-                );
-                setSelected(new Set());
-                onAdded();
-              } catch (e) {
-                onError((e as Error).message);
-              }
-            }}
-          >
-            Add {selected.size} as Tier {tier}
-          </button>
-        </div>
+      {left > 0 && (
+        <button className="lt-btn lt-btn-ghost lt-btn-sm mt-3" onClick={() => setVisible((v) => v + PAGE)}>
+          Show {Math.min(PAGE, left)} more ({left} left)
+        </button>
       )}
     </div>
   );

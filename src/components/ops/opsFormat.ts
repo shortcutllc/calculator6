@@ -7,6 +7,12 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 // Proposal dates are often "2026-11-17", which Date reads as midnight UTC: the evening
 // before anywhere west of London. A bare date is a calendar day, so read it as local.
+export function localDate(value: string | number | null | undefined): Date | null {
+  if (value === null || value === undefined || value === '') return null;
+  const d = toDate(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 function toDate(value: string | number): Date {
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
     const [y, m, d] = value.split('-').map(Number);

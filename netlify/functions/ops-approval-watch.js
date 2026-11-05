@@ -16,7 +16,7 @@
 import { serviceClient } from './lib/staff-auth.js';
 import { stampHeartbeat } from './lib/heartbeat.js';
 import { notifyOps } from './lib/ops-notify.js';
-import { alertText } from './lib/ops-staffing.js';
+import { alertText, clientName, looksLikeTest } from './lib/ops-staffing.js';
 
 export const config = { schedule: '*/5 * * * *' };
 
@@ -79,7 +79,7 @@ export async function runApprovalWatch(sb, { notify = notifyOps, siteUrl } = {})
     .limit(200);
   if (error) throw new Error(`proposals: ${error.message}`);
 
-  const candidates = (recent || []).filter((p) => !p.is_test);
+  const candidates = (recent || []).filter((p) => !p.is_test && !looksLikeTest(clientName(p)));
   const done = await alertedIDs(sb, candidates.map((p) => p.id));
   let alerted = 0;
   for (const p of candidates.filter((c) => !done.has(c.id))) {

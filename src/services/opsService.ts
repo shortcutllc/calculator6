@@ -110,6 +110,15 @@ export interface OpsPro {
   nextEventDate: string | null;
   groups: OpsGroupMembership[];
   distanceMiles?: number | null;
+  // How the roster placed them: their service-area pin, or their home address when
+  // they have no pin (some event Pros).
+  locatedBy?: 'pin' | 'address' | null;
+  // Past events for the client being staffed, and at its address (last three years).
+  clientEvents?: number;
+  lastClientEventDate?: string | null;
+  lastClientEventName?: string | null;
+  siteEvents?: number;
+  lastSiteEventDate?: string | null;
 }
 
 export interface OpsGroupMember {
@@ -179,8 +188,9 @@ export interface OpsBoard {
 }
 
 export interface OpsRoster {
-  center: { latitude: number; longitude: number };
-  radiusMiles: number;
+  // Null for a search by name alone.
+  center: { latitude: number; longitude: number } | null;
+  radiusMiles: number | null;
   truncated: boolean;
   pros: OpsPro[];
 }
@@ -225,7 +235,16 @@ export const ops = {
   setLikely: (proposalId: string, likely: boolean) =>
     opsCall<{ proposalId: string; likely: boolean; alerted: boolean }>('setLikely', { proposalId, likely }),
   setNote: (proposalId: string, note: string) => opsCall<{ proposalId: string; note: string }>('setNote', { proposalId, note }),
-  roster: (params: { addressString?: string; coordinates?: { latitude: number; longitude: number }; proTypes: string[]; radiusMiles: number; includeInactive?: boolean }) =>
+  roster: (params: {
+    addressString?: string;
+    coordinates?: { latitude: number; longitude: number };
+    proTypes: string[];
+    radiusMiles?: number;
+    q?: string;
+    clientName?: string;
+    atSite?: boolean;
+    includeInactive?: boolean;
+  }) =>
     opsCall<OpsRoster>('roster', params),
   groups: (params: { groupID?: string; includeArchived?: boolean } = {}) => opsCall<{ groups: OpsGroup[] }>('groups', params),
   saveGroup: (params: {
