@@ -105,32 +105,42 @@ async function eventsByID(eventIDs, warnings) {
 const STATUS_RANK = { completed: 5, opened: 4, sent: 3, awaiting: 3, pending: 2, declined: 1, expired: 1 };
 const shownStatus = (s) => (s === 'completed' ? 'signed' : s === 'awaiting' ? 'sent' : s || null);
 
+const normName = (n) => String(n || '').toLowerCase().replace(/[^a-z]+/g, ' ').trim();
+
+// Keyed by email, and by name as a fallback: a few Pros signed with a different email
+// from the one on their Pro account (6 of 59 signed, Nov 2026).
 async function agreementsByEmail(supabase) {
   const map = new Map();
   const { data, error } = await supabase
     .from('pro_agreements')
-    .select('pro_email, status, completed_at, created_at, pro_agreement_templates(document_type)')
+    .select('pro_email, pro_name, status, completed_at, created_at, pro_agreement_templates(document_type)')
     .limit(5000);
   if (error) {
     console.error('[ops-api] agreements', error.message);
     return map;
   }
-  for (const row of data || []) {
-    const email = String(row.pro_email || '').trim().toLowerCase();
-    const type = row.pro_agreement_templates && row.pro_agreement_templates.document_type;
-    const key = type === 'ica' ? 'contractor' : type === 'workers_comp' ? 'workersComp' : null;
-    if (!email || !key) continue;
-    const entry = map.get(email) || { contractor: null, workersComp: null };
-    const current = entry[key];
+  const add = (key, docKey, row) => {
+    const entry = map.get(key) || { contractor: null, workersComp: null };
+    const current = entry[docKey];
     const rank = STATUS_RANK[row.status] || 0;
-    if (!current || rank > current.rank) entry[key] = { rank, status: row.status };
-    map.set(email, entry);
+    if (!current || rank > current.rank) entry[docKey] = { rank, status: row.status };
+    map.set(key, entry);
+  };
+  for (const row of data || []) {
+    const type = row.pro_agreement_templates && row.pro_agreement_templates.document_type;
+    const docKey = type === 'ica' ? 'contractor' : type === 'workers_comp' ? 'workersComp' : null;
+    if (!docKey) continue;
+    const email = String(row.pro_email || '').trim().toLowerCase();
+    if (email) add(email, docKey, row);
+    const name = normName(row.pro_name);
+    if (name.includes(' ')) add(`name:${name}`, docKey, row);
   }
   return map;
 }
 
-function agreementsFor(index, email) {
-  const entry = index.get(String(email || '').trim().toLowerCase());
+function agreementsFor(index, email, fullName) {
+  const entry =
+    index.get(String(email || '').trim().toLowerCase()) || index.get(`name:${normName(fullName)}`);
   return {
     contractor: entry && entry.contractor ? shownStatus(entry.contractor.status) : null,
     workersComp: entry && entry.workersComp ? shownStatus(entry.workersComp.status) : null,
@@ -140,7 +150,7 @@ function agreementsFor(index, email) {
 function withPaperwork(pro, index) {
   if (!pro) return pro;
   const worked = (pro.numCompletedEvents || 0) > 0 || (pro.eventsLast365 || 0) > 0;
-  return { ...pro, agreements: agreementsFor(index, pro.email), orientation: worked ? 'done' : 'new' };
+  return { ...pro, agreements: agreementsFor(index, pro.email, pro.fullName), orientation: worked ? 'done' : 'new' };
 }
 
 // Seats carry only the Pro's id and name: look up their email and event count.
@@ -169,7 +179,7 @@ async function seatsWithPaperwork(events, index) {
       if (!pro) return seat;
       return {
         ...seat,
-        agreements: agreementsFor(index, pro.email),
+        agreements: agreementsFor(index, pro.email, seat.fullName),
         orientation: (pro.numCompletedEvents || 0) > 0 ? 'done' : 'new',
       };
     }),
@@ -393,7 +403,10 @@ const ACTIONS = {
       }),
       agreementsByEmail(supabase),
     ]);
-    return { ...res, pros: (res.pros || []).map((p) => withPaperwork(p, index)) };
+    // On the live backend, Pros named like a test account ("Test EventPro") never show.
+    const live = parseBackendLabel() !== 'dev';
+    const pros = (res.pros || []).filter((p) => !live || !looksLikeTest(p.fullName));
+    return { ...res, pros: pros.map((p) => withPaperwork(p, index)) };
   },
 
   async groups(body, { supabase }) {
