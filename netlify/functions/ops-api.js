@@ -290,14 +290,13 @@ const ACTIONS = {
 
     // Every other upcoming coordinator event, staffed or not (Will: the Staffed view
     // showed only proposal events - hand-made events were listed only while short of
-    // Pros). From today on, from the same read that matched events to proposals.
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
+    // Pros). Until each one has ended, from the same read that matched events to proposals.
+    const now = Date.now();
     const linkedSet = new Set(linked);
     const otherIDs = horizon
       .filter((e) => {
         const end = Date.parse((e.endTime && e.endTime.iso) || (e.startTime && e.startTime.iso) || '');
-        return Number.isFinite(end) && end >= today.getTime();
+        return Number.isFinite(end) && end >= now;
       })
       .filter((e) => !e.isTestEvent && !e.cancelled && !looksLikeTest(e.name) && !linkedSet.has(e.objectId))
       .map((e) => e.objectId);
