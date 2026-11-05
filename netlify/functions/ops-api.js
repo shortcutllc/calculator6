@@ -288,14 +288,21 @@ const ACTIONS = {
     const linked = Array.from(new Set([...needsByID.values()].flatMap((needs) => needs.flatMap((n) => n.eventIDs || []))));
     const events = await eventsByID(linked, warnings);
 
-    let otherEvents = [];
-    try {
-      const res = await callParse('pullEventStaffing_Admin', { upcomingDays: 60 });
-      const linkedSet = new Set(linked);
-      otherEvents = (res.events || []).filter((e) => !linkedSet.has(e.id) && !e.isTestEvent && !looksLikeTest(e.name));
-    } catch (e) {
-      warnings.push(`Could not read upcoming events: ${e.message}`);
-    }
+    // Every other upcoming coordinator event, staffed or not (Will: the Staffed view
+    // showed only proposal events - hand-made events were listed only while short of
+    // Pros). From today on, from the same read that matched events to proposals.
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const linkedSet = new Set(linked);
+    const otherIDs = horizon
+      .filter((e) => {
+        const end = Date.parse((e.endTime && e.endTime.iso) || (e.startTime && e.startTime.iso) || '');
+        return Number.isFinite(end) && end >= today.getTime();
+      })
+      .filter((e) => !e.isTestEvent && !e.cancelled && !looksLikeTest(e.name) && !linkedSet.has(e.objectId))
+      .map((e) => e.objectId);
+    const otherMap = await eventsByID(otherIDs, warnings);
+    let otherEvents = otherIDs.map((id) => otherMap.get(id)).filter(Boolean);
 
     const index = await agreementsByEmail(supabase);
     const enriched = await seatsWithPaperwork([...events.values(), ...otherEvents], index);

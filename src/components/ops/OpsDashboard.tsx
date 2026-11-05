@@ -46,7 +46,7 @@ interface Item {
 
 const FILTERS: { id: Filter; label: string; help: string }[] = [
   { id: 'need', label: 'Need staff', help: 'Upcoming events with open seats, and approved proposals with no event yet. Soonest first.' },
-  { id: 'staffed', label: 'Staffed', help: 'Approved proposals with every seat filled.' },
+  { id: 'staffed', label: 'Staffed', help: 'Upcoming events and approved proposals with every seat filled. Soonest first.' },
   { id: 'likely', label: 'Likely to close', help: 'Deals sales has flagged before they are signed, so you can line up Pros early.' },
 ];
 
