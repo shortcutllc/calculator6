@@ -69,6 +69,29 @@ export async function callParse(name, params = {}) {
   throw { statusCode: 502, message: `${name} failed after signing in again`, code: 'PARSE_FUNCTION_FAILED' };
 }
 
+/** Rows of a Parse class (REST find) as the admin account, the same read the Upcoming
+ *  Events page makes (fetch-coordinator-events.js). Params: where, keys, limit, order. */
+export async function queryParse(className, { where = {}, keys, limit = 1000, order } = {}) {
+  const cfg = parseConfig();
+  const params = new URLSearchParams({ where: JSON.stringify(where), limit: String(limit) });
+  if (keys) params.set('keys', Array.isArray(keys) ? keys.join(',') : keys);
+  if (order) params.set('order', order);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const token = cachedToken || (await logIn());
+    const res = await fetch(`${cfg.url}/classes/${encodeURIComponent(className)}?${params}`, {
+      headers: { 'X-Parse-Application-Id': cfg.appId, 'X-Parse-Session-Token': token },
+    });
+    const body = await res.json().catch(() => ({}));
+    if (res.ok) return body.results || [];
+    if (body.code === 209 && attempt === 0) {
+      cachedToken = null;
+      continue;
+    }
+    throw { statusCode: 502, message: body.error || `${className} query failed (${res.status})`, code: 'PARSE_QUERY_FAILED' };
+  }
+  throw { statusCode: 502, message: `${className} query failed after signing in again`, code: 'PARSE_QUERY_FAILED' };
+}
+
 /** Which backend this talks to, for the dashboard to show (never the credentials). */
 export function parseBackendLabel() {
   const url = process.env.PARSE_SERVER_URL || '';

@@ -55,8 +55,14 @@ function spotsFor(target: StaffTarget): Spot[] {
   const spots: Spot[] = [];
   if (target.proposal) {
     const events = target.proposal.events;
+    const single = target.proposal.needs.length === 1;
     target.proposal.needs.forEach((need, ni) => {
-      const event = events.find((e) => eventYmd(e) === ymd(need.date)) || (events.length === 1 ? events[0] : null);
+      // The event Create Event made for this location and date; failing that, one on
+      // the same day; with a single location and date, the proposal's only event.
+      const event =
+        events.find((e) => (need.eventIDs || []).includes(e.id)) ||
+        events.find((e) => eventYmd(e) === ymd(need.date)) ||
+        (single && events.length === 1 ? events[0] : null);
       need.services.forEach((svc, si) => {
         spots.push({
           key: `${ni}-${si}`,
@@ -450,6 +456,9 @@ export const EventSeats: React.FC<{ event: OpsEvent }> = ({ event }) => {
           </a>
         </div>
       </div>
+      {event.matchedBy === 'name' && (
+        <p className="ops-meta">Matched to this proposal by client name and date. Made in the coordinator, not from the proposal.</p>
+      )}
       <div className="ops-seats">
         {event.seats.map((s, i) => (
           <span

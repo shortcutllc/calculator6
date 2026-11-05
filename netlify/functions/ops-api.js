@@ -31,13 +31,14 @@
  *                              empty one (add), with the coordinator's own functions
  */
 import { authenticate } from './lib/staff-auth.js';
-import { callParse, parseBackendLabel } from './lib/parse-admin.js';
+import { callParse, parseBackendLabel, queryParse } from './lib/parse-admin.js';
 import { notifyOps } from './lib/ops-notify.js';
 import {
   alertText,
   clientName,
   isOpsStaff,
   linkedEventIDs,
+  matchEventsByName,
   staffingNeeds,
 } from './lib/ops-staffing.js';
 
@@ -81,7 +82,8 @@ async function eventsByID(eventIDs, warnings) {
   for (let i = 0; i < unique.length; i += 100) {
     try {
       const res = await callParse('pullEventStaffing_Admin', { eventIDs: unique.slice(i, i + 100) });
-      (res.events || []).forEach((e) => map.set(e.id, e));
+      // Test events never count (Will): not as seats, not as staffing.
+      (res.events || []).filter((e) => !e.isTestEvent && !e.cancelled).forEach((e) => map.set(e.id, e));
     } catch (e) {
       warnings.push(`Could not read event seats: ${e.message}`);
       break;
@@ -90,9 +92,31 @@ async function eventsByID(eventIDs, warnings) {
   return map;
 }
 
-function proposalCard(p, flag, events) {
-  const needs = staffingNeeds(p);
-  const ids = linkedEventIDs(p);
+// Every coordinator event from three days ago to eight months out, staffed or not, for
+// finding the ones made by hand (the Upcoming Events page reads Event the same way).
+async function horizonEvents(warnings) {
+  const iso = (t) => ({ __type: 'Date', iso: new Date(t).toISOString() });
+  try {
+    return await queryParse('Event', {
+      where: {
+        endTime: { $gte: iso(Date.now() - 3 * DAY_MS) },
+        startTime: { $lte: iso(Date.now() + 240 * DAY_MS) },
+        cancelled: { $ne: true },
+        isTestEvent: { $ne: true },
+      },
+      keys: ['name', 'startTime', 'endTime', 'timezoneOffset', 'address', 'mobileEventCode', 'isTestEvent', 'cancelled'],
+      limit: 1000,
+      order: 'startTime',
+    });
+  } catch (e) {
+    warnings.push(`Could not look up events made in the coordinator: ${e.message}`);
+    return [];
+  }
+}
+
+function proposalCard(p, flag, events, needs, foundByName) {
+  const ids = Array.from(new Set(needs.flatMap((n) => n.eventIDs || [])));
+  const created = new Set(linkedEventIDs(p));
   return {
     id: p.id,
     clientName: clientName(p),
@@ -105,12 +129,16 @@ function proposalCard(p, flag, events) {
     likelySetAt: (flag && flag.likely_set_at) || null,
     approvedAlertedAt: (flag && flag.approved_alerted_at) || null,
     staffingNote: (flag && flag.staffing_note) || '',
-    needs,
+    needs: needs.map((n) => ({ ...n, eventIDs: (n.eventIDs || []).filter((id) => events.has(id)) })),
     totalPros: needs.reduce((sum, n) => sum + n.totalPros, 0),
     lastEventDate: lastEventDate(needs),
-    eventIDs: ids,
-    events: ids.map((id) => events.get(id)).filter(Boolean),
-    missingEventIDs: ids.filter((id) => !events.has(id)),
+    eventIDs: ids.filter((id) => events.has(id)),
+    events: ids
+      .map((id) => events.get(id))
+      .filter(Boolean)
+      .map((e) => ({ ...e, matchedBy: created.has(e.id) ? 'created' : foundByName.has(e.id) ? 'name' : 'created' })),
+    // Made with Create Event but gone (deleted, cancelled, a test event, or another backend).
+    missingEventIDs: Array.from(created).filter((id) => !events.has(id)),
   };
 }
 
@@ -155,20 +183,28 @@ const ACTIONS = {
     });
 
     const flags = await flagsFor(supabase, proposals.map((p) => p.id));
-    const linked = proposals.flatMap(linkedEventIDs);
+    const horizon = await horizonEvents(warnings);
+    const needsByID = new Map();
+    const foundByName = new Set();
+    for (const p of proposals) {
+      const needs = staffingNeeds(p);
+      matchEventsByName(needs, clientName(p), horizon).forEach((id) => foundByName.add(id));
+      needsByID.set(p.id, needs);
+    }
+    const linked = Array.from(new Set([...needsByID.values()].flatMap((needs) => needs.flatMap((n) => n.eventIDs || []))));
     const events = await eventsByID(linked, warnings);
 
     let otherEvents = [];
     try {
       const res = await callParse('pullEventStaffing_Admin', { upcomingDays: 60 });
       const linkedSet = new Set(linked);
-      otherEvents = (res.events || []).filter((e) => !linkedSet.has(e.id));
+      otherEvents = (res.events || []).filter((e) => !linkedSet.has(e.id) && !e.isTestEvent);
     } catch (e) {
       warnings.push(`Could not read upcoming events: ${e.message}`);
     }
 
     const cards = proposals
-      .map((p) => proposalCard(p, flags.get(p.id), events))
+      .map((p) => proposalCard(p, flags.get(p.id), events, needsByID.get(p.id), foundByName))
       .sort((a, b) => (a.lastEventDate ?? Infinity) - (b.lastEventDate ?? Infinity));
 
     return { backend: parseBackendLabel(), proposals: cards, otherEvents, warnings };

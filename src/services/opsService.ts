@@ -18,6 +18,8 @@ export interface OpsNeed {
   date: string;
   services: OpsServiceNeed[];
   totalPros: number;
+  // The coordinator events made for this location and date.
+  eventIDs: string[];
 }
 
 export interface OpsSeat {
@@ -55,6 +57,8 @@ export interface OpsEvent {
   emptySeats: number;
   openSeats: number;
   links: { addPro: string; swapPro: string; timeslots: string; editEvent: string };
+  // On a proposal card: made with Create Event, or found by client name and date.
+  matchedBy?: 'created' | 'name';
 }
 
 export interface OpsProposal {

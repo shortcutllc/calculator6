@@ -5,10 +5,20 @@ import { SERVICE_IMAGE_PATH } from '../proposal/data';
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+// Proposal dates are often "2026-11-17", which Date reads as midnight UTC: the evening
+// before anywhere west of London. A bare date is a calendar day, so read it as local.
+function toDate(value: string | number): Date {
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [y, m, d] = value.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  return new Date(value);
+}
+
 /** "Tue, Nov 17" from anything Date can read, else the input as is. */
 export function dayLabel(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === '') return '';
-  const d = new Date(value);
+  const d = toDate(value);
   if (Number.isNaN(d.getTime())) return String(value);
   return `${DAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
@@ -57,7 +67,7 @@ export function eventHours(event: Pick<OpsEvent, 'startTime' | 'endTime' | 'time
 /** The YYYY-MM-DD a value falls on (local reading), for matching a proposal date to an event. */
 export function ymd(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === '') return '';
-  const d = new Date(value);
+  const d = toDate(value);
   if (Number.isNaN(d.getTime())) return '';
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
