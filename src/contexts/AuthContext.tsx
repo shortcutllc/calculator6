@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
+import { markStaffDevice } from '../utils/staffDevice';
 
 interface AuthContextType {
   user: User | null;
@@ -38,6 +39,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true); // Start as true to wait for auth check
   const [error, setError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
+
+  // Remember this browser as a teammate's, so their visits to client proposal
+  // links are not counted as client views, even after they sign out.
+  useEffect(() => {
+    markStaffDevice(user?.email);
+  }, [user]);
 
   // Enhanced session initialization with retry mechanism
   useEffect(() => {

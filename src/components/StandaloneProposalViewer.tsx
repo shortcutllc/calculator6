@@ -10,6 +10,7 @@ import { getServiceBorderClass } from '../utils/styleHelpers';
 import EditableField from './EditableField';
 import { format } from 'date-fns';
 import { generatePDF } from '../utils/pdf';
+import { isStaffDevice } from '../utils/staffDevice';
 import { Button } from './Button';
 import InstructionalScroller from './InstructionalScroller';
 import InstructionCard from './InstructionCard';
@@ -338,6 +339,8 @@ export const StandaloneProposalViewer: React.FC = () => {
   // Function to track proposal view
   const trackProposalView = async (proposalId: string, proposalData: any) => {
     try {
+      // A browser a teammate has logged in on is never a client view.
+      if (isStaffDevice()) return;
       // Check if current user is authenticated (logged in)
       // If they are authenticated, they're a team member - don't track (skip notifications)
       const { data: { user: currentUser } } = await supabase.auth.getUser();

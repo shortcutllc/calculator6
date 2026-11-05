@@ -8,6 +8,7 @@ import { flushSync } from 'react-dom';
 import { PdfModeContext } from './proposal/shared/pdfMode';
 import { summaryShape, unitWord, buildSummaryGroups } from './proposal/summaryGroups';
 import { parseLocalDate } from '../utils/dateHelpers';
+import { isStaffDevice } from '../utils/staffDevice';
 import {
   calculateServiceResults,
   recalculateServiceTotals,
@@ -191,6 +192,49 @@ const HeaderMenuItem: React.FC<{
   );
 };
 
+// Client view logging. Writes a proposal_views row, then asks the
+// notification function for the Slack "viewed" ping. That function throttles
+// to one ping per proposal per 24h by counting proposal_views rows, so the
+// insert has to land before the ping is sent.
+// Not logged: anyone with a session, a browser a teammate has logged in on
+// (utils/staffDevice), PDF renders (?pdf=1), and headless or automated
+// browsers (the client PDF script, link scanners).
+async function recordClientView(row: any): Promise<void> {
+  try {
+    if (new URLSearchParams(window.location.search).has('pdf')) return;
+    if (navigator.webdriver || /HeadlessChrome/i.test(navigator.userAgent)) return;
+    if (isStaffDevice()) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) return;
+
+    const { error: viewError } = await supabase.from('proposal_views').insert({
+      proposal_id: row.id,
+      user_agent: navigator.userAgent || null,
+      viewed_at: new Date().toISOString(),
+    } as any);
+    if (viewError) console.error('Error recording proposal view:', viewError);
+
+    const d = row.data || {};
+    await fetch('/.netlify/functions/proposal-event-notification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      keepalive: true,
+      body: JSON.stringify({
+        eventType: 'view',
+        proposalId: row.id,
+        clientName: row.client_name || d.clientName || 'Unknown',
+        clientEmail: row.client_email || d.clientEmail,
+        proposalType: row.proposal_type || 'event',
+        totalCost: d.summary?.totalEventCost || 0,
+        eventDates: d.eventDates || [],
+        locations: d.locations || [],
+      }),
+    });
+  } catch (err) {
+    console.warn('View tracking failed (non-fatal):', err);
+  }
+}
+
 const StandaloneProposalViewerV2: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
@@ -341,6 +385,9 @@ const StandaloneProposalViewerV2: React.FC = () => {
   const [proposalOptions, setProposalOptions] = useState<ProposalOption[]>([]);
 
   // ---- Load proposal ------------------------------------------------------
+  // Proposal ids already logged as viewed in this page session, so switching
+  // between option tabs and back logs each option once.
+  const viewedIdsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!id) {
       setError('Proposal ID is required');
@@ -366,6 +413,10 @@ const StandaloneProposalViewerV2: React.FC = () => {
         if (error) throw error;
         if (!data) throw new Error('Proposal not found');
         setProposal(data);
+        if (!viewedIdsRef.current.has(id)) {
+          viewedIdsRef.current.add(id);
+          void recordClientView(data);
+        }
         // Fetch sibling proposals in the same group (for the options tabs).
         // Only fetch when this proposal has a group_id; single-option proposals
         // skip this entirely.
