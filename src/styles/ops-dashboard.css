@@ -1,0 +1,162 @@
+/* ============================================================
+   ops-dashboard.css: the /ops staffing dashboard.
+   Rendered inside .pv-root, so it uses the V2 proposal viewer's own tokens and
+   primitives from proposal-refresh.css (--sc-*, --sw-*, --font-*, .lt-card,
+   .lt-eyebrow, .lt-h2/.lt-h3, .lt-btn-*, .pv-bignum, .pv-dot, .pv-format-seg).
+   Only what proposals don't have is defined here, all under .ops-root.
+   Text is navy or --sw-ink-* on light surfaces and white on navy (UI copy rule).
+   ============================================================ */
+
+.ops-root { min-height: 100vh; background: #fff; }
+.ops-root .ops-wrap { max-width: 1180px; margin: 0 auto; padding: 44px 32px 96px; }
+
+/* Header */
+.ops-root .ops-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 28px; }
+.ops-root .ops-head .lt-body { margin-top: 10px; max-width: 560px; }
+.ops-root .ops-head-actions { display: flex; align-items: center; gap: 12px; }
+.ops-root .ops-backend { display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 9999px; background: var(--sc-yellow); color: var(--sc-navy); font-family: var(--font-ui); font-weight: 700; font-size: 12px; }
+
+/* Stat tiles */
+.ops-root .ops-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 32px; }
+.ops-root .ops-stat { background: #fff; border: 1px solid var(--sw-rule); border-radius: 24px; padding: 20px 22px; box-shadow: var(--shadow-card-soft); }
+.ops-root .ops-stat.is-aqua { background: var(--sc-aqua); border-color: transparent; box-shadow: none; }
+.ops-root .ops-stat .pv-bignum { font-size: 36px; }
+.ops-root .ops-stat-label { margin-top: 8px; font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sw-ink-meta); }
+.ops-root .ops-stat.is-aqua .ops-stat-label { color: var(--sc-navy); }
+
+/* Tabs: the viewer's segmented control */
+.ops-root .ops-tabs { margin-bottom: 28px; }
+
+/* Section heads */
+.ops-root .ops-sec { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin: 40px 0 16px; }
+.ops-root .ops-sec .lt-h3 { font-size: 28px; }
+.ops-root .ops-sec-note { font-family: var(--font-display); font-weight: 500; font-size: 15px; color: var(--sw-ink-meta); }
+
+/* Proposal / event card: the .pv-svc layout (photo rail | body) */
+.ops-root .ops-card { display: grid; grid-template-columns: 220px 1fr; background: #fff; border: 1px solid var(--sw-rule); border-radius: 28px; overflow: hidden; box-shadow: var(--shadow-card-soft); margin-bottom: 18px; }
+.ops-root .ops-card-photo { position: relative; min-height: 220px; background: var(--sc-light-gray); }
+.ops-root .ops-card-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ops-root .ops-card-photo .ops-status { position: absolute; left: 14px; top: 14px; z-index: 2; }
+.ops-root .ops-card-body { padding: 26px 28px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.ops-root .ops-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.ops-root .ops-card-top .lt-eyebrow { margin: 0 0 6px; }
+.ops-root .ops-card-sub { margin-top: 6px; font-family: var(--font-display); font-weight: 500; font-size: 14px; color: var(--sw-ink-meta); }
+.ops-root .ops-card-sub a { color: var(--sc-navy); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.ops-root .ops-card-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.ops-root .ops-metrics { display: flex; align-items: flex-end; gap: 40px; padding-top: 16px; border-top: 1px solid rgba(0,55,86,0.1); flex-wrap: wrap; }
+.ops-root .ops-metric .pv-bignum { font-size: 30px; }
+.ops-root .ops-metric .pv-bignum.is-short { color: var(--sc-coral); }
+.ops-root .ops-metric-sub { margin-top: 6px; font-family: var(--font-display); font-weight: 800; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sw-ink-meta); }
+
+/* Status pills (the photo label / pending pill family) */
+.ops-root .ops-status { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 9999px; font-family: var(--font-display); font-weight: 800; font-size: 12px; letter-spacing: 0.02em; color: var(--sc-navy); background: #fff; box-shadow: 0 2px 8px rgba(3,34,50,.12); }
+.ops-root .ops-status.is-approved::before { content: ""; width: 8px; height: 8px; border-radius: 9999px; background: var(--status-success); }
+.ops-root .ops-status.is-likely { background: var(--sc-yellow); }
+
+/* What a proposal needs */
+.ops-root .ops-needs { display: flex; flex-direction: column; gap: 8px; }
+.ops-root .ops-need { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--sc-navy); }
+.ops-root .ops-need .ops-need-where { font-weight: 500; color: var(--sw-ink-soft); }
+.ops-root .ops-need-svc { display: inline-flex; align-items: center; gap: 7px; }
+
+/* Event seats */
+.ops-root .ops-event { background: var(--sc-light-gray); border-radius: 20px; padding: 16px 18px; }
+.ops-root .ops-event-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.ops-root .ops-event-name { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--sc-navy); }
+.ops-root .ops-links { display: flex; gap: 14px; flex-wrap: wrap; }
+.ops-root .ops-links a { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-ui); font-weight: 700; font-size: 12.5px; color: var(--sc-navy); text-decoration: underline; text-underline-offset: 3px; }
+.ops-root .ops-seats { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.ops-root .ops-seat { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 9999px; font-family: var(--font-ui); font-weight: 700; font-size: 12px; color: var(--sc-navy); background: #fff; border: 1px solid var(--sw-rule); }
+.ops-root .ops-seat.is-open { background: #FFE5E5; border-color: #FFC9C9; }
+.ops-root .ops-seat.is-confirmed::after { content: ""; width: 7px; height: 7px; border-radius: 9999px; background: var(--status-success); }
+.ops-root .ops-muted { font-family: var(--font-display); font-weight: 500; font-size: 14px; color: var(--sw-ink-meta); margin: 0; }
+
+/* Inputs, selects, chips */
+.ops-root .ops-field { display: flex; flex-direction: column; gap: 6px; }
+.ops-root .ops-label { font-family: var(--font-display); font-weight: 800; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sw-ink-meta); }
+.ops-root .ops-input, .ops-root .ops-select { height: 46px; border-radius: 9999px; border: 1px solid var(--sw-rule); background: #fff; padding: 0 18px; font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--sc-navy); outline: none; }
+.ops-root .ops-select { padding-right: 36px; }
+.ops-root .ops-input:focus, .ops-root .ops-select:focus, .ops-root .ops-textarea:focus { border-color: var(--sc-teal); box-shadow: 0 0 0 3px rgba(1,142,162,.15); }
+.ops-root .ops-input::placeholder, .ops-root .ops-textarea::placeholder { color: var(--sw-ink-meta); }
+.ops-root .ops-textarea { width: 100%; border-radius: 18px; border: 1px solid var(--sw-rule); padding: 14px 16px; font-family: var(--font-display); font-weight: 500; font-size: 15px; line-height: 1.5; color: var(--sc-navy); resize: vertical; outline: none; }
+.ops-root .ops-row { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.ops-root .ops-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.ops-root .ops-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.ops-root .ops-chip { height: 34px; padding: 0 14px; border-radius: 9999px; border: 1px solid var(--sw-rule); background: #fff; font-family: var(--font-ui); font-weight: 700; font-size: 12.5px; color: var(--sc-navy); cursor: pointer; transition: border-color .18s, background .18s; }
+.ops-root .ops-chip:hover { border-color: var(--sc-navy); }
+.ops-root .ops-chip.is-navy { background: var(--sc-navy); color: #fff; border-color: var(--sc-navy); }
+.ops-root input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--sc-navy); cursor: pointer; flex-shrink: 0; }
+
+/* Messages */
+.ops-root .ops-notice { display: flex; align-items: center; gap: 8px; border-radius: 16px; padding: 12px 16px; background: var(--sc-aqua); font-family: var(--font-display); font-weight: 600; font-size: 14.5px; color: var(--sc-navy); }
+.ops-root .ops-error { border-radius: 16px; padding: 12px 16px; background: #FFE5E5; font-family: var(--font-display); font-weight: 600; font-size: 14.5px; color: #7A1A1A; }
+.ops-root .ops-warn { display: flex; align-items: center; gap: 8px; border-radius: 16px; padding: 12px 16px; background: #FFF6D6; font-family: var(--font-display); font-weight: 600; font-size: 14px; color: var(--sc-navy); margin-bottom: 10px; }
+
+/* Flag a proposal */
+.ops-root .ops-flag { padding: 24px 28px; }
+.ops-root .ops-flag-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; background: none; border: none; padding: 0; cursor: pointer; text-align: left; }
+.ops-root .ops-flag-title { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: -0.015em; color: var(--sc-navy); }
+.ops-root .ops-flag-body { margin-top: 16px; }
+.ops-root .ops-list { border: 1px solid var(--sw-rule); border-radius: 20px; overflow: hidden; background: #fff; }
+.ops-root .ops-list > * + * { border-top: 1px solid var(--sw-rule); }
+.ops-root .ops-list-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; }
+.ops-root .ops-name { font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: -0.01em; color: var(--sc-navy); }
+.ops-root .ops-meta { margin-top: 3px; font-family: var(--font-display); font-weight: 500; font-size: 13.5px; color: var(--sw-ink-meta); }
+.ops-root .ops-likely-btn { height: 34px; padding: 0 14px; border-radius: 9999px; border: 1px solid var(--sw-rule); background: #fff; font-family: var(--font-display); font-weight: 800; font-size: 12.5px; color: var(--sc-navy); cursor: pointer; }
+.ops-root .ops-likely-btn.is-on { background: var(--sc-yellow); border-color: var(--sc-yellow); }
+.ops-root .ops-likely-btn:disabled { opacity: .5; cursor: wait; }
+
+/* Pros (roster, group members) */
+.ops-root .ops-pro { display: flex; align-items: flex-start; gap: 14px; padding: 14px 18px; }
+.ops-root .ops-pro.is-off { opacity: .55; }
+.ops-root .ops-avatar { width: 40px; height: 40px; border-radius: 9999px; background: var(--sc-aqua); color: var(--sc-navy); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 800; font-size: 14px; flex-shrink: 0; overflow: hidden; }
+.ops-root .ops-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.ops-root .ops-pro-main { flex: 1; min-width: 0; }
+.ops-root .ops-pro-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ops-root .ops-tier { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 9999px; background: var(--sc-navy); color: #fff; font-family: var(--font-ui); font-weight: 700; font-size: 11px; }
+.ops-root .ops-flagtext { font-family: var(--font-ui); font-weight: 700; font-size: 11.5px; color: #7A1A1A; }
+.ops-root .ops-oktext { font-family: var(--font-ui); font-weight: 700; font-size: 11.5px; color: #11613F; }
+
+/* Side panel */
+.ops-overlay { position: fixed; inset: 0; z-index: 60; background: rgba(3,34,50,.32); display: flex; justify-content: flex-end; }
+.ops-root .ops-drawer { width: 100%; max-width: 720px; height: 100%; min-height: 0; overflow-y: auto; background: #fff; border-radius: 28px 0 0 28px; box-shadow: var(--shadow-navy); padding: 30px 32px 0; }
+.ops-root .ops-drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.ops-root .ops-icon-btn { width: 40px; height: 40px; border-radius: 9999px; border: 1px solid var(--sw-rule); background: #fff; color: var(--sc-navy); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+.ops-root .ops-icon-btn:hover { background: var(--sc-light-gray); }
+.ops-root .ops-spot { background: var(--sc-light-gray); border-radius: 20px; padding: 16px 18px; }
+.ops-root .ops-spot .lt-eyebrow { margin-bottom: 4px; }
+.ops-root .ops-spot-title { font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--sc-navy); }
+.ops-root .ops-stack > * + * { margin-top: 14px; }
+.ops-root .ops-composer { position: sticky; bottom: 0; margin: 18px -32px 0; padding: 18px 32px 22px; background: #fff; border-top: 1px solid var(--sw-rule); box-shadow: 0 -10px 30px rgba(3,34,50,.06); }
+.ops-root .ops-composer-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.ops-root .ops-confirm { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--sc-navy); }
+
+/* Replies */
+.ops-root .ops-message { background: var(--sc-light-gray); border-radius: 18px; padding: 14px 16px; font-family: var(--font-display); font-weight: 500; font-size: 14.5px; line-height: 1.5; color: var(--sc-navy); }
+.ops-root .ops-reply { display: inline-block; margin-top: 8px; background: var(--sc-aqua); border-radius: 16px 16px 16px 4px; padding: 8px 12px; font-family: var(--font-display); font-weight: 600; font-size: 14px; color: var(--sc-navy); }
+.ops-root .ops-outcome { display: inline-flex; background: #fff; border: 1px solid var(--sw-rule); border-radius: 9999px; padding: 3px; gap: 2px; }
+.ops-root .ops-outcome button { height: 30px; padding: 0 12px; border: none; border-radius: 9999px; background: transparent; font-family: var(--font-display); font-weight: 700; font-size: 13px; color: var(--sc-navy); cursor: pointer; text-transform: capitalize; }
+.ops-root .ops-outcome button.on-yes { background: var(--status-success); color: #fff; }
+.ops-root .ops-outcome button.on-maybe { background: var(--sc-yellow); }
+.ops-root .ops-outcome button.on-no { background: var(--sc-navy); color: #fff; }
+
+/* Groups */
+.ops-root .ops-group { padding: 0; overflow: hidden; margin-bottom: 16px; }
+.ops-root .ops-group-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; padding: 22px 26px; background: none; border: none; cursor: pointer; text-align: left; }
+.ops-root .ops-group-body { padding: 0 26px 26px; }
+.ops-root .ops-group-body .lt-eyebrow { margin: 18px 0 8px; }
+.ops-root .ops-tiers { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ops-root .ops-new { padding: 26px 28px; margin-bottom: 20px; }
+
+@media (max-width: 900px) {
+  .ops-root .ops-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .ops-root .ops-wrap { padding: 28px 16px 80px; }
+  .ops-root .ops-card { grid-template-columns: 1fr; }
+  .ops-root .ops-card-photo { min-height: 150px; }
+  .ops-root .ops-grid2 { grid-template-columns: 1fr; }
+  .ops-root .ops-drawer { border-radius: 0; padding: 22px 16px 0; }
+  .ops-root .ops-composer { margin: 18px -16px 0; padding: 16px; }
+  .ops-root .ops-metrics { gap: 24px; }
+}

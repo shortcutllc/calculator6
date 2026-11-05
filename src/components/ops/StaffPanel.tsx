@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { X, Search, Send, RefreshCw, MessageSquare, UserPlus, Users, ExternalLink, Check } from 'lucide-react';
+import { X, Search, Send, RefreshCw, UserPlus, ExternalLink, Check } from 'lucide-react';
 import {
   ops,
   OpsEvent,
@@ -19,11 +19,17 @@ import {
   eventDay,
   eventHours,
   eventYmd,
+  initials,
   outreachTemplate,
   shortDate,
   staffedCount,
   ymd,
 } from './opsFormat';
+
+// The "Find Pros" side panel: pick what you're staffing, see the Pros near it (most
+// recently worked first, with their tiers), text the ones you pick from the Pros line,
+// watch the answers come in, and put a yes on the event. Styled by ops-dashboard.css
+// inside the page's .pv-root.
 
 // One thing Pedro is staffing: a service on a date at a place, and the coordinator
 // event it belongs to once there is one.
@@ -85,12 +91,6 @@ function spotsFor(target: StaffTarget): Spot[] {
   return spots;
 }
 
-const OUTCOME_STYLE: Record<OpsOutcome, string> = {
-  yes: 'bg-green-600 text-white',
-  maybe: 'bg-amber-500 text-white',
-  no: 'bg-gray-700 text-white',
-};
-
 export const StaffPanel: React.FC<{ target: StaffTarget; onClose: () => void; onChanged: () => void }> = ({
   target,
   onClose,
@@ -131,6 +131,12 @@ export const StaffPanel: React.FC<{ target: StaffTarget; onClose: () => void; on
       })
     );
   }, [spot]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   const loadRoster = useCallback(async () => {
     if (!spot) return;
@@ -203,297 +209,259 @@ export const StaffPanel: React.FC<{ target: StaffTarget; onClose: () => void; on
     }
   };
 
-  if (!spot) {
-    return (
-      <Drawer onClose={onClose} title="Find Pros">
-        <p className="text-text-dark">There is nothing on this proposal to staff yet.</p>
-      </Drawer>
-    );
-  }
+  const title = target.proposal?.clientName || event?.name || 'Find Pros';
 
   return (
-    <Drawer onClose={onClose} title={target.proposal?.clientName || event?.name || 'Find Pros'}>
-      {/* What we're staffing */}
-      <div className="space-y-3">
-        {spots.length > 1 && (
-          <label className="block">
-            <span className="text-xs font-bold uppercase tracking-wider text-text-dark-60">Staffing</span>
-            <select
-              className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-text-dark"
-              value={spot.key}
-              onChange={(e) => setSpotKey(e.target.value)}
-            >
-              {spots.map((s) => (
-                <option key={s.key} value={s.key}>
-                  {s.label} ({s.numPros} Pro{s.numPros === 1 ? '' : 's'})
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        <div className="rounded-2xl bg-neutral-light-gray px-4 py-3 text-sm text-text-dark">
-          <div className="font-bold text-shortcut-blue">
-            {spot.service}: {spot.numPros} Pro{spot.numPros === 1 ? '' : 's'} needed
-          </div>
+    <div className="ops-overlay" onClick={onClose}>
+      <aside className="ops-drawer" onClick={(e) => e.stopPropagation()} aria-label={`Staffing ${title}`}>
+        <div className="ops-drawer-head">
           <div>
-            {spot.day}
-            {spot.hours ? `, ${spot.hours}` : ''}
+            <p className="lt-eyebrow">Find Pros</p>
+            <h2 className="lt-h3">{title}</h2>
           </div>
-          <div>{spot.address}</div>
-        </div>
-        {event ? <EventSeats event={event} /> : (
-          <p className="text-sm text-text-dark">
-            No coordinator event yet. Create it from the Admin page, and its seats show here so you can put Pros on it.
-          </p>
-        )}
-      </div>
-
-      {/* Tabs */}
-      <div className="mt-5 flex gap-2 border-b border-gray-200">
-        {(['pros', 'sent'] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm font-bold ${
-              tab === t ? 'border-shortcut-blue text-shortcut-blue' : 'border-transparent text-text-dark-60'
-            }`}
-          >
-            {t === 'pros' ? 'Pros nearby' : 'Texts sent'}
+          <button className="ops-icon-btn" onClick={onClose} aria-label="Close">
+            <X size={18} />
           </button>
-        ))}
-      </div>
-
-      {notice && (
-        <div className="mt-3 flex items-center gap-2 rounded-xl bg-green-50 px-3 py-2 text-sm text-green-900">
-          <Check size={16} className="text-green-700" />
-          {notice}
         </div>
-      )}
-      {error && <div className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>}
 
-      {tab === 'pros' ? (
-        <div className="mt-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="block">
-              <span className="text-xs font-bold uppercase tracking-wider text-text-dark-60">Service</span>
-              <select
-                className="mt-1 block rounded-xl border border-gray-300 px-3 py-2 text-sm text-text-dark"
-                value={proType}
-                onChange={(e) => setProType(e.target.value)}
-              >
-                {PRO_TYPES.map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="text-xs font-bold uppercase tracking-wider text-text-dark-60">Within</span>
-              <select
-                className="mt-1 block rounded-xl border border-gray-300 px-3 py-2 text-sm text-text-dark"
-                value={radius}
-                onChange={(e) => setRadius(Number(e.target.value))}
-              >
-                {[10, 20, 30, 50, 75, 100].map((r) => (
-                  <option key={r} value={r}>
-                    {r} miles
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              onClick={loadRoster}
-              className="inline-flex items-center gap-1 rounded-full border-2 border-[#9EFAFF] px-4 py-2 text-xs font-bold text-[#09364f]"
-            >
-              <Search size={14} /> Search again
-            </button>
-          </div>
-
-          {/* Quick picks */}
-          <div className="mt-3 flex flex-wrap gap-2">
-            <QuickPick onClick={() => selectWhere((p) => p.eventsLast90 > 0)}>Worked in the last 90 days</QuickPick>
-            {matchingGroups.flatMap((g) =>
-              [1, 2, 3].map((tier) => {
-                const n = pros.filter((p) => textable(p) && p.groups.some((m) => m.groupID === g.id && m.tier === tier)).length;
-                return n ? (
-                  <QuickPick
-                    key={`${g.id}-${tier}`}
-                    onClick={() => selectWhere((p) => p.groups.some((m) => m.groupID === g.id && m.tier === tier))}
-                  >
-                    {g.name}: Tier {tier} ({n})
-                  </QuickPick>
-                ) : null;
-              })
+        {!spot ? (
+          <p className="lt-body">There is nothing on this proposal to staff yet.</p>
+        ) : (
+          <div className="ops-stack">
+            {spots.length > 1 && (
+              <label className="ops-field">
+                <span className="ops-label">Staffing</span>
+                <select className="ops-select" value={spot.key} onChange={(e) => setSpotKey(e.target.value)}>
+                  {spots.map((s) => (
+                    <option key={s.key} value={s.key}>
+                      {s.label} ({s.numPros} Pro{s.numPros === 1 ? '' : 's'})
+                    </option>
+                  ))}
+                </select>
+              </label>
             )}
-            {selected.size > 0 && <QuickPick onClick={() => setSelected(new Set())}>Clear ({selected.size})</QuickPick>}
-          </div>
 
-          <div className="mt-3 divide-y divide-gray-100 rounded-2xl border border-gray-200">
-            {loading && <div className="p-4 text-sm text-text-dark-60">Finding Pros...</div>}
-            {!loading && !pros.length && (
-              <div className="p-4 text-sm text-text-dark">
-                No {proType.toLowerCase()} Pros within {radius} miles. Try a wider search, or add new Pros from your lists.
+            <div className="ops-spot">
+              <p className="lt-eyebrow">
+                {spot.day}
+                {spot.hours ? ` · ${spot.hours}` : ''}
+              </p>
+              <div className="ops-spot-title">
+                {spot.service}: {spot.numPros} Pro{spot.numPros === 1 ? '' : 's'} needed
               </div>
-            )}
-            {!loading &&
-              pros.map((p) => (
-                <ProRow
-                  key={p.id}
-                  pro={p}
-                  checked={selected.has(p.id)}
-                  disabled={!textable(p)}
-                  onToggle={() => toggle(p.id)}
-                  event={event}
-                  onPut={async (replaceID) => {
-                    if (!event) return;
-                    try {
-                      const res = await ops.putOnEvent(event.id, p.id, replaceID);
-                      if (res.event) setEvent(res.event);
-                      setNotice(`${p.fullName} is on ${event.name}.`);
-                      onChanged();
-                    } catch (e) {
-                      setError((e as Error).message);
-                    }
-                  }}
-                />
-              ))}
-          </div>
+              <p className="ops-muted">{spot.address}</p>
+            </div>
 
-          {/* Add selected to a group */}
-          {selected.size > 0 && (
-            <AddToGroup
-              groups={matchingGroups}
-              onAdd={async (groupID, tier) => {
-                try {
-                  await ops.setGroupMembers(
-                    groupID,
-                    Array.from(selected).map((barberID) => ({ barberID, tier }))
-                  );
-                  setNotice(`Added ${selected.size} to the group.`);
-                  loadRoster();
-                } catch (e) {
-                  setError((e as Error).message);
-                }
-              }}
-            />
-          )}
-
-          {/* Message */}
-          <div className="sticky bottom-0 mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-lg">
-            <label className="block">
-              <span className="text-xs font-bold uppercase tracking-wider text-text-dark-60">
-                Text from the Pros line (888) 573-6871. {'{firstName}'} becomes each Pro's name.
-              </span>
-              <textarea
-                className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-text-dark"
-                rows={4}
-                value={message}
-                maxLength={1000}
-                onChange={(e) => setMessage(e.target.value)}
-              />
-            </label>
-            {confirming ? (
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="text-sm font-bold text-text-dark">
-                  Text {selected.size} Pro{selected.size === 1 ? '' : 's'} now?
-                </span>
-                <button
-                  onClick={send}
-                  disabled={sending}
-                  className="inline-flex items-center gap-1 rounded-full bg-[#09364f] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
-                >
-                  <Send size={14} /> {sending ? 'Sending...' : 'Yes, send'}
-                </button>
-                <button onClick={() => setConfirming(false)} className="px-3 py-2 text-xs font-bold text-text-dark">
-                  Cancel
-                </button>
-              </div>
+            {event ? (
+              <EventSeats event={event} />
             ) : (
-              <button
-                onClick={() => setConfirming(true)}
-                disabled={!selected.size || !message.trim()}
-                className="mt-2 inline-flex items-center gap-1 rounded-full bg-[#9EFAFF] px-5 py-2.5 text-sm font-bold text-[#09364f] disabled:opacity-40"
-              >
-                <Send size={15} /> Text {selected.size || ''} Pro{selected.size === 1 ? '' : 's'}
-              </button>
+              <p className="ops-muted">No coordinator event yet. Create it from the Admin page, and its seats show here so you can put Pros on it.</p>
+            )}
+
+            <div className="pv-format-seg" role="tablist">
+              {(['pros', 'sent'] as const).map((t) => (
+                <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>
+                  {t === 'pros' ? 'Pros nearby' : 'Texts sent'}
+                </button>
+              ))}
+            </div>
+
+            {notice && (
+              <div className="ops-notice">
+                <Check size={16} /> {notice}
+              </div>
+            )}
+            {error && <div className="ops-error">{error}</div>}
+
+            {tab === 'pros' ? (
+              <>
+                <div className="ops-row">
+                  <label className="ops-field">
+                    <span className="ops-label">Service</span>
+                    <select className="ops-select" value={proType} onChange={(e) => setProType(e.target.value)}>
+                      {PRO_TYPES.map((t) => (
+                        <option key={t}>{t}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="ops-field">
+                    <span className="ops-label">Within</span>
+                    <select className="ops-select" value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
+                      {[10, 20, 30, 50, 75, 100].map((r) => (
+                        <option key={r} value={r}>
+                          {r} miles
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button className="lt-btn lt-btn-ghost lt-btn-sm" onClick={loadRoster}>
+                    <Search size={16} /> Search again
+                  </button>
+                </div>
+
+                <div className="ops-chips">
+                  <button className="ops-chip" onClick={() => selectWhere((p) => p.eventsLast90 > 0)}>
+                    Worked in the last 90 days
+                  </button>
+                  {matchingGroups.flatMap((g) =>
+                    [1, 2, 3].map((tier) => {
+                      const n = pros.filter((p) => textable(p) && p.groups.some((m) => m.groupID === g.id && m.tier === tier)).length;
+                      return n ? (
+                        <button
+                          key={`${g.id}-${tier}`}
+                          className="ops-chip"
+                          onClick={() => selectWhere((p) => p.groups.some((m) => m.groupID === g.id && m.tier === tier))}
+                        >
+                          {g.name}: Tier {tier} ({n})
+                        </button>
+                      ) : null;
+                    })
+                  )}
+                  {selected.size > 0 && (
+                    <button className="ops-chip is-navy" onClick={() => setSelected(new Set())}>
+                      Clear {selected.size} selected
+                    </button>
+                  )}
+                </div>
+
+                <div className="ops-list">
+                  {loading && (
+                    <div className="ops-list-row">
+                      <p className="ops-muted">Finding Pros...</p>
+                    </div>
+                  )}
+                  {!loading && !pros.length && (
+                    <div className="ops-list-row">
+                      <p className="ops-muted">
+                        No {proType.toLowerCase()} Pros within {radius} miles. Try a wider search, or add new Pros from your lists.
+                      </p>
+                    </div>
+                  )}
+                  {!loading &&
+                    pros.map((p) => (
+                      <ProRow
+                        key={p.id}
+                        pro={p}
+                        checked={selected.has(p.id)}
+                        disabled={!textable(p)}
+                        onToggle={() => toggle(p.id)}
+                        event={event}
+                        onPut={async (replaceID) => {
+                          if (!event) return;
+                          try {
+                            const res = await ops.putOnEvent(event.id, p.id, replaceID);
+                            if (res.event) setEvent(res.event);
+                            setNotice(`${p.fullName} is on ${event.name}.`);
+                            onChanged();
+                          } catch (e) {
+                            setError((e as Error).message);
+                          }
+                        }}
+                      />
+                    ))}
+                </div>
+
+                {selected.size > 0 && (
+                  <AddToGroup
+                    groups={matchingGroups}
+                    count={selected.size}
+                    onAdd={async (groupID, tier) => {
+                      try {
+                        await ops.setGroupMembers(
+                          groupID,
+                          Array.from(selected).map((barberID) => ({ barberID, tier }))
+                        );
+                        setNotice(`Added ${selected.size} to the group.`);
+                        loadRoster();
+                      } catch (e) {
+                        setError((e as Error).message);
+                      }
+                    }}
+                  />
+                )}
+
+                <div className="ops-composer">
+                  <label className="ops-field">
+                    <span className="ops-label">Text from the Pros line, (888) 573-6871</span>
+                    <textarea className="ops-textarea" rows={4} value={message} maxLength={1000} onChange={(e) => setMessage(e.target.value)} />
+                  </label>
+                  <p className="ops-muted">{'{firstName}'} becomes each Pro's first name.</p>
+                  <div className="ops-composer-actions">
+                    {confirming ? (
+                      <>
+                        <span className="ops-confirm">
+                          Text {selected.size} Pro{selected.size === 1 ? '' : 's'} now?
+                        </span>
+                        <button className="lt-btn lt-btn-coral lt-btn-sm" onClick={send} disabled={sending}>
+                          <Send size={16} /> {sending ? 'Sending...' : 'Yes, send'}
+                        </button>
+                        <button className="lt-btn lt-btn-ghost lt-btn-sm" onClick={() => setConfirming(false)}>
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        className="lt-btn lt-btn-coral lt-btn-sm"
+                        onClick={() => setConfirming(true)}
+                        disabled={!selected.size || !message.trim()}
+                      >
+                        <Send size={16} /> {selected.size ? `Text ${selected.size} Pro${selected.size === 1 ? '' : 's'}` : 'Pick Pros to text'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <SentTexts
+                proposalID={proposalID}
+                eventID={proposalID ? undefined : eventID}
+                event={event}
+                onEvent={(e) => {
+                  setEvent(e);
+                  onChanged();
+                }}
+                onError={setError}
+              />
             )}
           </div>
-        </div>
-      ) : (
-        <SentTexts
-          proposalID={proposalID}
-          eventID={proposalID ? undefined : eventID}
-          event={event}
-          onEvent={(e) => {
-            setEvent(e);
-            onChanged();
-          }}
-          onError={setError}
-        />
-      )}
-    </Drawer>
+        )}
+      </aside>
+    </div>
   );
 };
-
-const Drawer: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({ title, onClose, children }) => (
-  <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
-    <div
-      className="h-full w-full max-w-2xl overflow-y-auto bg-white p-6 shadow-2xl"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <h2 className="text-2xl font-extrabold text-shortcut-blue">{title}</h2>
-        <button onClick={onClose} className="rounded-full p-2 text-text-dark hover:bg-gray-100" aria-label="Close">
-          <X size={20} />
-        </button>
-      </div>
-      {children}
-    </div>
-  </div>
-);
-
-const QuickPick: React.FC<{ onClick: () => void; children: React.ReactNode }> = ({ onClick, children }) => (
-  <button
-    onClick={onClick}
-    className="rounded-full border border-gray-300 bg-white px-3 py-1 text-xs font-bold text-text-dark hover:border-shortcut-blue"
-  >
-    {children}
-  </button>
-);
 
 export const EventSeats: React.FC<{ event: OpsEvent }> = ({ event }) => {
   const { staffed, needed } = staffedCount(event);
   return (
-    <div className="rounded-2xl border border-gray-200 px-4 py-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="text-sm font-bold text-text-dark">
+    <div className="ops-event">
+      <div className="ops-event-head">
+        <div className="ops-event-name">
           {event.name}: {staffed} of {needed} staffed
         </div>
-        <div className="flex gap-3 text-xs font-bold">
-          <a className="inline-flex items-center gap-1 text-shortcut-navy-blue underline" href={event.links.addPro} target="_blank" rel="noreferrer">
+        <div className="ops-links">
+          <a href={event.links.addPro} target="_blank" rel="noreferrer">
             Add Pro <ExternalLink size={12} />
           </a>
-          <a className="inline-flex items-center gap-1 text-shortcut-navy-blue underline" href={event.links.swapPro} target="_blank" rel="noreferrer">
+          <a href={event.links.swapPro} target="_blank" rel="noreferrer">
             Swap Pro <ExternalLink size={12} />
           </a>
-          <a className="inline-flex items-center gap-1 text-shortcut-navy-blue underline" href={event.links.timeslots} target="_blank" rel="noreferrer">
+          <a href={event.links.timeslots} target="_blank" rel="noreferrer">
             Timeslots <ExternalLink size={12} />
           </a>
         </div>
       </div>
-      <div className="mt-2 flex flex-wrap gap-1.5">
+      <div className="ops-seats">
         {event.seats.map((s, i) => (
           <span
             key={`${s.barberID}-${i}`}
-            className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
-              s.placeholder ? 'bg-red-50 text-red-800' : 'bg-green-50 text-green-900'
-            }`}
+            className={`ops-seat${s.placeholder ? ' is-open' : ''}${!s.placeholder && s.confirmedInApp ? ' is-confirmed' : ''}`}
+            title={!s.placeholder && s.confirmedInApp ? 'Confirmed in the app' : undefined}
           >
-            {s.placeholder ? `${s.fullName} (open)` : s.fullName}
-            {!s.placeholder && s.confirmedInApp ? ' ✓' : ''}
+            {s.placeholder ? `${s.fullName}: open` : s.fullName}
           </span>
         ))}
         {Array.from({ length: event.emptySeats }).map((_, i) => (
-          <span key={`empty-${i}`} className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-bold text-red-800">
+          <span key={`empty-${i}`} className="ops-seat is-open">
             Empty seat
           </span>
         ))}
@@ -513,86 +481,82 @@ const ProRow: React.FC<{
   const onEvent = !!event?.seats.some((s) => s.barberID === pro.id);
   const tbd = event?.seats.find((s) => s.placeholder);
   const canAdd = !!event && !onEvent && (!!tbd || event.emptySeats > 0);
+  const meta = [
+    pro.lastEventDate ? `Last worked ${shortDate(pro.lastEventDate)}` : 'No events this year',
+    pro.eventsLast90 ? `${pro.eventsLast90} in 90 days` : '',
+    pro.upcomingEvents ? `${pro.upcomingEvents} coming up` : '',
+    pro.distanceMiles !== null && pro.distanceMiles !== undefined ? `${pro.distanceMiles} mi` : '',
+    pro.pinLocation || '',
+    pro.phone || '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
   return (
-    <div className={`flex items-start gap-3 px-4 py-3 ${disabled ? 'opacity-60' : ''}`}>
-      <input
-        type="checkbox"
-        className="mt-1 h-4 w-4"
-        checked={checked}
-        disabled={disabled}
-        onChange={onToggle}
-        aria-label={`Select ${pro.fullName}`}
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-bold text-text-dark">{pro.fullName}</span>
+    <div className={`ops-pro${disabled ? ' is-off' : ''}`}>
+      <input type="checkbox" checked={checked} disabled={disabled} onChange={onToggle} aria-label={`Select ${pro.fullName}`} />
+      <div className="ops-avatar" aria-hidden>
+        {initials(pro.fullName)}
+      </div>
+      <div className="ops-pro-main">
+        <div className="ops-pro-line">
+          <span className="ops-name">{pro.fullName}</span>
           {pro.groups.map((g) => (
-            <span key={g.groupID} className="rounded-full bg-[#09364f] px-2 py-0.5 text-[11px] font-bold text-white">
+            <span key={g.groupID} className="ops-tier">
               {g.name}: T{g.tier}
             </span>
           ))}
-          {pro.optedOut && <span className="text-xs font-bold text-red-800">Opted out of texts</span>}
-          {!pro.hasPhone && <span className="text-xs font-bold text-red-800">No phone</span>}
-          {onEvent && <span className="text-xs font-bold text-green-800">On this event</span>}
+          {pro.optedOut && <span className="ops-flagtext">Opted out of texts</span>}
+          {!pro.hasPhone && <span className="ops-flagtext">No phone</span>}
+          {onEvent && <span className="ops-oktext">On this event</span>}
         </div>
-        <div className="mt-0.5 text-xs text-text-dark">
-          {pro.lastEventDate ? `Last worked ${shortDate(pro.lastEventDate)}` : 'No events this year'}
-          {pro.eventsLast90 ? ` · ${pro.eventsLast90} in 90 days` : ''}
-          {pro.upcomingEvents ? ` · ${pro.upcomingEvents} coming up` : ''}
-          {pro.distanceMiles !== null && pro.distanceMiles !== undefined ? ` · ${pro.distanceMiles} mi` : ''}
-          {pro.pinLocation ? ` · ${pro.pinLocation}` : ''}
-          {pro.phone ? ` · ${pro.phone}` : ''}
-        </div>
+        <div className="ops-meta">{meta}</div>
       </div>
       {canAdd && (
         <button
+          className="lt-btn lt-btn-ghost lt-btn-sm"
           onClick={() => onPut(tbd ? tbd.barberID : undefined)}
-          className="inline-flex shrink-0 items-center gap-1 rounded-full border border-gray-300 px-3 py-1 text-xs font-bold text-text-dark hover:border-shortcut-blue"
-          title={tbd ? `Replace ${tbd.fullName}` : 'Add to the event'}
+          title={tbd ? `Replaces ${tbd.fullName}` : 'Adds them to the event'}
         >
-          <UserPlus size={13} /> Put on event
+          <UserPlus size={15} /> Put on event
         </button>
       )}
     </div>
   );
 };
 
-const AddToGroup: React.FC<{ groups: OpsGroup[]; onAdd: (groupID: string, tier: number) => void }> = ({ groups, onAdd }) => {
+const AddToGroup: React.FC<{ groups: OpsGroup[]; count: number; onAdd: (groupID: string, tier: number) => void }> = ({ groups, count, onAdd }) => {
   const [groupID, setGroupID] = useState(groups[0]?.id || '');
   const [tier, setTier] = useState(1);
   useEffect(() => {
     if (!groupID && groups[0]) setGroupID(groups[0].id);
   }, [groups, groupID]);
   if (!groups.length) {
-    return (
-      <p className="mt-3 text-sm text-text-dark">
-        <Users size={14} className="mr-1 inline" />
-        Make a group in the Pro groups tab to save these Pros by tier.
-      </p>
-    );
+    return <p className="ops-muted">Make a group in the Pro groups tab to save these Pros by tier.</p>;
   }
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-      <span className="font-bold text-text-dark">Add selected to</span>
-      <select className="rounded-xl border border-gray-300 px-2 py-1 text-text-dark" value={groupID} onChange={(e) => setGroupID(e.target.value)}>
-        {groups.map((g) => (
-          <option key={g.id} value={g.id}>
-            {g.name}
-          </option>
-        ))}
-      </select>
-      <select className="rounded-xl border border-gray-300 px-2 py-1 text-text-dark" value={tier} onChange={(e) => setTier(Number(e.target.value))}>
-        {[1, 2, 3, 4, 5].map((t) => (
-          <option key={t} value={t}>
-            Tier {t}
-          </option>
-        ))}
-      </select>
-      <button
-        onClick={() => groupID && onAdd(groupID, tier)}
-        className="rounded-full border-2 border-[#9EFAFF] px-3 py-1 text-xs font-bold text-[#09364f]"
-      >
-        Add
+    <div className="ops-row">
+      <label className="ops-field">
+        <span className="ops-label">Add {count} selected to</span>
+        <select className="ops-select" value={groupID} onChange={(e) => setGroupID(e.target.value)}>
+          {groups.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="ops-field">
+        <span className="ops-label">As</span>
+        <select className="ops-select" value={tier} onChange={(e) => setTier(Number(e.target.value))}>
+          {[1, 2, 3, 4, 5].map((t) => (
+            <option key={t} value={t}>
+              Tier {t}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button className="lt-btn lt-btn-ghost lt-btn-sm" onClick={() => groupID && onAdd(groupID, tier)}>
+        Add to group
       </button>
     </div>
   );
@@ -643,104 +607,100 @@ const SentTexts: React.FC<{
   };
 
   if (!list.length) {
-    return <p className="mt-4 text-sm text-text-dark">{loading ? 'Loading...' : 'No texts sent for this yet.'}</p>;
+    return <p className="ops-muted">{loading ? 'Loading...' : 'No texts sent for this yet.'}</p>;
   }
 
   const tbd = event?.seats.find((s) => s.placeholder);
   return (
-    <div className="mt-4 space-y-3">
-      <div className="flex items-center gap-2">
-        <select
-          className="flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm text-text-dark"
-          value={openID}
-          onChange={async (e) => {
-            setOpenID(e.target.value);
-            setDetail(await ops.outreach(e.target.value));
-          }}
-        >
-          {list.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.label || 'Text'} · {shortDate(o.createdAt)} · {o.numSent} sent, {o.results?.yes || 0} yes
-            </option>
-          ))}
-        </select>
-        <button onClick={load} className="rounded-full p-2 text-text-dark hover:bg-gray-100" aria-label="Refresh">
-          <RefreshCw size={16} />
+    <>
+      <div className="ops-row">
+        <label className="ops-field flex-1">
+          <span className="ops-label">Text</span>
+          <select
+            className="ops-select"
+            value={openID}
+            onChange={async (e) => {
+              setOpenID(e.target.value);
+              setDetail(await ops.outreach(e.target.value));
+            }}
+          >
+            {list.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.label || 'Text'} · {shortDate(o.createdAt)} · {o.results?.yes || 0} yes
+              </option>
+            ))}
+          </select>
+        </label>
+        <button className="ops-icon-btn" onClick={load} aria-label="Refresh">
+          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
       {detail && (
         <>
-          <div className="rounded-2xl bg-neutral-light-gray px-4 py-3 text-sm text-text-dark">
-            <MessageSquare size={14} className="mr-1 inline" />
-            {detail.outreach.message}
-          </div>
-          <div className="divide-y divide-gray-100 rounded-2xl border border-gray-200">
+          <div className="ops-message">{detail.outreach.message}</div>
+          <div className="ops-list">
             {detail.recipients.map((r) => {
               const isOnEvent = !!event?.seats.some((s) => s.barberID === r.barberID);
               const canAdd = r.outcome === 'yes' && !!event && !isOnEvent && (!!tbd || event.emptySeats > 0);
+              const status =
+                r.status === 'skipped'
+                  ? SKIP_REASON_TEXT[r.skipReason || ''] || 'Skipped'
+                  : r.status === 'failed'
+                    ? `Not sent: ${r.error || 'failed'}`
+                    : r.status === 'queued'
+                      ? 'Sending...'
+                      : r.replies.length
+                        ? `Replied ${shortDate(r.lastReplyAt)}`
+                        : 'No reply yet';
               return (
-                <div key={r.barberID} className="px-4 py-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <span className="font-bold text-text-dark">{r.fullName || r.barberID}</span>
-                      <span className="ml-2 text-xs text-text-dark">
-                        {r.status === 'skipped'
-                          ? SKIP_REASON_TEXT[r.skipReason || ''] || 'Skipped'
-                          : r.status === 'failed'
-                            ? `Not sent: ${r.error || 'failed'}`
-                            : r.status === 'queued'
-                              ? 'Sending...'
-                              : r.replies.length
-                                ? `Replied ${shortDate(r.lastReplyAt)}`
-                                : 'No reply yet'}
-                      </span>
+                <div key={r.barberID} className="ops-pro">
+                  <div className="ops-avatar" aria-hidden>
+                    {initials(r.fullName)}
+                  </div>
+                  <div className="ops-pro-main">
+                    <div className="ops-pro-line">
+                      <span className="ops-name">{r.fullName || r.barberID}</span>
+                      {isOnEvent && <span className="ops-oktext">On the event</span>}
                     </div>
-                    {r.status === 'sent' && (
-                      <div className="flex items-center gap-1">
-                        {(['yes', 'maybe', 'no'] as OpsOutcome[]).map((o) => (
-                          <button
-                            key={o}
-                            onClick={() => setOutcome(r, r.outcome === o ? null : o)}
-                            className={`rounded-full px-3 py-1 text-xs font-bold capitalize ${
-                              r.outcome === o ? OUTCOME_STYLE[o] : 'border border-gray-300 text-text-dark'
-                            }`}
-                          >
-                            {o}
-                          </button>
-                        ))}
+                    <div className="ops-meta">{status}</div>
+                    {r.replies.map((rep, i) => (
+                      <div key={i}>
+                        <span className="ops-reply">{rep.body}</span>
                       </div>
+                    ))}
+                    {canAdd && (
+                      <button
+                        className="lt-btn lt-btn-navy lt-btn-sm mt-3"
+                        onClick={async () => {
+                          if (!event) return;
+                          try {
+                            const res = await ops.putOnEvent(event.id, r.barberID, tbd ? tbd.barberID : undefined);
+                            if (res.event) onEvent(res.event);
+                          } catch (e) {
+                            onError((e as Error).message);
+                          }
+                        }}
+                      >
+                        <UserPlus size={15} /> Put on the event{tbd ? `, replacing ${tbd.fullName}` : ''}
+                      </button>
                     )}
                   </div>
-                  {r.replies.map((rep, i) => (
-                    <div key={i} className="mt-1 rounded-xl bg-[#F1F6F5] px-3 py-1.5 text-sm text-text-dark">
-                      “{rep.body}”
+                  {r.status === 'sent' && (
+                    <div className="ops-outcome" role="group" aria-label="Their answer">
+                      {(['yes', 'maybe', 'no'] as OpsOutcome[]).map((o) => (
+                        <button key={o} className={r.outcome === o ? `on-${o}` : ''} onClick={() => setOutcome(r, r.outcome === o ? null : o)}>
+                          {o}
+                        </button>
+                      ))}
                     </div>
-                  ))}
-                  {canAdd && (
-                    <button
-                      onClick={async () => {
-                        if (!event) return;
-                        try {
-                          const res = await ops.putOnEvent(event.id, r.barberID, tbd ? tbd.barberID : undefined);
-                          if (res.event) onEvent(res.event);
-                        } catch (e) {
-                          onError((e as Error).message);
-                        }
-                      }}
-                      className="mt-2 inline-flex items-center gap-1 rounded-full bg-[#9EFAFF] px-3 py-1 text-xs font-bold text-[#09364f]"
-                    >
-                      <UserPlus size={13} /> Put on {event?.name}
-                      {tbd ? ` (replaces ${tbd.fullName})` : ''}
-                    </button>
                   )}
-                  {isOnEvent && <div className="mt-1 text-xs font-bold text-green-800">On the event</div>}
                 </div>
               );
             })}
           </div>
         </>
       )}
-    </div>
+    </>
   );
 };
 

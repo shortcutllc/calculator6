@@ -1,5 +1,6 @@
 // Small formatting helpers for the ops staffing dashboard.
 import type { OpsEvent, OpsNeed, OpsProposal } from '../../services/opsService';
+import { SERVICE_IMAGE_PATH } from '../proposal/data';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -120,4 +121,36 @@ export function staffedCount(event: OpsEvent): { staffed: number; needed: number
   const staffed = event.seats.filter((s) => !s.placeholder).length;
   const needed = Math.max(event.numBarbersRequired, event.seats.length);
   return { staffed, needed };
+}
+
+// The V2 proposal's service photo and dot colour, so a card reads like the proposal.
+export function photoForService(serviceType: string | undefined): string | null {
+  if (!serviceType) return null;
+  const key = serviceType === 'chair-massage' ? 'massage' : serviceType;
+  return SERVICE_IMAGE_PATH[key] || SERVICE_IMAGE_PATH[serviceType] || null;
+}
+
+const PRO_TYPE_SERVICE: Record<string, string> = {
+  Massage: 'massage',
+  Hair: 'hair',
+  Nails: 'nails',
+  Beauty: 'facial',
+  Mindfulness: 'mindfulness',
+  Photo: 'headshot',
+};
+
+export function photoForProType(proType: string | null | undefined): string | null {
+  return photoForService(PRO_TYPE_SERVICE[proType || ''] || 'massage');
+}
+
+export function dotClassFor(serviceType: string | undefined): string {
+  const t = serviceType || '';
+  if (t === 'hair' || t === 'beard-trim') return 'is-yellow';
+  if (t === 'facial' || t === 'nails' || t === 'nails-hand-massage' || t === 'makeup' || t.startsWith('mindfulness')) return 'is-pink';
+  return 'is-aqua';
+}
+
+export function initials(name: string): string {
+  const parts = String(name || '').replace(/\[.*?\]/g, '').trim().split(/\s+/).filter(Boolean);
+  return ((parts[0]?.[0] || '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase() || '?';
 }

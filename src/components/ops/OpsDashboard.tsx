@@ -1,15 +1,31 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { RefreshCw, MapPin, Users, Flag, Search, ExternalLink, AlertCircle } from 'lucide-react';
+import { RefreshCw, MapPin, Flag, Search, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import '../../styles/proposal-refresh.css';
+import '../../styles/ops-dashboard.css';
 import { ops, OpsBoard, OpsError, OpsEvent, OpsProposal } from '../../services/opsService';
 import { EventSeats, StaffPanel, StaffTarget } from './StaffPanel';
 import ProGroups from './ProGroups';
-import { dayLabel, eventAddress, eventDay, eventHours, needSummary, proposalStatusLabel, shortDate, staffedCount } from './opsFormat';
+import {
+  dayLabel,
+  dotClassFor,
+  eventAddress,
+  eventDay,
+  eventHours,
+  hoursText,
+  photoForProType,
+  photoForService,
+  prosText,
+  shortDate,
+  staffedCount,
+} from './opsFormat';
 
-// Pedro's staffing dashboard (Nov 2026). Approved proposals, and pending ones flagged
-// "likely to close", with what each needs; the coordinator events made from them and
-// their seats; other upcoming events still short of Pros. From any of them: find Pros
-// nearby, text them from the Pros line, see their answers, and put a yes on the event.
+// Pedro's staffing dashboard (Nov 2026), in the V2 proposal viewer's design: it renders
+// inside .pv-root with proposal-refresh.css, and ops-dashboard.css adds the rest.
+// Approved proposals, and pending ones flagged "likely to close", with what each needs;
+// the coordinator events made from them and their seats; other upcoming events still
+// short of Pros. From any of them: find Pros nearby, text them from the Pros line, see
+// their answers, and put a yes on the event.
 
 const OpsDashboard: React.FC = () => {
   const [params, setParams] = useSearchParams();
@@ -51,195 +67,251 @@ const OpsDashboard: React.FC = () => {
     setParams(next, { replace: true });
   };
 
+  const stats = useMemo(() => {
+    const props = board?.proposals || [];
+    const stillNeeded = props.reduce((sum, p) => {
+      if (!p.events.length) return sum + p.totalPros;
+      return sum + p.events.reduce((s, e) => s + Math.max(staffedCount(e).needed - staffedCount(e).staffed, 0), 0);
+    }, 0);
+    return {
+      toStaff: props.length,
+      stillNeeded,
+      likely: props.filter((p) => p.status !== 'approved' && p.likely).length,
+      otherShort: board?.otherEvents.length || 0,
+    };
+  }, [board]);
+
   if (error && error.status === 403) {
     return (
-      <Page>
-        <div className="card-medium text-text-dark">{error.message}</div>
-      </Page>
+      <div className="pv-root ops-root">
+        <div className="ops-wrap">
+          <div className="lt-card">
+            <p className="lt-body">{error.message}</p>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Page>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="h1">Staffing</h1>
-          <p className="mt-2 text-text-dark">
-            Approved and likely proposals, their events, and the Pros to staff them.
-          </p>
+    <div className="pv-root ops-root">
+      <div className="ops-wrap">
+        <div className="ops-head">
+          <div>
+            <p className="lt-eyebrow">Operations</p>
+            <h1 className="lt-h2">
+              Staff every event, <span className="lt-accent">early.</span>
+            </h1>
+            <p className="lt-body">Approved and likely proposals, their events, and the Pros to staff them.</p>
+          </div>
+          <div className="ops-head-actions">
+            {board?.backend === 'dev' && <span className="ops-backend">Dev backend</span>}
+            <button className="lt-btn lt-btn-ghost lt-btn-sm" onClick={load}>
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Refresh
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          {board?.backend === 'dev' && (
-            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900">Dev backend</span>
-          )}
-          <button
-            onClick={load}
-            className="inline-flex items-center gap-1 rounded-full border-2 border-[#9EFAFF] px-4 py-2 text-xs font-bold text-[#09364f]"
-          >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
-          </button>
-        </div>
-      </div>
 
-      <div className="mb-6 flex gap-2 border-b border-gray-200">
-        {(['staffing', 'groups'] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-bold ${
-              tab === t ? 'border-shortcut-blue text-shortcut-blue' : 'border-transparent text-text-dark-60'
-            }`}
-          >
-            {t === 'staffing' ? 'To staff' : 'Pro groups'}
-          </button>
-        ))}
-      </div>
+        {tab === 'staffing' && board && (
+          <div className="ops-stats">
+            <Stat value={stats.stillNeeded} label="Pros still needed" aqua />
+            <Stat value={stats.toStaff} label="Proposals to staff" />
+            <Stat value={stats.likely} label="Likely to close" />
+            <Stat value={stats.otherShort} label="Other events short" />
+          </div>
+        )}
 
-      {tab === 'groups' ? (
-        <ProGroups />
-      ) : (
-        <>
-          {error && <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{error.message}</div>}
-          {board?.warnings.map((w) => (
-            <div key={w} className="mb-3 flex items-center gap-2 rounded-xl bg-amber-50 px-4 py-2 text-sm text-amber-900">
-              <AlertCircle size={15} /> {w}
-            </div>
+        <div className="ops-tabs pv-format-seg" role="tablist">
+          {(['staffing', 'groups'] as const).map((t) => (
+            <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>
+              {t === 'staffing' ? 'To staff' : 'Pro groups'}
+            </button>
           ))}
+        </div>
 
-          <FlagLikely onChanged={load} />
+        {tab === 'groups' ? (
+          <ProGroups />
+        ) : (
+          <>
+            {error && <div className="ops-error">{error.message}</div>}
+            {board?.warnings.map((w) => (
+              <div key={w} className="ops-warn">
+                <AlertCircle size={16} /> {w}
+              </div>
+            ))}
 
-          <section className="mt-6 space-y-4">
-            <h2 className="text-xl font-extrabold text-shortcut-blue">Proposals to staff</h2>
-            {loading && !board && <p className="text-sm text-text-dark-60">Loading...</p>}
+            <FlagLikely onChanged={load} />
+
+            <div className="ops-sec">
+              <h2 className="lt-h3">Proposals to staff</h2>
+              {board && <span className="ops-sec-note">Soonest first</span>}
+            </div>
+            {loading && !board && <p className="ops-muted">Loading...</p>}
             {board && !board.proposals.length && (
-              <div className="card-small text-text-dark">Nothing approved or flagged right now.</div>
+              <div className="lt-card">
+                <p className="lt-body">Nothing approved or flagged right now.</p>
+              </div>
             )}
             {board?.proposals.map((p) => (
               <ProposalCard key={p.id} proposal={p} onStaff={() => setTarget({ proposal: p })} />
             ))}
-          </section>
 
-          {!!board?.otherEvents.length && (
-            <section className="mt-10 space-y-3">
-              <h2 className="text-xl font-extrabold text-shortcut-blue">Other events short of Pros</h2>
-              <p className="text-sm text-text-dark">Upcoming coordinator events in the next 60 days that didn't come from a proposal here.</p>
-              {board.otherEvents.map((e) => (
-                <EventRow key={e.id} event={e} onStaff={() => setTarget({ event: e })} />
-              ))}
-            </section>
-          )}
-        </>
-      )}
+            {!!board?.otherEvents.length && (
+              <>
+                <div className="ops-sec">
+                  <h2 className="lt-h3">Other events short of Pros</h2>
+                  <span className="ops-sec-note">Next 60 days, not from a proposal here</span>
+                </div>
+                {board.otherEvents.map((e) => (
+                  <EventCard key={e.id} event={e} onStaff={() => setTarget({ event: e })} />
+                ))}
+              </>
+            )}
+          </>
+        )}
 
-      {target && (
-        <StaffPanel
-          target={target}
-          onClose={() => {
-            setTarget(null);
-            if (wanted) {
-              const next = new URLSearchParams(params);
-              next.delete('proposal');
-              setParams(next, { replace: true });
-            }
-          }}
-          onChanged={load}
-        />
-      )}
-    </Page>
-  );
-};
-
-const Page: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="min-h-screen bg-neutral-light-gray">
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">{children}</div>
-  </div>
-);
-
-const ProposalCard: React.FC<{ proposal: OpsProposal; onStaff: () => void }> = ({ proposal: p, onStaff }) => {
-  const status = proposalStatusLabel(p);
-  const staffed = p.events.reduce((sum, e) => sum + staffedCount(e).staffed, 0);
-  const needed = p.events.length ? p.events.reduce((sum, e) => sum + staffedCount(e).needed, 0) : p.totalPros;
-  return (
-    <div className="card-small">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-xl font-extrabold text-shortcut-blue">{p.clientName}</h3>
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${status.className}`}>{status.label}</span>
-            {p.optionName && <span className="text-xs font-bold text-text-dark">{p.optionName}</span>}
-          </div>
-          <div className="mt-1 text-xs text-text-dark">
-            {p.status === 'approved' ? `Updated ${shortDate(p.updatedAt)}` : p.likelySetBy ? `Flagged by ${p.likelySetBy} ${shortDate(p.likelySetAt)}` : ''}
-            {' · '}
-            <a className="text-shortcut-navy-blue underline" href={`/proposal/${p.id}`} target="_blank" rel="noreferrer">
-              Open proposal <ExternalLink size={11} className="inline" />
-            </a>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className={`inline-flex items-center gap-1 text-sm font-bold ${staffed < needed ? 'text-red-700' : 'text-green-700'}`}>
-            <Users size={15} /> {staffed}/{needed} Pros
-          </span>
-          <button
-            onClick={onStaff}
-            className="rounded-full bg-[#9EFAFF] px-5 py-2 text-sm font-bold text-[#09364f]"
-          >
-            Find Pros
-          </button>
-        </div>
+        {target && (
+          <StaffPanel
+            target={target}
+            onClose={() => {
+              setTarget(null);
+              if (wanted) {
+                const next = new URLSearchParams(params);
+                next.delete('proposal');
+                setParams(next, { replace: true });
+              }
+            }}
+            onChanged={load}
+          />
+        )}
       </div>
-
-      <ul className="mt-3 space-y-1.5 text-sm text-text-dark">
-        {p.needs.map((n, i) => (
-          <li key={i} className="flex flex-wrap gap-x-2">
-            <span className="font-bold">{dayLabel(n.date)}</span>
-            <span className="inline-flex items-center gap-1">
-              <MapPin size={13} className="text-shortcut-coral" /> {n.address}
-            </span>
-            <span>{needSummary(n)}</span>
-          </li>
-        ))}
-      </ul>
-
-      {p.events.length > 0 && (
-        <div className="mt-3 space-y-2">
-          {p.events.map((e) => (
-            <EventSeats key={e.id} event={e} />
-          ))}
-        </div>
-      )}
-      {p.status === 'approved' && !p.eventIDs.length && (
-        <p className="mt-3 text-sm text-text-dark">No coordinator event yet. Create it from the Admin page and its seats show here.</p>
-      )}
-      {!!p.missingEventIDs.length && (
-        <p className="mt-2 text-xs text-text-dark">
-          {p.missingEventIDs.length} linked event{p.missingEventIDs.length === 1 ? '' : 's'} not found on this backend.
-        </p>
-      )}
     </div>
   );
 };
 
-const EventRow: React.FC<{ event: OpsEvent; onStaff: () => void }> = ({ event, onStaff }) => {
-  const { staffed, needed } = staffedCount(event);
+const Stat: React.FC<{ value: number; label: string; aqua?: boolean }> = ({ value, label, aqua }) => (
+  <div className={`ops-stat${aqua ? ' is-aqua' : ''}`}>
+    <div className="pv-bignum">{value}</div>
+    <div className="ops-stat-label">{label}</div>
+  </div>
+);
+
+const ProposalCard: React.FC<{ proposal: OpsProposal; onStaff: () => void }> = ({ proposal: p, onStaff }) => {
+  const staffed = p.events.reduce((sum, e) => sum + staffedCount(e).staffed, 0);
+  const needed = p.events.length ? p.events.reduce((sum, e) => sum + staffedCount(e).needed, 0) : p.totalPros;
+  const firstService = p.needs[0]?.services[0];
+  const photo = photoForService(firstService?.serviceType);
+  const firstDate = p.needs[0]?.date;
+  const cities = Array.from(new Set(p.needs.map((n) => n.location))).join(', ');
+  const approved = p.status === 'approved';
   return (
-    <div className="card-small flex flex-wrap items-center justify-between gap-3">
-      <div className="min-w-0">
-        <div className="font-extrabold text-shortcut-blue">{event.name}</div>
-        <div className="text-sm text-text-dark">
-          {eventDay(event)}, {eventHours(event)} · {eventAddress(event)}
+    <div className="ops-card">
+      <div className="ops-card-photo">
+        {photo && <img src={photo} alt="" />}
+        <span className={`ops-status ${approved ? 'is-approved' : 'is-likely'}`}>{approved ? 'Approved' : 'Likely to close'}</span>
+      </div>
+      <div className="ops-card-body">
+        <div className="ops-card-top">
+          <div>
+            <p className="lt-eyebrow">
+              {dayLabel(firstDate)}
+              {p.needs.length > 1 ? ` + ${p.needs.length - 1} more` : ''} · {cities}
+            </p>
+            <h3 className="lt-h3">{p.clientName}</h3>
+            <div className="ops-card-sub">
+              {p.optionName ? `${p.optionName} · ` : ''}
+              {approved ? `Updated ${shortDate(p.updatedAt)}` : p.likelySetBy ? `Flagged by ${p.likelySetBy} on ${shortDate(p.likelySetAt)}` : ''}
+              {' · '}
+              <a href={`/proposal/${p.id}`} target="_blank" rel="noreferrer">
+                Open proposal
+              </a>
+            </div>
+          </div>
+          <div className="ops-card-actions">
+            <button className="lt-btn lt-btn-navy lt-btn-sm" onClick={onStaff}>
+              Find Pros
+            </button>
+          </div>
+        </div>
+
+        <div className="ops-needs">
+          {p.needs.map((n, i) => (
+            <div key={i} className="ops-need">
+              <span>{dayLabel(n.date)}</span>
+              <span className="ops-need-where">
+                <MapPin size={14} className="inline" /> {n.address}
+              </span>
+              {n.services.map((s, j) => (
+                <span key={j} className="ops-need-svc">
+                  <span className={`pv-dot ${dotClassFor(s.serviceType)}`} aria-hidden />
+                  {s.title}: {prosText(s.numPros)}
+                  {s.totalHours ? ` (${hoursText(s.totalHours)})` : ''}
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        {p.events.map((e) => (
+          <EventSeats key={e.id} event={e} />
+        ))}
+        {approved && !p.eventIDs.length && (
+          <p className="ops-muted">No coordinator event yet. Create it from the Admin page and its seats show here.</p>
+        )}
+        {!!p.missingEventIDs.length && (
+          <p className="ops-muted">
+            {p.missingEventIDs.length} linked event{p.missingEventIDs.length === 1 ? '' : 's'} not found on this backend.
+          </p>
+        )}
+
+        <div className="ops-metrics">
+          <div className="ops-metric">
+            <div className={`pv-bignum${staffed < needed ? ' is-short' : ''}`}>
+              {staffed}/{needed}
+            </div>
+            <div className="ops-metric-sub">Pros staffed</div>
+          </div>
+          <div className="ops-metric">
+            <div className="pv-bignum">{p.needs.length}</div>
+            <div className="ops-metric-sub">Event day{p.needs.length === 1 ? '' : 's'}</div>
+          </div>
         </div>
       </div>
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-bold text-red-700">
-          {staffed}/{needed} Pros
-        </span>
-        <a className="text-xs font-bold text-shortcut-navy-blue underline" href={event.links.addPro} target="_blank" rel="noreferrer">
-          Add Pro
-        </a>
-        <button onClick={onStaff} className="rounded-full border-2 border-[#9EFAFF] px-4 py-1.5 text-xs font-bold text-[#09364f]">
-          Find Pros
-        </button>
+    </div>
+  );
+};
+
+const EventCard: React.FC<{ event: OpsEvent; onStaff: () => void }> = ({ event, onStaff }) => {
+  const { staffed, needed } = staffedCount(event);
+  const seatType = event.seats.find((s) => s.proType)?.proType;
+  const photo = photoForProType(seatType);
+  return (
+    <div className="ops-card">
+      <div className="ops-card-photo">{photo && <img src={photo} alt="" />}</div>
+      <div className="ops-card-body">
+        <div className="ops-card-top">
+          <div>
+            <p className="lt-eyebrow">
+              {eventDay(event)} · {eventHours(event)}
+            </p>
+            <h3 className="lt-h3">{event.name}</h3>
+            <div className="ops-card-sub">{eventAddress(event)}</div>
+          </div>
+          <div className="ops-card-actions">
+            <button className="lt-btn lt-btn-navy lt-btn-sm" onClick={onStaff}>
+              Find Pros
+            </button>
+          </div>
+        </div>
+        <EventSeats event={event} />
+        <div className="ops-metrics">
+          <div className="ops-metric">
+            <div className={`pv-bignum${staffed < needed ? ' is-short' : ''}`}>
+              {staffed}/{needed}
+            </div>
+            <div className="ops-metric-sub">Pros staffed</div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -267,69 +339,65 @@ const FlagLikely: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
     return () => clearTimeout(t);
   }, [q, open, search]);
 
-  const flagged = useMemo(() => rows.filter((r) => r.likely).length, [rows]);
+  const toggle = async (id: string, name: string, likely: boolean) => {
+    setBusy(id);
+    setMsg('');
+    try {
+      const res = await ops.setLikely(id, likely);
+      setRows((prev) => prev.map((x) => (x.id === id ? { ...x, likely: res.likely } : x)));
+      if (res.alerted) setMsg(`Pedro has been told about ${name}.`);
+      onChanged();
+    } catch (err) {
+      setMsg((err as Error).message);
+    } finally {
+      setBusy('');
+    }
+  };
 
   return (
-    <div className="card-small">
-      <button className="flex w-full items-center justify-between gap-3 text-left" onClick={() => setOpen((o) => !o)}>
-        <span className="inline-flex items-center gap-2 font-bold text-shortcut-blue">
-          <Flag size={16} className="text-shortcut-coral" /> Flag a proposal as likely to close
+    <div className="lt-card ops-flag">
+      <button className="ops-flag-head" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        <span className="ops-flag-title">
+          <Flag size={18} className="text-shortcut-coral" /> Flag a proposal as likely to close
         </span>
-        <span className="text-xs font-bold text-text-dark">{open ? 'Close' : 'Open'}</span>
+        {open ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
       </button>
       {open && (
-        <div className="mt-3">
-          <p className="text-sm text-text-dark">
-            Flag a proposal that hasn't been approved yet and Pedro gets a Slack heads up to start finding Pros.
-          </p>
-          <div className="relative mt-3">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-dark" />
-            <input
-              className="w-full rounded-xl border border-gray-300 py-2 pl-9 pr-3 text-sm text-text-dark"
-              placeholder="Search by client"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
+        <div className="ops-stack ops-flag-body">
+          <p className="lt-body">Flag a proposal that hasn't been approved yet and Pedro gets a Slack heads up to start finding Pros.</p>
+          <div className="ops-field">
+            <div className="relative">
+              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-shortcut-blue" />
+              <input className="ops-input w-full pl-11" placeholder="Search by client" value={q} onChange={(e) => setQ(e.target.value)} />
+            </div>
           </div>
-          {msg && <p className="mt-2 text-sm text-text-dark">{msg}</p>}
-          <div className="mt-3 max-h-72 divide-y divide-gray-100 overflow-y-auto rounded-2xl border border-gray-200">
+          {msg && <div className="ops-notice">{msg}</div>}
+          <div className="ops-list max-h-80 overflow-y-auto">
             {rows.map((r) => (
-              <div key={r.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+              <div key={r.id} className="ops-list-row">
                 <div className="min-w-0">
-                  <div className="font-bold text-text-dark">{r.clientName}</div>
-                  <div className="text-xs text-text-dark">
+                  <div className="ops-name">{r.clientName}</div>
+                  <div className="ops-meta">
                     {r.optionName ? `${r.optionName} · ` : ''}
                     {r.status} · updated {shortDate(r.updatedAt)}
                   </div>
                 </div>
-                <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-bold text-text-dark">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4"
-                    checked={r.likely}
-                    disabled={busy === r.id}
-                    onChange={async (e) => {
-                      setBusy(r.id);
-                      setMsg('');
-                      try {
-                        const res = await ops.setLikely(r.id, e.target.checked);
-                        setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, likely: res.likely } : x)));
-                        if (res.alerted) setMsg(`Pedro has been told about ${r.clientName}.`);
-                        onChanged();
-                      } catch (err) {
-                        setMsg((err as Error).message);
-                      } finally {
-                        setBusy('');
-                      }
-                    }}
-                  />
-                  Likely
-                </label>
+                <button
+                  className={`ops-likely-btn${r.likely ? ' is-on' : ''}`}
+                  disabled={busy === r.id}
+                  aria-pressed={r.likely}
+                  onClick={() => toggle(r.id, r.clientName, !r.likely)}
+                >
+                  {r.likely ? 'Likely to close' : 'Flag as likely'}
+                </button>
               </div>
             ))}
-            {!rows.length && <div className="px-4 py-3 text-sm text-text-dark">No matching proposals in the last 4 months.</div>}
+            {!rows.length && (
+              <div className="ops-list-row">
+                <p className="ops-muted">No matching proposals in the last 4 months.</p>
+              </div>
+            )}
           </div>
-          {flagged > 0 && <p className="mt-2 text-xs text-text-dark">{flagged} flagged in this list.</p>}
         </div>
       )}
     </div>
