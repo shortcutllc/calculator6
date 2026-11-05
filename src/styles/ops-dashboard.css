@@ -143,6 +143,16 @@
 .ops-root .ops-history { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .ops-root .ops-history-tag { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 9999px; background: var(--sc-light-gray); font-family: var(--font-ui); font-weight: 700; font-size: 11.5px; color: var(--sc-navy); }
 .ops-root .ops-history-tag.is-client { background: var(--sc-yellow); }
+.ops-root .ops-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+.ops-root .ops-badge { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 9999px; font-family: var(--font-ui); font-weight: 700; font-size: 11px; color: var(--sc-navy); background: var(--sc-light-gray); }
+.ops-root .ops-badge.is-ok { background: #DDF4EA; color: #0E5A39; }
+.ops-root .ops-badge.is-wait { background: #FFF1C2; color: var(--sc-navy); }
+.ops-root .ops-badge.is-bad { background: #FFE5E5; color: #7A1A1A; }
+.ops-root .ops-badge-link { font-family: var(--font-ui); font-weight: 700; font-size: 11.5px; color: var(--sc-navy); text-decoration: underline; text-underline-offset: 3px; }
+.ops-root .ops-team { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.ops-root .ops-team-row { background: #fff; border-radius: 14px; padding: 10px 12px; }
+.ops-root .ops-team-row.is-open { background: #FFE5E5; }
+.ops-root .ops-seat-summary { margin-top: 8px; font-family: var(--font-display); font-weight: 600; font-size: 13px; color: var(--sc-navy); }
 .ops-root .ops-flagtext { font-family: var(--font-ui); font-weight: 700; font-size: 11.5px; color: #7A1A1A; }
 .ops-root .ops-oktext { font-family: var(--font-ui); font-weight: 700; font-size: 11.5px; color: #11613F; }
 

@@ -12,6 +12,7 @@ import {
   PRO_TYPES,
   SKIP_REASON_TEXT,
 } from '../../services/opsService';
+import { ProBadges, seatSummary } from './ProBadges';
 import {
   cityFrom,
   dayLabel,
@@ -293,7 +294,7 @@ export const StaffPanel: React.FC<{ target: StaffTarget; onClose: () => void; on
             </div>
 
             {event ? (
-              <EventSeats event={event} />
+              <EventSeats event={event} detailed />
             ) : (
               <p className="ops-muted">No coordinator event yet. Create it from the Admin page, and its seats show here so you can put Pros on it.</p>
             )}
@@ -556,8 +557,11 @@ export const StaffPanel: React.FC<{ target: StaffTarget; onClose: () => void; on
   );
 };
 
-export const EventSeats: React.FC<{ event: OpsEvent }> = ({ event }) => {
+// The event's seats. Compact on the board (chips plus one summary line of what's still
+// missing); detailed in the side panel (each Pro with their confirmation and paperwork).
+export const EventSeats: React.FC<{ event: OpsEvent; detailed?: boolean }> = ({ event, detailed }) => {
   const { staffed, needed } = staffedCount(event);
+  const summary = seatSummary(event.seats);
   return (
     <div className="ops-event">
       <div className="ops-event-head">
@@ -576,22 +580,47 @@ export const EventSeats: React.FC<{ event: OpsEvent }> = ({ event }) => {
           </a>
         </div>
       </div>
-      <div className="ops-seats">
-        {event.seats.map((s, i) => (
-          <span
-            key={`${s.barberID}-${i}`}
-            className={`ops-seat${s.placeholder ? ' is-open' : ''}${!s.placeholder && s.confirmedInApp ? ' is-confirmed' : ''}`}
-            title={!s.placeholder && s.confirmedInApp ? 'Confirmed in the app' : undefined}
-          >
-            {s.placeholder ? `${s.fullName}: open` : s.fullName}
-          </span>
-        ))}
-        {Array.from({ length: event.emptySeats }).map((_, i) => (
-          <span key={`empty-${i}`} className="ops-seat is-open">
-            Empty seat
-          </span>
-        ))}
-      </div>
+      {detailed ? (
+        <div className="ops-team">
+          {event.seats.map((s, i) =>
+            s.placeholder ? (
+              <div key={`${s.barberID}-${i}`} className="ops-team-row is-open">
+                <span className="ops-name">{s.fullName}: open seat</span>
+              </div>
+            ) : (
+              <div key={`${s.barberID}-${i}`} className="ops-team-row">
+                <span className="ops-name">{s.fullName}</span>
+                <ProBadges agreements={s.agreements} orientation={s.orientation} confirmedInApp={s.confirmedInApp} showSendLink />
+              </div>
+            )
+          )}
+          {Array.from({ length: event.emptySeats }).map((_, i) => (
+            <div key={`empty-${i}`} className="ops-team-row is-open">
+              <span className="ops-name">Empty seat</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <>
+          <div className="ops-seats">
+            {event.seats.map((s, i) => (
+              <span
+                key={`${s.barberID}-${i}`}
+                className={`ops-seat${s.placeholder ? ' is-open' : ''}${!s.placeholder && s.confirmedInApp ? ' is-confirmed' : ''}`}
+                title={!s.placeholder && s.confirmedInApp ? 'Confirmed in the app' : 'Not confirmed in the app yet'}
+              >
+                {s.placeholder ? `${s.fullName}: open` : s.fullName}
+              </span>
+            ))}
+            {Array.from({ length: event.emptySeats }).map((_, i) => (
+              <span key={`empty-${i}`} className="ops-seat is-open">
+                Empty seat
+              </span>
+            ))}
+          </div>
+          {summary && <p className="ops-seat-summary">{summary}</p>}
+        </>
+      )}
     </div>
   );
 };
@@ -652,6 +681,7 @@ const ProRow: React.FC<{
           </div>
         )}
         <div className="ops-meta">{meta}</div>
+        <ProBadges agreements={pro.agreements} orientation={pro.orientation} />
       </div>
       {canAdd && (
         <button

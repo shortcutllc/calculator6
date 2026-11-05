@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Plus, ChevronDown, ChevronUp, Search, Archive, X } from 'lucide-react';
 import { ops, OpsGroup, OpsPro, PRO_TYPES } from '../../services/opsService';
 import { initials, shortDate } from './opsFormat';
+import { ProBadges } from './ProBadges';
 
 // Pedro's lists of Pros per city and service, each Pro in a tier (Tier 1 = first
 // call). Stored on the Shortcut backend next to the Pros (ProGroup), so the admin
@@ -231,6 +232,7 @@ const GroupCard: React.FC<{
                               {m.pro?.optedOut && <span className="ops-flagtext">Opted out of texts</span>}
                             </div>
                             {m.pro && <div className="ops-meta">{proMeta(m.pro)}</div>}
+                            {m.pro && <ProBadges agreements={m.pro.agreements} orientation={m.pro.orientation} />}
                             <div className="ops-tier-pick" role="group" aria-label="Tier">
                               {TIERS.map((t) => (
                                 <button
@@ -384,6 +386,7 @@ const AddPros: React.FC<{ group: OpsGroup; onAdded: () => void; onError: (m: str
                   {p.optedOut && <span className="ops-flagtext">Opted out of texts</span>}
                 </div>
                 <div className="ops-meta">{proMeta(p)}</div>
+                <ProBadges agreements={p.agreements} orientation={p.orientation} />
                 <div className="ops-tier-pick" role="group" aria-label={`Add ${p.fullName}`}>
                   {tier ? (
                     <span className="ops-oktext">In Tier {tier}</span>

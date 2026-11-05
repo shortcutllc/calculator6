@@ -22,6 +22,14 @@ export interface OpsNeed {
   eventIDs: string[];
 }
 
+// A DocuSeal pack from /pro-agreements: signed, or where it got to; null = never sent.
+export type OpsAgreementState = 'signed' | 'opened' | 'sent' | 'pending' | 'declined' | 'expired' | null;
+
+export interface OpsAgreements {
+  contractor: OpsAgreementState; // "Shortcut Onboarding Docs" (contractor agreement + W-9)
+  workersComp: OpsAgreementState; // "Shortcut Workers Comp Waiver"
+}
+
 export interface OpsSeat {
   barberID: string;
   fullName: string;
@@ -31,6 +39,9 @@ export interface OpsSeat {
   proType: string | null;
   startTime: string | null;
   endTime: string | null;
+  agreements?: OpsAgreements;
+  // 'new' = no completed event yet, so they need an orientation.
+  orientation?: 'done' | 'new';
 }
 
 export interface OpsEvent {
@@ -119,6 +130,8 @@ export interface OpsPro {
   lastClientEventName?: string | null;
   siteEvents?: number;
   lastSiteEventDate?: string | null;
+  agreements?: OpsAgreements;
+  orientation?: 'done' | 'new';
 }
 
 export interface OpsGroupMember {

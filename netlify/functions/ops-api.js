@@ -95,6 +95,87 @@ async function eventsByID(eventIDs, warnings) {
   return map;
 }
 
+// ---- Paperwork and orientation (Will, Nov 2026) ---------------------------------------
+// Each Pro shows whether they've signed the two DocuSeal packs sent from /pro-agreements:
+// the contractor agreement ("Shortcut Onboarding Docs", document_type 'ica') and the
+// workers' comp waiver ('workers_comp'). Agreements only know the Pro by email, so they
+// are matched on it (lower-cased, trimmed). Orientation is assumed done for any Pro who
+// has worked an event before; a Pro with none yet is new and needs one.
+
+const STATUS_RANK = { completed: 5, opened: 4, sent: 3, awaiting: 3, pending: 2, declined: 1, expired: 1 };
+const shownStatus = (s) => (s === 'completed' ? 'signed' : s === 'awaiting' ? 'sent' : s || null);
+
+async function agreementsByEmail(supabase) {
+  const map = new Map();
+  const { data, error } = await supabase
+    .from('pro_agreements')
+    .select('pro_email, status, completed_at, created_at, pro_agreement_templates(document_type)')
+    .limit(5000);
+  if (error) {
+    console.error('[ops-api] agreements', error.message);
+    return map;
+  }
+  for (const row of data || []) {
+    const email = String(row.pro_email || '').trim().toLowerCase();
+    const type = row.pro_agreement_templates && row.pro_agreement_templates.document_type;
+    const key = type === 'ica' ? 'contractor' : type === 'workers_comp' ? 'workersComp' : null;
+    if (!email || !key) continue;
+    const entry = map.get(email) || { contractor: null, workersComp: null };
+    const current = entry[key];
+    const rank = STATUS_RANK[row.status] || 0;
+    if (!current || rank > current.rank) entry[key] = { rank, status: row.status };
+    map.set(email, entry);
+  }
+  return map;
+}
+
+function agreementsFor(index, email) {
+  const entry = index.get(String(email || '').trim().toLowerCase());
+  return {
+    contractor: entry && entry.contractor ? shownStatus(entry.contractor.status) : null,
+    workersComp: entry && entry.workersComp ? shownStatus(entry.workersComp.status) : null,
+  };
+}
+
+function withPaperwork(pro, index) {
+  if (!pro) return pro;
+  const worked = (pro.numCompletedEvents || 0) > 0 || (pro.eventsLast365 || 0) > 0;
+  return { ...pro, agreements: agreementsFor(index, pro.email), orientation: worked ? 'done' : 'new' };
+}
+
+// Seats carry only the Pro's id and name: look up their email and event count.
+async function seatsWithPaperwork(events, index) {
+  const ids = Array.from(
+    new Set(events.flatMap((e) => (e.seats || []).filter((s) => !s.placeholder).map((s) => s.barberID)))
+  );
+  const byID = new Map();
+  for (let i = 0; i < ids.length; i += 500) {
+    try {
+      const rows = await queryParse('Barber', {
+        where: { objectId: { $in: ids.slice(i, i + 500) } },
+        keys: ['email', 'numCompletedEvents'],
+        limit: 500,
+      });
+      rows.forEach((r) => byID.set(r.objectId, r));
+    } catch (e) {
+      console.error('[ops-api] seat Pros', e.message);
+    }
+  }
+  return events.map((e) => ({
+    ...e,
+    seats: (e.seats || []).map((seat) => {
+      if (seat.placeholder) return seat;
+      const pro = byID.get(seat.barberID);
+      if (!pro) return seat;
+      return {
+        ...seat,
+        agreements: agreementsFor(index, pro.email),
+        orientation: (pro.numCompletedEvents || 0) > 0 ? 'done' : 'new',
+      };
+    }),
+  }));
+}
+
 // Every coordinator event from three days ago to eight months out, staffed or not, for
 // finding the ones made by hand (the Upcoming Events page reads Event the same way).
 async function horizonEvents(warnings) {
@@ -206,6 +287,12 @@ const ACTIONS = {
       warnings.push(`Could not read upcoming events: ${e.message}`);
     }
 
+    const index = await agreementsByEmail(supabase);
+    const enriched = await seatsWithPaperwork([...events.values(), ...otherEvents], index);
+    const enrichedByID = new Map(enriched.map((e) => [e.id, e]));
+    enrichedByID.forEach((e, id) => events.has(id) && events.set(id, e));
+    otherEvents = otherEvents.map((e) => enrichedByID.get(e.id) || e);
+
     const cards = proposals
       .map((p) => proposalCard(p, flags.get(p.id), events, needsByID.get(p.id), foundByName))
       .sort((a, b) => (a.lastEventDate ?? Infinity) - (b.lastEventDate ?? Infinity));
@@ -288,8 +375,9 @@ const ACTIONS = {
     return { proposalId, note };
   },
 
-  roster(body) {
-    return callParse('pullStaffingRoster_Admin', {
+  async roster(body, { supabase }) {
+    const [res, index] = await Promise.all([
+      callParse('pullStaffingRoster_Admin', {
       addressString: body.addressString || undefined,
       coordinates: body.coordinates || undefined,
       proTypes: Array.isArray(body.proTypes) ? body.proTypes : [],
@@ -302,14 +390,27 @@ const ACTIONS = {
       // On the dev backend the test Pros (reserved numbers nothing can text) are the
       // ones to try things on; the live roster never shows them.
       includeTestPros: parseBackendLabel() === 'dev',
-    });
+      }),
+      agreementsByEmail(supabase),
+    ]);
+    return { ...res, pros: (res.pros || []).map((p) => withPaperwork(p, index)) };
   },
 
-  groups(body) {
-    return callParse('pullProGroups_Admin', {
-      groupID: body.groupID || undefined,
-      includeArchived: !!body.includeArchived,
-    });
+  async groups(body, { supabase }) {
+    const [res, index] = await Promise.all([
+      callParse('pullProGroups_Admin', {
+        groupID: body.groupID || undefined,
+        includeArchived: !!body.includeArchived,
+      }),
+      agreementsByEmail(supabase),
+    ]);
+    return {
+      ...res,
+      groups: (res.groups || []).map((g) => ({
+        ...g,
+        members: (g.members || []).map((m) => ({ ...m, pro: withPaperwork(m.pro, index) })),
+      })),
+    };
   },
 
   async saveGroup(body) {
@@ -371,11 +472,15 @@ const ACTIONS = {
     });
   },
 
-  eventStaffing(body) {
-    return callParse('pullEventStaffing_Admin', { eventIDs: body.eventIDs || [] });
+  async eventStaffing(body, { supabase }) {
+    const [res, index] = await Promise.all([
+      callParse('pullEventStaffing_Admin', { eventIDs: body.eventIDs || [] }),
+      agreementsByEmail(supabase),
+    ]);
+    return { ...res, events: await seatsWithPaperwork(res.events || [], index) };
   },
 
-  async putOnEvent(body) {
+  async putOnEvent(body, auth) {
     const eventID = String(body.eventID || '');
     const barberID = String(body.barberID || '');
     if (!eventID || !barberID) fail(400, 'Which event and which Pro?');
@@ -389,8 +494,12 @@ const ACTIONS = {
     } else {
       await callParse('addBarberToEvent', { eventID, barberID, isLeadBarber: false });
     }
-    const res = await callParse('pullEventStaffing_Admin', { eventIDs: [eventID] });
-    return { event: (res.events || [])[0] || null };
+    const [res, index] = await Promise.all([
+      callParse('pullEventStaffing_Admin', { eventIDs: [eventID] }),
+      agreementsByEmail(auth.supabase),
+    ]);
+    const [event] = await seatsWithPaperwork(res.events || [], index);
+    return { event: event || null };
   },
 };
 
