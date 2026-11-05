@@ -290,8 +290,16 @@ const Progress: React.FC<{ staffed: number; needed: number }> = ({ staffed, need
 const MAX_LINES = 2;
 const MAX_CHIPS = 4;
 
+// A proposal's events often share the client's name (Smartly x3): then say where and what.
+function chipLabel(e: OpsEvent, sameNames: boolean): string {
+  if (!sameNames) return e.name;
+  const proType = e.seats.find((s) => s.proType)?.proType;
+  return [e.address.city, proType].filter(Boolean).join(' ') || e.name;
+}
+
 const EventChips: React.FC<{ events: OpsEvent[] }> = ({ events }) => {
   const shownEvents = events.slice(0, MAX_CHIPS);
+  const sameNames = new Set(events.map((e) => e.name)).size < events.length;
   return (
     <div className="ops-evchips">
       {shownEvents.map((e) => {
@@ -303,7 +311,7 @@ const EventChips: React.FC<{ events: OpsEvent[] }> = ({ events }) => {
             className={`ops-evchip${full ? ' is-full' : ' is-short'}`}
             title={e.matchedBy === 'name' ? 'Matched by client name and date: made in the coordinator, not from this proposal.' : undefined}
           >
-            <span className="ops-evchip-name">{e.name}</span>
+            <span className="ops-evchip-name">{chipLabel(e, sameNames)}</span>
             <b>
               {staffed}/{needed}
             </b>

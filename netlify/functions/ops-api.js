@@ -40,7 +40,6 @@ import {
   linkedEventIDs,
   looksLikeTest,
   matchEventsByName,
-  needDay,
   staffingNeeds,
   upcomingSummary,
 } from './lib/ops-staffing.js';
@@ -333,7 +332,8 @@ const ACTIONS = {
     if (q) query = query.ilike('client_name', `%${q}%`);
     const { data, error } = await query;
     if (error) fail(500, `Proposals: ${error.message}`, 'DB_ERROR');
-    const today = needDay(new Date(Date.now() - DAY_MS).toISOString()); // a day's grace for time zones
+    // Today where it is latest in the US: a date stays listed until its day is over everywhere.
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(new Date());
     const rows = (data || [])
       .filter((p) => !p.is_test && !looksLikeTest(clientName(p)))
       .map((p) => upcomingSummary(p, staffingNeeds(p), today))
