@@ -4,7 +4,7 @@ import {
   Menu, X, LogOut, FileText, Calculator, Settings, Camera,
   ChevronDown, ChevronLeft, ChevronRight,
   Clock, Plus, Users, Handshake, Gift, Smartphone, Presentation,
-  Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp, Link2, CalendarCheck, Ticket, Palette, Tv, Target, ClipboardList, Wrench, GitMerge, Image as ImageIcon, HeartPulse
+  Scale, Mail, Receipt, FileSignature, QrCode, Brain, TrendingUp, Link2, CalendarCheck, Ticket, Palette, Tv, Target, ClipboardList, Wrench, GitMerge, Image as ImageIcon, HeartPulse, UserCheck
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { isMasterAccount } from '../utils/isMasterAccount';
@@ -37,6 +37,7 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'Event Operations',
     items: [
       { label: 'Upcoming Events', path: '/upcoming-events', icon: <CalendarCheck size={18} /> },
+      { label: 'Staffing', path: '/ops', icon: <UserCheck size={18} /> },
       { label: 'Sales Intelligence', path: '/sales-intelligence', icon: <Target size={18} /> },
       { label: 'Entity Review', path: '/education', icon: <GitMerge size={18} /> },
       { label: 'Client Emails', path: '/client-emails', icon: <Mail size={18} /> },

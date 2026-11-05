@@ -27,6 +27,7 @@ const EXPECTED = [
   { job: 'sync-bounces', maxStaleHours: 28, label: 'Bounce suppression (daily 6:50am)' },
   { job: 'founder-reply-graduate', maxStaleHours: 3, label: 'Founder reply graduation (hourly)' },
   { job: 'founder-reply-reconcile', maxStaleHours: 28, label: 'Founder off-thread reply sweep (daily)' },
+  { job: 'ops-approval-watch', maxStaleHours: 2, label: 'Approval alerts to ops (every 5 min)' },
 ];
 
 const SLACK_API = 'https://slack.com/api';

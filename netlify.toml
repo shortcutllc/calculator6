@@ -54,6 +54,9 @@
 [functions."sync-bounces-scheduled"]
   schedule = "50 10 * * *"  # daily 6:50am ET — suppress Smartlead-blocked/bounced leads (machine-independent)
 
+[functions."ops-approval-watch"]
+  schedule = "*/5 * * * *"  # every 5 min: tells ops (event ops channel + DM to Pedro) once per newly approved proposal, to start staffing it
+
 [functions."graduate-replies-scheduled"]
   schedule = "5 11 * * *"   # daily 7:05am ET — graduate positive cold replies (machine-independent; retires the Mac cron)
 

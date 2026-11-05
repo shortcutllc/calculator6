@@ -74,6 +74,7 @@ const RedesignPreview = lazy(() => import('./components/RedesignPreview'));
 const ProposalGalleryAdmin = lazy(() => import('./components/ProposalGalleryAdmin'));
 const UsersManagement = lazy(() => import('./components/UsersManagement'));
 const UpcomingEvents = lazy(() => import('./components/UpcomingEvents'));
+const OpsDashboard = lazy(() => import('./components/ops/OpsDashboard'));
 const SalesIntelligence = lazy(() => import('./components/SalesIntelligence'));
 const EducationReview = lazy(() => import('./components/EducationReview'));
 const WorkhumanProject = lazy(() => import('./components/WorkhumanProject'));
@@ -456,6 +457,21 @@ function App() {
                         <QRCodeSignManager />
                       </Suspense>
                     </QRCodeSignProvider>
+                  </PrivateRoute>
+                }
+              />
+              {/* Ops staffing dashboard (Pedro): ops-api checks the account is on the ops list */}
+              <Route
+                path="/ops"
+                element={
+                  <PrivateRoute>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <OpsDashboard />
+                    </Suspense>
                   </PrivateRoute>
                 }
               />
