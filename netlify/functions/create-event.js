@@ -246,7 +246,12 @@ function transformToCoordinatorPayload(eventForm) {
     isSecret: eventForm.isSecret || false,
     doesNotRequireTimeslots: eventForm.doesNotRequireTimeslots || false,
     sendAutoEmailsManually: eventForm.sendAutoEmailsManually || false,
-    allowMultipleReservations: eventForm.allowMultipleReservations || false,
+    // Both default ON, like the coordinator's Add Event form: only an explicit
+    // false (the admin unticked the box) turns them off. With multiple
+    // reservations off, an attendee can book one event in the whole series.
+    // The backend reads a missing oneReservationPerEvent as false.
+    allowMultipleReservations: eventForm.allowMultipleReservations !== false,
+    oneReservationPerEvent: eventForm.oneReservationPerEvent !== false,
     overrideNameCheck: eventForm.overrideNameCheck || false,
     isTestEvent: eventForm.isTestEvent || false,
     isOutbound: false,

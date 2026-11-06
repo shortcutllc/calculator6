@@ -72,6 +72,7 @@ interface EventFormData {
   doesNotRequireTimeslots: boolean;
   sendAutoEmailsManually: boolean;
   allowMultipleReservations: boolean;
+  oneReservationPerEvent: boolean;
   managerPassword: string;
   staffNotes: string;
   adminNotes: string;
@@ -428,7 +429,12 @@ function buildInitialEvents(proposal: Proposal, surveyResponse?: any): EventForm
         isSecret: false,
         doesNotRequireTimeslots: false,
         sendAutoEmailsManually: false,
-        allowMultipleReservations: false,
+        // Same defaults as the coordinator's Add Event form. With multiple
+        // reservations off, an attendee can book only ONE event in the whole
+        // series (a massage blocks the mindfulness class). One booking per
+        // event still stops one person taking several slots in an event.
+        allowMultipleReservations: true,
+        oneReservationPerEvent: true,
         managerPassword: '',
         staffNotes: '',
         adminNotes: '',
@@ -968,6 +974,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                           { key: 'doesNotRequireTimeslots', label: 'Do not require signups' },
                           { key: 'sendAutoEmailsManually', label: 'Send auto emails manually' },
                           { key: 'allowMultipleReservations', label: 'Allow multiple reservations' },
+                          { key: 'oneReservationPerEvent', label: 'One booking per attendee in this event' },
                           { key: 'overrideNameCheck', label: 'Override name check' },
                         ].map(({ key, label }) => (
                           <label key={key} className="flex items-center gap-2 text-xs text-text-dark-60 cursor-pointer">
