@@ -9,7 +9,7 @@ import { effectiveService, clientIncluded } from './client-picks.js';
 /** Who can open /ops and call ops-api. Email signup is open, so a sign-in alone
  *  proves nothing: the account must be on this list (env OPS_STAFF_EMAILS, comma
  *  separated, replaces the default). */
-export const DEFAULT_OPS_EMAILS = ['will@getshortcut.co', 'pedro@getshortcut.co'];
+export const DEFAULT_OPS_EMAILS = ['will@getshortcut.co', 'pedro@getshortcut.co', 'jaimie@getshortcut.co'];
 
 export function opsEmails() {
   const fromEnv = (process.env.OPS_STAFF_EMAILS || '')
