@@ -33,8 +33,14 @@ Run node as `source ~/.nvm/nvm.sh && node ...`.
   One form per firm, ever. If three submits in a row fail, stop submitting for the day.
 - Everything else still waits for Will: you never send an email, send a LinkedIn or Instagram
   message, connect, post, call, register or join anything. Prepare those as drafts.
-- Email touches go to a named principal's published address, never to info@, sales@ or any role
-  inbox.
+- Email touches go to a named principal, never to info@, sales@ or any role inbox. The address
+  comes from the firm's own site, or from `find-email.mjs` (Will, Nov 9), which is the only other
+  allowed source: Apollo by the firm's domain, kept only if Apollo marks it verified, it is on the
+  firm's domain, and MillionVerifier says ok or BounceBan says deliverable. Never type, guess or
+  pattern-build an address yourself, and never use one the script reports as HELD. The script
+  stops at 50 reveals a day; do not work around the cap.
+- At most 12 principal email drafts a day go into will@ Drafts, best fit firms first. More than
+  that from one mailbox risks the inbox. The rest wait for the next day.
 - This repo is public. Principal names, personal addresses, reply notes and firm research go only
   in the private folder (`people.csv`, `research/<firm>.md`), never in `tracker.csv`.
 - Supabase is read only: GET requests, never a write. Keys are in `<main checkout>/.env`
@@ -96,7 +102,10 @@ opening the URL yourself before trusting the rest.
    asks. `outreach_sends` in Supabase is the cross check.
 3. `node broker.mjs score` and `node broker.mjs due`.
 4. Start the helper agents. Aim to end the run with at least 80 verified firms waiting.
-5. Dedupe every newly verified firm's domain against `outreach_contacts` (email_domain),
+5. For each verified firm with no principal address from its own site, run
+   `node find-email.mjs --firm "<tracker name>" --domain <domain>` (add `--dry` first if you only
+   need to know who is there). Report USE, HELD and NONE counts.
+5b. Dedupe every newly verified firm's domain against `outreach_contacts` (email_domain),
    `crm_suppression` (email) and `crm_target_firms` (domain). A hit with an owner or a stage is a
    rep's relationship: status `closed`, say whose.
 6. `node broker.mjs batch`. Submit forms under the standing approval, East Coast firms first.

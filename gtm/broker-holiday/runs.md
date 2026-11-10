@@ -7,3 +7,4 @@
 2026-11-09 late: job rebuilt as three runs (9:05, 13:00, 16:30) with parallel helper agents; standing approval for forms, 25 a day; SOLUTION.md written from the www broker page; target 100 firms first week. A5 corrected again: nutrition coaching IS fund eligible.
 2026-11-09 late: form cap 50 a day; BCG confirmed by Will (A6 closed); three idea scouts per run (channel, people, angle) with people and angle backlogs in BRAIN.md; Muse job closed by Will.
 2026-11-09 late: Gmail connector confirmed as will@. Four Nov 9 sends found in Sent (thread ids match the tracker), each thread still one message: 0 replies, 0 bounces, no form acknowledgements from BSP or Troy. Job now reads replies from mail and puts principal emails in Drafts.
+2026-11-09 late: find-email.mjs added (Apollo by domain, MillionVerifier, BounceBan, 50 reveals a day, private people.csv). Tested live on EPIQ: USE. Cap of 12 principal email drafts a day.

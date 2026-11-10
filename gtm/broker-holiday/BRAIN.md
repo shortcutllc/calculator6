@@ -32,6 +32,8 @@ form: 2 touches, 0 replies. email1 to role inbox: 4 touches, 0 replies. Too earl
 
 - Role inboxes are a weak address. Evidence so far is from other campaigns only (Dave's lessons,
   Jul 2026: the broker replies on record came from practice leaders). Not yet tested here.
+- Apollo can fill the gap: 1 of 1 tried (EPIQ, Nov 9) returned the site's named principal with an
+  address that cleared Apollo verified and MillionVerifier ok.
 - Principals are findable. 4 of 6 firms checked on Nov 9 name a principal on their own site;
   2 of 6 publish that person's own address.
 - Two of 6 firms checked are UBA member firms (Innovo, JDI). Small sample, worth following.

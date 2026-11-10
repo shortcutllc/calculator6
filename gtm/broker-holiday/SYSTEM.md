@@ -124,5 +124,7 @@ event dates. Jan 5 2027: final report and the warm list, then the daily job turn
 `broker.mjs` locked wording, pre-send check, cadence, batch builder. `broker.test.mjs` its tests.
 `tracker.csv` one row per firm. `batches/` each day's output. `JOB.md` the daily job.
 `CRITIQUE.md` the review and the open proposals. `runs.md` one line per run.
+`find-email.mjs` finds a principal's address through Apollo and keeps it only if it clears
+MillionVerifier or BounceBan; results go to the private people file. `SOLUTION.md` the offer in facts.
 `BRAIN.md` what the job has learned: scoreboard, beliefs, experiments, channel backlog. The job
 rewrites it every run. `broker.mjs score` gives it the numbers.

@@ -57,3 +57,17 @@ test('every intro passes the check on every email and form channel, and the pick
   }
   assert.equal(introFor('Houtz Insurance LLC'), introFor('Houtz Insurance'));
 });
+
+test('an Apollo address is used only if it clears every gate', async () => {
+  const { decide, rankTitle } = await import('./find-email.mjs');
+  const ok = { email: 'pat@firm.com', domain: 'firm.com', apolloStatus: 'verified' };
+  assert.equal(decide({ ...ok, mv: 'ok' }).use, true);
+  assert.equal(decide({ ...ok, mv: 'catch_all', bounceban: 'deliverable' }).use, true);
+  assert.equal(decide({ ...ok, mv: 'catch_all', bounceban: 'risky' }).use, false, 'catch all never ships unresolved');
+  assert.equal(decide({ ...ok, mv: 'invalid' }).use, false);
+  assert.equal(decide({ ...ok, apolloStatus: 'extrapolated', mv: 'ok' }).use, false, 'a guessed address is thrown away');
+  assert.equal(decide({ ...ok, email: 'pat@gmail.com', mv: 'ok' }).use, false, 'personal address');
+  assert.equal(decide({ ...ok, email: 'email_not_unlocked@domain.com', mv: 'ok' }).use, false);
+  assert.equal(rankTitle('Account Manager'), Infinity);
+  assert.ok(rankTitle('Founder & Managing Principal') < rankTitle('VP Employee Benefits'));
+});
