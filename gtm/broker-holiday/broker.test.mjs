@@ -7,7 +7,7 @@ const pass = (a) => lintDraft(a).filter((c) => !c.ok).map((c) => c.rule);
 
 test('every channel builds a draft that passes its own check', () => {
   for (const channel of ['form', 'email1', 'email3', 'linkedin', 'instagram']) {
-    const a = { channel, firm: 'Houtz Insurance LLC', first: 'Dana', clientType: 'mid size employers' };
+    const a = { channel, firm: 'Houtz Insurance LLC', first: 'Dana', clientType: 'mid size employers', intro: 'A' };
     assert.deepEqual(pass({ ...a, body: buildDraft(a).body }), [], channel);
   }
 });
@@ -18,7 +18,7 @@ test('firm names are colloquial', () => {
 });
 
 test('the check catches the mistakes that already happened', () => {
-  const a = { channel: 'email1', firm: 'Houtz Insurance', first: 'Dana', clientType: 'mid size employers' };
+  const a = { channel: 'email1', firm: 'Houtz Insurance', first: 'Dana', clientType: 'mid size employers', intro: 'A' };
   const good = buildDraft(a).body;
   const bad = (body) => pass({ ...a, body });
   assert.ok(bad(good.replace('Cheers,\nWill', 'Cheers, Will')).length, 'Cheers, Will on one line');
@@ -42,9 +42,18 @@ test('cadence: business days, holidays skipped, never two touches inside two bus
   assert.equal(nextStep(form, '2026-11-10').dueNow, false);
   assert.match(nextStep(form, '2026-11-12').what, /^email3/);
   assert.equal(nextStep(form, '2026-11-12').dueNow, true);
-  assert.match(nextStep({ touches: '2026-11-09:email1', status: 'active' }, '2026-11-12').what, /thread/);
+  assert.match(nextStep({ touches: '2026-11-09:email1', status: 'active' }, '2026-11-12').what, /contact form/);
   // A late touch pushes the next one out instead of stacking.
   assert.equal(nextStep({ touches: '2026-11-09:form;2026-11-16:email3', status: 'active' }, '2026-11-17').due, '2026-11-18');
   assert.equal(nextStep({ touches: '2026-11-09:form', status: 'replied' }, '2026-11-12').action, 'none');
   assert.equal(nextStep({ touches: '', status: 'queued', form_url: 'x' }, '2026-12-14').action, 'none');
+});
+
+test('every intro passes the check on every email and form channel, and the pick is stable', async () => {
+  const { INTROS, introFor } = await import('./broker.mjs');
+  for (const intro of Object.keys(INTROS)) for (const channel of ['form', 'email1', 'email3']) {
+    const a = { channel, firm: 'Houtz Insurance', first: 'Dana', clientType: 'mid size employers', intro };
+    assert.deepEqual(pass({ ...a, body: buildDraft(a).body }), [], `${channel} intro ${intro}`);
+  }
+  assert.equal(introFor('Houtz Insurance LLC'), introFor('Houtz Insurance'));
 });

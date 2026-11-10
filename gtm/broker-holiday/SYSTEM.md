@@ -31,8 +31,8 @@ Before day 1 every firm is also checked against the existing CRM (`outreach_cont
 
 Track A, lead with this: chair massage, assisted stretch, sound baths, mindfulness, nutrition
 coaching, paid from the carrier fund, subject to carrier preapproval. Nails, facials and headshots
-are never fund eligible. (Open question A5: the SterlingRisk page lists group classes and not
-nutrition coaching.)
+are never fund eligible. (A5, checked Nov 9: all five are fund eligible on www, along
+with yoga, strength, dance cardio and somatic movement. Full list in `SOLUTION.md`.)
 
 Track B, employer paid: the full holiday menu, 10 percent off when a visit combines 2 or more
 services, a free 30 minute class worth up to 1250 dollars to claim by March 2027, at least 7
@@ -43,7 +43,9 @@ business days from signed quote. Book by Dec 7.
 Tier 1, can pay Shortcut with preapproval: Cigna Health Improvement Fund, Aetna Wellness Allowance.
 Cigna pays third party vendors only through a Cigna approved vendor; Shortcut's status is pending,
 so on a call the answer is "Aetna yes, Cigna in progress".
-Tier 2, plan specific language only: Anthem, UnitedHealthcare, Blue Cross Blue Shield.
+Tier 2, plan specific language only: Anthem, UnitedHealthcare, Blue Cross Blue Shield. (A5: the
+claims file and the www site treat the Anthem Wellness Fund as confirmed, beside Cigna and Aetna.
+Waits on Will.)
 Tier 3, member rewards only: Humana Go365, Kaiser, Centene Ambetter, Molina, Oscar.
 Never state a percent or dollar reimbursement, and never say preapproved without the client's
 written preapproval on file.
@@ -53,7 +55,8 @@ written preapproval on file.
 All wording is Will's Nov 9 approved text and lives in `broker.mjs`. Drafts are built by
 `broker.mjs draft`, never typed. Per firm, exactly three things vary: the firm name (colloquial,
 no Inc or LLC), the principal's first name, and one short Since clause (8 words or fewer, no
-numbers, no lists). Subject for every email: `quick question - carrier funds`.
+numbers, no lists). The opening paragraph is one of three approved intros (A, B, C), fixed per
+firm by its name; the batch shows which. Subject for every email: `quick question - carrier funds`.
 
 Channels: `form` (to the firm team, one plain link), `email1` (day 1 where there is no form),
 `email3` (after a form, with the website reference line), `linkedin` (to the principal, no link),
@@ -84,17 +87,26 @@ Thu Nov 12, touch 3 on Tue Nov 17, touch 4 on Fri Nov 20, close on Tue Nov 24.
 1. `broker.mjs batch` builds every draft due today and runs the pre-send check. A draft that fails
    is not shown as a draft; it is shown as blocked with the reason.
 2. Will sees the batch rendered, one block per paragraph, with the check count on each draft.
-3. Will approves exact text, recipient and subject. That is the only content decision.
+3. Batch approval (Will, Nov 9): Will approves one locked text per channel plus the list of firms
+   it goes to, with each firm's Since clause. He does not read every draft. Any change to the text
+   itself is a separate decision and goes through `broker.mjs` first.
 4. Email: sent by Will from will@getshortcut.co, then read back from Sent mail.
-   Form: filled one firm at a time, read back, stop, Will says send, submit once, screenshot.
+   Form: once Will has approved the batch (text plus firm list), the agent submits the forms
+   for the firms on that list, in the browser, one at a time: fill, read the message field back
+   to confirm the blank lines, submit once, screenshot the confirmation (Will, Nov 9 evening).
+   Only on a business day between 9:00 and 17:00 in the firm's own time zone, never at night.
+   Never a firm that was not on the approved list. A CAPTCHA, a login, a field asking for anything
+   beyond name, email, phone, company, address and message, or a form with no message field: stop
+   and hand that firm to Will.
 5. The tracker row gets the touch (`date:channel`) the same day. Message ids and form
    confirmations go in `notes`.
 
 ## Measuring
 
 Count only firms whose cadence has closed. Keep role inbox sends (info@, sales@) as a separate
-line from principal sends. After the first 25 closed firms: 0 replies, stop and rework the message
-with Will; 1 reply, look at who and why before deciding; 2 or more, scale toward 75. A quiet
+line from principal sends. Will, Nov 9: the target is 100 firms in the first week and 100 or more a
+week after, so 25 closed firms is a review point, not a stop: 0 replies there means the message is
+reworked with Will while sourcing continues; 2 or more means the text stays. A quiet
 November judges this message in this season, not the broker channel.
 
 Planning rates from the original plan: form reply 3 to 8 percent, cold email 8 to 12 percent, then
@@ -112,3 +124,5 @@ event dates. Jan 5 2027: final report and the warm list, then the daily job turn
 `broker.mjs` locked wording, pre-send check, cadence, batch builder. `broker.test.mjs` its tests.
 `tracker.csv` one row per firm. `batches/` each day's output. `JOB.md` the daily job.
 `CRITIQUE.md` the review and the open proposals. `runs.md` one line per run.
+`BRAIN.md` what the job has learned: scoreboard, beliefs, experiments, channel backlog. The job
+rewrites it every run. `broker.mjs score` gives it the numbers.

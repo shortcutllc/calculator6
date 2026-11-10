@@ -17,6 +17,11 @@ forwarding down (`dave/brain/lessons.md`, Jul 20 and 21). A role inbox has nobod
 to. These four will read as "no reply" and drag the reply rate, when what they measure is the
 address. Fix: count role inbox sends as their own arm, and put a principal's published address on
 every firm before day 1 where the firm's site shows one.
+Will, Nov 9: the form already reaches the general inbox, so email touches go to a named principal,
+never to info@ or sales@. Checked on the firms' own sites the same day: Innovo and Houtz publish a
+principal's address; EPIQ and JDI name a principal but publish only a role address; Greystone shows
+no current principal. Where no personal address is published the email touch is blocked, and the
+choice is LinkedIn to the principal or an approved email finder (B6).
 
 **A2. The stop rule cannot tell signal from noise.** "Under 4 percent after 25 firms" means zero
 replies stops the test and one reply continues it. One reply out of 25 is a coin flip. And at
@@ -40,19 +45,30 @@ That does not kill the test, since leftover fund dollars really do expire at pla
 means a low reply rate now says little about the channel in February. Do not let a quiet November
 kill the broker channel. The stop rule should stop this message in this season, nothing more.
 
-**A5. The fund claims disagree across your own live pages.** The breakdown says never claim a
-standard Anthem fund. The live `/wellness-funds` page and the SterlingRisk page both list "Anthem:
-Wellness Fund" beside Cigna and Aetna, and `/wellness-funds` says "your plan most likely includes
-an employer wellness fund". A broker who reads the note and then the page sees two different
-stories. Also the fund eligible lists differ: the breakdown has nutrition coaching and no group
-classes; the Sterling page has yoga, strength, dance cardio and somatic movement and no nutrition
-coaching. One of them is wrong. Fix: decide which is true and I will change the other.
+**A5. CORRECTED Nov 9 (local session). The breakdown is the outlier, not the pages.** Shortcut's own
+source of truth says there IS a standard Anthem fund: `CLAIMS_VERIFICATION.md` section 4 in the
+getshortcut.co repo lists Cigna Health Improvement Fund, Aetna Wellness Allowance and Anthem
+Wellness Fund as "confirmed and safe to publish", and www `/solutions/brokers`,
+`/solutions/healthcare` and `/pricing` all name the three (`frontend/data/wellness-funds-data.js`,
+CARRIERS). The Muse carrier check that demoted Anthem to "plan specific language only" is the one
+file I still cannot read, so I cannot say what it found. Until Will rules, the outreach text is
+unaffected (it names only Cigna and Aetna), but call prep should not tell a broker "no Anthem fund"
+while the site says the opposite.
+Fund eligible list, corrected again late Nov 9 after reading the whole broker page: carriers
+reimburse two categories. Stress management: massage, assisted stretch, mindfulness, sound bath.
+Group exercise: yoga, strength and sculpt, dance cardio, somatic movement, and one on one or group
+nutrition coaching. So nutrition coaching IS fund eligible on www (`FUND_CATEGORIES`); my earlier
+note said it was not, because I had read only the eight page slugs. Both the breakdown's list and
+the Sterling page are subsets of the truth. The full list is in `SOLUTION.md`.
 
-**A6. "BCG and Burberry pay for Shortcut services completely via these funds."** The repo supports
-Burberry and Aetna in several places (`gtm-one-pager.md`, `/broker-plan`). I found nothing here
-that says BCG pays through a carrier fund; BCG appears only as a client. It may well be true and
-recorded in the claims file I cannot open. But a benefits broker is exactly the reader who will ask
-"which fund, which carrier?" on the first call. Confirm BCG, and "completely", before firm 11.
+**A6. CONFIRMED GAP Nov 9. "BCG and Burberry pay for Shortcut services completely via these
+funds."** Burberry and Aetna is supported: the carrier funds reference records the flow as confirmed
+May 2026 (Shortcut invoices Burberry, Burberry submits to Aetna, Aetna pays Shortcut). BCG is not
+supported anywhere I can now read: `CLAIMS_VERIFICATION.md` lists BCG only as a named client with 5
+locations, and no file in this repo, the www repo, the coordinator repo or Dave's brain ties BCG to
+a carrier fund. "Completely" is not recorded for either client. Six notes carrying the sentence
+have already gone out. Will either confirms BCG from his own knowledge (then it should be added to
+the claims file) or the sentence needs new approved wording before more go out.
 
 **A7. The note names Cigna while the system says not to promise Cigna.** The carrier section says
 Cigna third party vendors are ineligible unless Cigna approved, and approved vendor work is still
@@ -61,11 +77,13 @@ and that clients "pay completely via these funds". That is fair as a question, b
 honest answer today is "Aetna yes, Cigna pending". Put that sentence in the call prep so nobody
 improvises it.
 
-**A8. The holiday link shows services the fund will not pay for.** The form note sends brokers to
-`/holiday`, the full menu, with nails, facials and headshots. The fund track covers five services.
-The SterlingRisk page solved this by labelling every package fund eligible or partner rate. Small
-brokers get the page that does not make the distinction. Fix: send them to `/wellness-funds`, or
-add one line. Your call, since it changes approved text.
+**A8. CONFIRMED Nov 9. The holiday link shows services the fund will not pay for.** www
+`frontend/pages/holiday.vue` and `frontend/data/holiday-data.js` contain no mention of funds,
+carriers or eligibility at all. A broker who clicks the form note's link lands on the full menu with
+no fund story. `/solutions/brokers` is the page written for this reader: it shows only the eight
+eligible services and says beauty and headshots get 10 percent off at the partner rate instead.
+Fix: point the form note at `/solutions/brokers`, or add a fund line to `/holiday`. Either changes
+approved text or a live page, so it is Will's call.
 
 **A9. Cold email compliance.** A commercial cold email in the US is expected to carry a physical
 postal address and a way to opt out, and opt outs must be honored. The cold email signature is
@@ -74,11 +92,17 @@ your lawyer; this is the standard CAN-SPAM point and worth a two minute check be
 The system also has no opt out or bounce handling anywhere: no suppression list, no status for
 "asked not to be contacted". The tracker now has `suppressed` and `bounced` statuses.
 
-**A10. These brokers may already be in your CRM, or already be Caren's.** The repo has 222 broker
-contacts, a `crm_suppression` list, and a broker motion Caren runs (the Sterling handoff says
-"cc Caren"). The breakdown dedupes new firms only against its own tracker and the nationals.
-Fix: dedupe each new firm against `outreach_contacts` and `crm_suppression` before day 1. The
-cloud job cannot reach Supabase, so until it can this is a manual check, and the job says so.
+**A10. DONE Nov 9 for the firms that can be identified.** Checked read only against Supabase.
+`outreach_contacts`: the four Nov 9 addresses are there only because the Gmail sent crawl ingested
+the sends themselves (source `gmail-sent-crawl`, no stage, no broker track, no owner). No other
+contact at greystonebenefits.com, epiqrm.com, acmgmt.com or jdigroup.com. `crm_suppression`: none of
+the four domains. `crm_target_firms`: none. Innovo and Houtz: no match by name. So none of the six
+identifiable firms is a rep's relationship. BSP, Troy, Alliance and Shore cannot be deduped until
+their domains are known. For scale: 241 broker track contacts exist (will@ 98, caren@ 34, unassigned
+109). The local job can reach Supabase, so this check now runs before every day 1.
+The same table answers the mail question without the connector: `outreach_sends` shows all four
+Nov 9 emails sent from will@getshortcut.co with the message ids in the tracker, and no reply and no
+bounce recorded as of the evening of Nov 9.
 
 ## B. Rules that contradict each other (fixed in SYSTEM.md)
 
@@ -171,12 +195,29 @@ funds can be applied?" and keep the present line, or the reverse.
 
 **P5. Add the postal address line under the cold email signature.**
 
-## What I could not read
+## Will's decisions, Nov 9 evening
 
-- `shortcutllc/getshortcut.co` and `shortcut-coordinator`: not granted to this session. I had this
-  repo and a May 2026 copy of the old site. So I have not seen the live `/holiday` page source, the
-  brokers and health plan solution pages on www, or the claims verification file.
-- The Muse workspace: tracker, checklist, strategy doc, skill, the original 25 scope, the carrier
-  check. The tracker here is seeded only from what the breakdown states.
-- will@ and hello@ mail. The Gmail connection in this session is a personal mailbox.
-- Any broker website, and getshortcut.co itself: this cloud environment's network blocks them.
+- A6 closed: Will confirmed that BCG pays through a carrier fund. The proof line stands as
+  written. It is still not in `CLAIMS_VERIFICATION.md`; worth adding there with the carrier.
+- Forms: standing approval, 50 a day, 9 to 5 in the firm's time zone. Target 50 forms a day.
+
+- P2: no thread reply to the role inboxes. Touch 2 for Greystone, EPIQ, A and C and Jordan is the
+  firm's contact form (locked form note) or LinkedIn to the principal. `broker.mjs` now routes
+  touch 2 to the form for these firms. The LinkedIn note says "I reached out via your website", so
+  it is only true after a form has gone in.
+- P3: approved as proposed. Not yet locked into `broker.mjs`; first due Nov 20.
+- P5: neither. The Nov 9 signature stays as approved, no postal address, no opt out line.
+- Role inbox sends are reported as a separate line; the stop rule reads form and principal sends.
+- Still open: P1, P4, A5 (Anthem and the eligible list), A6 (BCG), A8 (which page the link opens).
+
+## What is still unread (updated Nov 9, local session)
+
+- The Muse workspace. It is not on this Mac: Muse keeps its workspace in the cloud, and the only
+  local copy of anything is `~/Downloads/broker-system-breakdown.md`, which the tracker was already
+  seeded from. Tracker, checklist, strategy doc, the original 25 scope and the carrier check need
+  an export from Muse. Until then BSP, Troy, Alliance and Shore cannot be identified.
+- will@ mail through the connector, which is still signed in to a personal mailbox and was not
+  read. Sends, replies and bounces are read from `outreach_sends` instead.
+- Read this session: getshortcut.co repo (brokers and healthcare pages, holiday page and data,
+  pricing, `CLAIMS_VERIFICATION.md`), shortcut-coordinator (nothing about carrier funds in it), the
+  Sterling page and data, `WellnessFundsOnePager.tsx`, and six broker homepages.

@@ -9,9 +9,11 @@
 //   node gtm/broker-holiday/broker.mjs draft --channel form --firm "Houtz Insurance" --client "mid-size employers"
 //   node gtm/broker-holiday/broker.mjs lint  --channel form --firm "Houtz Insurance" < draft.txt
 //   node gtm/broker-holiday/broker.mjs batch [--date YYYY-MM-DD]   (writes batches/<date>.md and .html)
+//   node gtm/broker-holiday/broker.mjs score                       (touches, firms and replies per channel)
 //
 // Channels: form, email1 (day 1, no form), email3 (after a form), linkedin, instagram.
-// The locked text is Will's Nov 9 2026 approved wording. Changing a word of it
+// The locked text is Will's Nov 9 2026 approved wording ("Will Newton" in the intro and the
+// DM notes added the same evening; three rotating intros approved that night). Changing a word of it
 // is a copy decision: Will approves the new text first, then it changes here.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -25,7 +27,19 @@ export const TRACKER = path.join(DIR, 'tracker.csv');
 export const SUBJECT = 'quick question - carrier funds';
 export const HOLIDAY_URL = 'https://getshortcut.co/holiday';
 
-const P_INTRO = 'I am Will, I run Shortcut. We help many of our partners deploy carrier wellness funds on services their teams actually use: chair massage, mindfulness, sound baths, nutrition coaching, all from one team, nationwide.';
+// Three intros, approved by Will Nov 9 2026 evening, rotated so no two firms in a row get the
+// same opening. Which one a firm gets is fixed by its name, so a rebuild never changes it.
+export const INTROS = {
+  A: 'My name is Will Newton and I am the founder of Shortcut. We bring wellness services into the workplace, and many of our clients pay for them with their carrier wellness fund: chair massage, mindfulness, sound baths and assisted stretch, all from one team, nationwide.',
+  B: 'I am Will Newton, founder of Shortcut. Employers use us to turn their carrier wellness funds into things their teams actually show up for: chair massage, mindfulness, sound baths and assisted stretch, delivered by one team nationwide.',
+  C: 'Will Newton here, founder of Shortcut. We help employers spend their carrier wellness funds on services people actually use, like chair massage, mindfulness, sound baths and assisted stretch. One team, nationwide.',
+};
+/** Stable pick: the same firm always gets the same intro. */
+export const introFor = (firm) => {
+  const f = colloquial(firm); let h = 0;
+  for (const ch of f) h = (h * 31 + ch.codePointAt(0)) % 9973;
+  return 'ABC'[h % 3];
+};
 const P_PROOF = 'I talk to companies every week, and a striking number are sitting on unused Cigna or Aetna wellness dollars, or they do not even know the fund exists. BCG and Burberry pay for Shortcut services completely via these funds.';
 const S_HOLIDAY = 'Our holiday wellness packages are a really fun and meaningful way to put these dollars to work.';
 const P_LEARN = `Learn more about Shortcut and our holiday wellness here: ${HOLIDAY_URL}`;
@@ -46,8 +60,9 @@ const ask = (clientType, firm) =>
   `Since you advise ${clientType} on their benefits, do your clients${firm ? ` at ${firm}` : ''} have fund dollars still sitting there this plan year? ${S_HOLIDAY}`;
 
 /** Build a draft. Returns { subject, body } or throws on missing inputs. */
-export function buildDraft({ channel, firm, first, clientType }) {
+export function buildDraft({ channel, firm, first, clientType, intro }) {
   const f = colloquial(firm);
+  const P_INTRO = INTROS[intro || introFor(firm)];
   const need = (v, n) => { if (!v || !String(v).trim()) throw new Error(`missing ${n} for ${channel}`); };
   need(f, 'firm');
   if (channel === 'form') {
@@ -63,10 +78,10 @@ export function buildDraft({ channel, firm, first, clientType }) {
   }
   if (channel === 'linkedin') {
     need(first, 'first name');
-    return { subject: '', body: `Hi ${first}, I run Shortcut. I reached out via your website earlier this week. We help brokers deploy Cigna and Aetna fund dollars. Do any of your clients have funds sitting there this plan year? I would love to present to you and your team. Will` };
+    return { subject: '', body: `Hi ${first}, I run Shortcut. I reached out via your website earlier this week. We help brokers deploy Cigna and Aetna fund dollars. Do any of your clients have funds sitting there this plan year? I would love to present to you and your team. Will Newton` };
   }
   if (channel === 'instagram') {
-    return { subject: '', body: `Hi ${f} team, I am Will, I run Shortcut. I reached out via your website earlier this week. We help brokers put leftover Cigna and Aetna wellness funds to work on chair massage, mindfulness, sound baths and nutrition coaching. Do your clients have funds sitting there this plan year? I would love to present to you and your team.` };
+    return { subject: '', body: `Hi ${f} team, I am Will Newton, I run Shortcut. I reached out via your website earlier this week. We help brokers put leftover Cigna and Aetna wellness funds to work on chair massage, mindfulness, sound baths and nutrition coaching. Do your clients have funds sitting there this plan year? I would love to present to you and your team.` };
   }
   throw new Error(`unknown channel: ${channel}`);
 }
@@ -107,12 +122,13 @@ export function lintDraft({ channel, firm, first, body }) {
 
   add('blank line between every paragraph', !paras.slice(0, -1).some((p) => p.includes('\n')), paras.slice(0, -1).filter((p) => p.includes('\n')).length, 0);
   add('greeting', paras[0] === (isForm ? `Hi ${f} team,` : `Hi ${first},`), paras[0], isForm ? `Hi ${f} team,` : `Hi ${first},`);
-  add('intro paragraph is the locked text', paras.includes(P_INTRO), paras.includes(P_INTRO), true);
+  const introHits = Object.values(INTROS).filter((t) => paras.includes(t)).length;
+  add('intro paragraph is one of the three approved intros', introHits === 1, introHits, 1);
   add('proof paragraph is the locked text', paras.includes(P_PROOF), paras.includes(P_PROOF), true);
   add('firm name once', count(body, f) === 1, count(body, f), 1);
   add('BCG once', count(body, 'BCG') === 1, count(body, 'BCG'), 1);
   add('Burberry once', count(body, 'Burberry') === 1, count(body, 'Burberry'), 1);
-  add('one team once', count(body, 'one team') === 1, count(body, 'one team'), 1);
+  add('one team once', count(body.toLowerCase(), 'one team') === 1, count(body.toLowerCase(), 'one team'), 1);
   add('one ask paragraph, opening with one Since clause', askP.length === 1 && count(body, 'Since ') === 1, askP.length, 1);
   if (askP.length === 1) {
     const p = askP[0];
@@ -176,7 +192,7 @@ export function nextStep(row, today) {
   const floor = addBusinessDays(last.date, 2);
   const due = scheduled > floor ? scheduled : floor;
   let what = step.what;
-  if (step.n === 2) what = day1.channel === 'form' ? 'email3 to the principal (references the website note)' : 'short follow up, replying in the day 1 email thread (no website reference)';
+  if (step.n === 2) what = day1.channel === 'form' ? 'email3 to the principal (references the website note)' : 'the firm contact form (day 1 went to a role inbox; no second email there, Will Nov 9)';
   return { action: step.n === 5 ? 'close' : `touch${step.n}`, due, what, dueNow: due <= today && isBusinessDay(today) };
 }
 
@@ -196,7 +212,20 @@ export function parseCsv(text) {
   const [head, ...body] = rows.filter((r) => r.some((c) => c.trim()));
   return body.map((r) => Object.fromEntries(head.map((h, i) => [h, (r[i] || '').trim()])));
 }
-export const readTracker = (file = TRACKER) => parseCsv(fs.readFileSync(file, 'utf8'));
+// Principal names and personal addresses are private: this repo is public, so they live in a
+// gitignored people.csv outside the tracker and are merged in by firm name at read time.
+const PRIVATE_DIRS = [process.env.BROKER_PRIVATE_DIR, path.join(DIR, '../../dave/state/broker-holiday'), path.join(DIR, '../../../../../dave/state/broker-holiday')].filter(Boolean);
+export function readPeople() {
+  for (const d of PRIVATE_DIRS) { const f = path.join(d, 'people.csv'); if (fs.existsSync(f)) return parseCsv(fs.readFileSync(f, 'utf8')); }
+  return [];
+}
+export function readTracker(file = TRACKER) {
+  const rows = parseCsv(fs.readFileSync(file, 'utf8'));
+  if (file !== TRACKER) return rows;
+  const people = new Map(readPeople().map((p) => [colloquial(p.firm), p]));
+  for (const r of rows) { const p = people.get(colloquial(r.firm)); if (p) for (const k of ['principal_first', 'principal_name', 'principal_title', 'principal_email']) if (!r[k] && p[k]) r[k] = p[k]; }
+  return rows;
+}
 
 /* ── CLI ──────────────────────────────────────────────────────────────── */
 
@@ -210,18 +239,23 @@ function batch(today) {
     const base = { firm: colloquial(row.firm), step, row, drafts: [], blocked: [] };
     const tryDraft = (channel) => {
       if (row.verified_date === '') { base.blocked.push(`${channel}: firm is not verified on its own homepage`); return; }
+      if (channel.startsWith('email') && !row.principal_email) { base.blocked.push(`${channel}: no principal address published on the firm site; email never goes to a role inbox`); return; }
       try {
         const d = buildDraft({ channel, firm: row.firm, first: row.principal_first, clientType: row.client_type });
         const checks = lintDraft({ channel, firm: row.firm, first: row.principal_first, body: d.body });
         const fails = checks.filter((c) => !c.ok);
         if (fails.length) base.blocked.push(`${channel}: failed ${fails.map((x) => x.rule).join('; ')}`);
-        else base.drafts.push({ channel, ...d, checks: checks.length, to: channel === 'form' ? row.form_url : channel.startsWith('email') ? (row.principal_email || row.firm_email) : '' });
+        else base.drafts.push({ channel, ...d, checks: checks.length, to: channel === 'form' ? row.form_url : channel.startsWith('email') ? row.principal_email : '' });
       } catch (e) { base.blocked.push(`${channel}: ${e.message}`); }
     };
     if (step.action === 'day1') tryDraft(step.what);
     else if (step.action === 'touch2' && step.what.startsWith('email3')) {
       if (row.principal_email) tryDraft('email3'); else base.blocked.push('email3: no principal email published on the firm site, never guess one');
-    } else if (step.action === 'touch2') base.blocked.push('thread follow up: no approved text yet, see CRITIQUE.md proposal P2');
+    } else if (step.action === 'touch2') {
+      // Day 1 was an email to a role inbox. Will, Nov 9: no second email to info@ or sales@.
+      // Touch 2 is the firm's own contact form, with the locked form note.
+      if (row.form_url) tryDraft('form'); else base.blocked.push('touch 2: no contact form on file, and no second email goes to a role inbox');
+    }
     else if (step.action === 'touch3') tryDraft('linkedin');
     else if (step.action === 'touch4') { base.blocked.push('day 7 follow up email: no approved text yet, see CRITIQUE.md proposal P3'); tryDraft('instagram'); }
     items.push(base);
@@ -236,6 +270,26 @@ h1{font-size:24px;margin:0 0 4px}h2{font-size:18px;margin:32px 0 4px}.meta{color
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:12px 0}.card p{margin:0 0 14px;white-space:pre-line}.card p:last-child{margin:0}
 .tag{font-size:13px;font-weight:600;color:var(--ok)}.bad{color:var(--bad);font-size:14px}</style></head><body><main><h1>Broker batch, ${esc(today)}</h1><p class="meta">Built from the locked Nov 9 text. Nothing here has been sent.</p>`];
   if (!items.length) { md.push('Nothing is due today.'); html.push('<p>Nothing is due today.</p>'); }
+  // Batch approval (Will, Nov 9 2026): he approves ONE locked text per channel plus the list of
+  // firms it goes to, not each draft. Show the text once with its three variable slots, then the
+  // list with each firm's values. The full per firm drafts follow, for pasting.
+  const byChannel = {};
+  for (const it of items) for (const d of it.drafts) (byChannel[d.channel] = byChannel[d.channel] || []).push({ it, d });
+  for (const [channel, list] of Object.entries(byChannel)) {
+    const usesIntro = channel === 'form' || channel.startsWith('email');
+    const tpl = buildDraft({ channel, firm: '[Firm]', first: '[First]', clientType: '[client type]', intro: 'A' });
+    if (usesIntro) tpl.body = tpl.body.replace(INTROS.A, '[Intro A, B or C]');
+    md.push(`## Approve: ${channel}, ${list.length} firm${list.length === 1 ? '' : 's'}`, tpl.subject ? `Subject: ${tpl.subject}` : '', '', '```', tpl.body, '```', '', ...(usesIntro ? Object.entries(INTROS).map(([k, t]) => `Intro ${k}: ${t}\n`) : []), '| Firm | Goes to | Intro | First | Client type | Check |', '|---|---|---|---|---|---|');
+    html.push(`<h2>Approve: ${esc(channel)}, ${list.length} firm${list.length === 1 ? '' : 's'}</h2><p class="meta">One text for every firm below. Only the bracketed words change.</p><div class="card">${tpl.subject ? `<p class="meta">Subject: ${esc(tpl.subject)}</p>` : ''}${tpl.body.split(/\n\s*\n/).map((p) => `<p>${esc(p)}</p>`).join('')}</div>${usesIntro ? `<div class="card">${Object.entries(INTROS).map(([k, t]) => `<p><strong>Intro ${k}.</strong> ${esc(t)}</p>`).join('')}</div>` : ''}<div class="card">`);
+    for (const { it, d } of list) {
+      const iv = usesIntro ? introFor(it.row.firm) : '';
+      const first = channel === 'form' || channel === 'instagram' ? '' : (it.row.principal_first || '');
+      md.push(`| ${it.firm} | ${d.to || ''} | ${iv} | ${first} | ${it.row.client_type || ''} | ${d.checks} of ${d.checks} |`);
+      html.push(`<p><strong>${esc(it.firm)}</strong>${iv ? ` · intro ${iv}` : ''} · ${esc(it.row.client_type || first)} · <span class="tag">check ${d.checks} of ${d.checks}</span><br><span class="meta">${esc(d.to || '')}</span></p>`);
+    }
+    md.push(''); html.push('</div>');
+  }
+  if (items.length) { md.push('# Per firm, for pasting', ''); html.push('<h1 style="margin-top:48px">Per firm, for pasting</h1>'); }
   for (const it of items) {
     md.push(`## ${it.firm}`, `${it.step.action}, due ${it.step.due}: ${it.step.what}`, '');
     html.push(`<h2>${esc(it.firm)}</h2><p class="meta">${esc(it.step.action)}, due ${esc(it.step.due)}: ${esc(it.step.what)}</p>`);
@@ -265,6 +319,19 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     const sent = rows.filter((r) => r.touches);
     const replies = rows.filter((r) => r.status === 'replied').length;
     console.log(`\nContacted ${sent.length} · replies ${replies} · queue ${rows.length - sent.length}`);
+  } else if (cmd === 'score') {
+    // The brain's numbers. Counted, never estimated. A reply is credited to the last touch before it.
+    const rows = readTracker(); const ch = {};
+    const bump = (k, f) => { ch[k] = ch[k] || { touches: 0, firms: new Set(), replies: 0 }; f(ch[k]); };
+    const isRole = (r) => !r.principal_email && /^(info|sales|benefits|contact|hello|admin|office)@/i.test(r.firm_email || '');
+    for (const r of rows) {
+      const ts = String(r.touches || '').split(';').map((t) => t.trim()).filter(Boolean).map((t) => t.slice(11));
+      ts.forEach((c) => { const k = c.startsWith('email') && isRole(r) ? `${c} (role inbox)` : c; bump(k, (x) => { x.touches += 1; x.firms.add(r.firm); }); });
+      if (r.status === 'replied' && ts.length) { const c = ts[ts.length - 1]; bump(c.startsWith('email') && isRole(r) ? `${c} (role inbox)` : c, (x) => { x.replies += 1; }); }
+    }
+    const closed = rows.filter((r) => ['closed', 'replied', 'bounced', 'suppressed'].includes(r.status)).length;
+    console.log(`Scoreboard ${today}: ${rows.length} firms, ${rows.filter((r) => r.touches).length} contacted, ${rows.filter((r) => r.status === 'replied').length} replied, ${closed} cadences finished, ${rows.filter((r) => !r.verified_date).length} unverified`);
+    for (const [k, v] of Object.entries(ch)) console.log(`  ${k.padEnd(24)} touches ${String(v.touches).padStart(3)} · firms ${String(v.firms.size).padStart(3)} · replies ${v.replies}`);
   } else if (cmd === 'draft') {
     const d = buildDraft({ channel: flag('channel'), firm: flag('firm'), first: flag('first'), clientType: flag('client') });
     console.log(d.subject ? `Subject: ${d.subject}\n\n${d.body}` : d.body);
@@ -276,5 +343,5 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     console.log(`\n${res.length - fails} of ${res.length} passed`);
     process.exit(fails ? 1 : 0);
   } else if (cmd === 'batch') batch(today);
-  else { console.error('usage: broker.mjs due|draft|lint|batch'); process.exit(1); }
+  else { console.error('usage: broker.mjs due|draft|lint|batch|score'); process.exit(1); }
 }
