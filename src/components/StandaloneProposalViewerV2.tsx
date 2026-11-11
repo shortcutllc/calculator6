@@ -14,6 +14,7 @@ import {
   recalculateServiceTotals,
 } from '../utils/proposalGenerator';
 import ProposalSurveyForm from './ProposalSurveyForm';
+import { getSurveyEventSlots } from '../../netlify/functions/lib/survey-start-times.js';
 import ServiceCard from './proposal/ServiceCard';
 import ServiceCardRefresh from './proposal/ServiceCardRefresh';
 import {
@@ -1521,6 +1522,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                   locations={Object.keys(displayData?.services || {})}
                   officeLocation={displayData?.officeLocation}
                   officeLocations={displayData?.officeLocations}
+                  eventSlots={getSurveyEventSlots(displayData)}
                   onSuccess={() => setHasSurveyResponse(true)}
                 />
               </div>
@@ -3956,6 +3958,7 @@ const StandaloneProposalViewerV2: React.FC = () => {
                 locations={Object.keys(displayData?.services || {})}
                 officeLocation={displayData?.officeLocation}
                 officeLocations={displayData?.officeLocations}
+                eventSlots={getSurveyEventSlots(displayData)}
                 onSuccess={() => setHasSurveyResponse(true)}
               />
             </div>

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { clientIncluded } from './lib/client-picks.js';
+import { readStartTimes, describeStartTimes } from './lib/survey-start-times.js';
 
 const SERVICE_LABELS = {
   massage: 'Massage', facial: 'Facials', nails: 'Nails', hair: 'Hair', 'beard-trim': 'Beard trims', makeup: 'Makeup',
@@ -32,7 +33,7 @@ export default async (req) => {
   }
 
   try {
-    const { eventType, proposalId, clientName, clientEmail, proposalType, totalCost, eventDates, locations, surveyResults, invoiceUrl, invoiceAmount } = JSON.parse(await req.text());
+    const { eventType, proposalId, clientName, clientEmail, proposalType, totalCost, eventDates, locations, surveyResults, eventSlots, invoiceUrl, invoiceAmount } = JSON.parse(await req.text());
 
     if (!eventType) {
       throw new Error('eventType is required');
@@ -213,6 +214,15 @@ export default async (req) => {
         } catch {
           officeAddressDisplay = surveyResults.office_address;
         }
+      }
+
+      // Start time per event. eventSlots (from the survey) add the end time.
+      const startLines = describeStartTimes(readStartTimes(surveyResults.responses), Array.isArray(eventSlots) ? eventSlots : []);
+      if (startLines.length) {
+        surveyFields.push({
+          type: 'mrkdwn',
+          text: `*Start time:*\n${startLines.map((l) => (l.label ? `*${l.label}:* ${l.text}` : l.text)).join('\n').slice(0, 1900)}`
+        });
       }
 
       // Add survey fields

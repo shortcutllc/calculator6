@@ -21,6 +21,7 @@ import ChangeConfirmationModal from './ChangeConfirmationModal';
 import { trackProposalChanges, createChangeSet, getChangeDisplayInfo } from '../utils/changeTracker';
 import { ProposalChangeSet, ProposalChange } from '../types/proposal';
 import ProposalSurveyForm from './ProposalSurveyForm';
+import { getSurveyEventSlots } from '../../netlify/functions/lib/survey-start-times.js';
 import { ChangeSourceBadge } from './ChangeSourceBadge';
 import {
   WhyShortcutSection,
@@ -2622,6 +2623,7 @@ export const StandaloneProposalViewer: React.FC = () => {
                 locations={displayData?.locations || []}
                 officeLocation={displayData?.officeLocation}
                 officeLocations={displayData?.officeLocations}
+                eventSlots={getSurveyEventSlots(displayData)}
                 onSuccess={() => {
                   setHasSurveyResponse(true);
                   setShowSurveyCTA(false);

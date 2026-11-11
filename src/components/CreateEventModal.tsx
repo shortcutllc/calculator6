@@ -4,6 +4,7 @@ import { Proposal, Service } from '../types/proposal';
 import { Button } from './Button';
 import { createCoordinatorEvents } from '../services/generateProposalApi';
 import { effectiveService, clientIncluded } from '../../netlify/functions/lib/client-picks.js';
+import { START_TIMES_KEY, addHours, formatClock, isClock } from '../../netlify/functions/lib/survey-start-times.js';
 
 // --- Types ---
 
@@ -52,6 +53,8 @@ interface EventFormData {
   // Timing
   startTime: string; // HH:MM
   endTime: string;   // HH:MM
+  /** The start time the client asked for in the survey, when they gave one. */
+  surveyStartTime?: string;
   eventDate: string;  // YYYY-MM-DD or display string
   lengthPerService: number;
   signupsPerTimeslot: number;
@@ -302,7 +305,10 @@ function parseProposalDate(dateStr: string): string {
 }
 
 function formatDisplayDate(dateStr: string): string {
-  const d = new Date(dateStr);
+  // "2027-06-10" read by new Date() is UTC midnight, which shows as Jun 9
+  // anywhere west of UTC. Build date-only values in the local zone.
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  const d = iso ? new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3])) : new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }
@@ -380,6 +386,10 @@ function buildInitialEvents(proposal: Proposal, surveyResponse?: any): EventForm
       });
 
       const maxHours = Math.max(...services.map(s => s.totalHours || 4));
+      // The client's start time from the survey, else 9 AM. The end time adds
+      // the event's hours as minutes, so 6.9 or 4.5 hours still makes a valid time.
+      const surveyStart = surveyResponse?.responses?.[START_TIMES_KEY]?.[`${location}|${dateStr}`];
+      const startTime = isClock(surveyStart) ? surveyStart : '09:00';
       const totalPros = services.reduce((sum, s) => sum + (s.numPros || 1), 0);
       const avgRate = Math.round(
         services.reduce((sum, s) => sum + (s.proHourly || 50), 0) / services.length
@@ -410,8 +420,9 @@ function buildInitialEvents(proposal: Proposal, surveyResponse?: any): EventForm
         contactName: clientName,
         contactEmail: clientEmail,
         contactPhone: contactPhone,
-        startTime: '09:00',
-        endTime: `${String(9 + maxHours).padStart(2, '0')}:00`,
+        startTime,
+        endTime: addHours(startTime, maxHours),
+        surveyStartTime: isClock(surveyStart) ? surveyStart : undefined,
         eventDate: parseProposalDate(dateStr),
         lengthPerService: avgAppTime,
         signupsPerTimeslot: 1,
@@ -782,6 +793,9 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                         onChange={(e) => updateEvent(eventIndex, { startTime: e.target.value })}
                         className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal"
                       />
+                      {evt.surveyStartTime && (
+                        <p className="text-xs text-text-dark-60 mt-1">Client asked for {formatClock(evt.surveyStartTime)}</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-shortcut-blue mb-1">End Time</label>

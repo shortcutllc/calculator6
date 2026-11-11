@@ -8,6 +8,7 @@ import { ChangeSourceBadge } from './ChangeSourceBadge';
 import CreateEventModal from './CreateEventModal';
 import CoiSampleLinks from './CoiSampleLinks';
 import { buildQuestionPromptMap } from '../utils/serviceSurveyQuestions';
+import { START_TIMES_KEY, readStartTimes, describeStartTimes, getSurveyEventSlots } from '../../netlify/functions/lib/survey-start-times.js';
 
 const surveyQuestionPrompts = buildQuestionPromptMap();
 
@@ -304,6 +305,22 @@ const ChangeReviewModal: React.FC<ChangeReviewModalProps> = ({
                   </div>
                 )}
                 
+                {(() => {
+                  const lines = describeStartTimes(readStartTimes(surveyResponse.responses), getSurveyEventSlots(proposalData.data));
+                  if (!lines.length) return null;
+                  return (
+                    <div className="bg-white rounded p-3">
+                      <p className="text-sm font-bold text-shortcut-blue mb-1">Start time</p>
+                      {lines.map((line) => (
+                        <p key={line.label || 'one'} className="text-sm text-text-dark">
+                          {line.label && <strong>{line.label}: </strong>}
+                          {line.text}
+                        </p>
+                      ))}
+                    </div>
+                  );
+                })()}
+
                 {surveyResponse.office_address && (
                   <div className="bg-white rounded p-3">
                     <p className="text-sm font-bold text-shortcut-blue mb-1">3. Office Address</p>
@@ -353,7 +370,7 @@ const ChangeReviewModal: React.FC<ChangeReviewModalProps> = ({
 
                 {/* Per-service answers (hair / nails / headshot / facial) from the
                     responses JSONB. Absent on rows saved before the migration. */}
-                {surveyResponse.responses && Object.entries(surveyResponse.responses).map(([serviceType, answers]: [string, any]) => (
+                {surveyResponse.responses && Object.entries(surveyResponse.responses).filter(([key]) => key !== START_TIMES_KEY).map(([serviceType, answers]: [string, any]) => (
                   <div key={serviceType} className="bg-white rounded p-3">
                     <p className="text-sm font-bold text-shortcut-blue mb-2 capitalize">{serviceType}</p>
                     <div className="space-y-2">

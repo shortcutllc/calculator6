@@ -4,6 +4,14 @@ import { supabase } from '../lib/supabaseClient';
 import { Button } from './Button';
 import CoiSampleUpload from './CoiSampleUpload';
 import EntryParkingField, { isNycAddress } from './EntryParkingField';
+import StartTimeField from './StartTimeField';
+import {
+  START_TIMES_KEY,
+  readStartTimes,
+  describeStartTimes,
+  isClock,
+  type SurveyEventSlot,
+} from '../../netlify/functions/lib/survey-start-times.js';
 import type { CoiSampleFile } from '../services/coiSampleService';
 import { format, parseISO } from 'date-fns';
 import type { SurveyAnswer, SurveyQuestion } from '../types/survey';
@@ -24,6 +32,10 @@ interface ProposalSurveyFormProps {
   locations?: string[];
   officeLocation?: string; // Single office location from proposal (legacy)
   officeLocations?: { [location: string]: string }; // Multiple office locations from proposal
+  /** One per event (location and date) the client kept, from
+   *  getSurveyEventSlots(proposal data). Drives the start time question;
+   *  without slots it is not asked. */
+  eventSlots?: SurveyEventSlot[];
   onSuccess?: () => void;
 }
 
@@ -139,6 +151,7 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
   locations = [],
   officeLocation,
   officeLocations,
+  eventSlots = [],
   onSuccess
 }) => {
   // Per-service question blocks present in this proposal (hair, headshot, …).
@@ -207,6 +220,11 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
   const [entryParking, setEntryParking] = useState<Record<string, string>>({});
   const entryKey = (location?: string) => location || locations[0] || 'Office';
   const setEntry = (key: string, value: string) => setEntryParking((prev) => ({ ...prev, [key]: value }));
+  // Start time per event, keyed `${location}|${date}` (saved inside the
+  // responses column under START_TIMES_KEY). perDay: the client set each day
+  // on its own instead of one time for every day.
+  const [startTimes, setStartTimes] = useState<Record<string, string>>({});
+  const [startPerDay, setStartPerDay] = useState(false);
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
   const [showReadOnlyView, setShowReadOnlyView] = useState(false);
 
@@ -390,9 +408,15 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
           if (Array.isArray(savedCoi)) setCoiFiles(savedCoi);
           const savedEntry = (data as any).entry_and_parking;
           if (savedEntry && typeof savedEntry === 'object') setEntryParking(savedEntry);
-          // Per-service answers (hair / headshot / nails / facial …)
-          if (data.responses && typeof data.responses === 'object') {
-            setResponses(data.responses as ServiceResponses);
+          // Per-service answers (hair / headshot / nails / facial …). The start
+          // times ride in the same column under their own key.
+          const savedResponses = (data as any).responses;
+          if (savedResponses && typeof savedResponses === 'object') {
+            const { [START_TIMES_KEY]: _savedStarts, ...perService } = savedResponses as Record<string, any>;
+            setResponses(perService as ServiceResponses);
+            const saved = readStartTimes(savedResponses);
+            setStartTimes(saved);
+            setStartPerDay(new Set(Object.values(saved)).size > 1);
           }
           setSuccess(true);
           setShowReadOnlyView(true); // Show read-only view if response exists
@@ -464,8 +488,15 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
           );
           return Object.keys(filled).length ? filled : null;
         })(),
-        // Per-service answers (hair / headshot / nails / facial …)
-        responses,
+        // Per-service answers (hair / headshot / nails / facial …), plus the
+        // start time for each event the client still has.
+        responses: (() => {
+          const keys = eventSlots.length ? eventSlots.map((s) => s.key) : Object.keys(startTimes);
+          const chosen = Object.fromEntries(
+            keys.filter((k) => isClock(startTimes[k])).map((k) => [k, startTimes[k]])
+          );
+          return Object.keys(chosen).length ? { ...responses, [START_TIMES_KEY]: chosen } : responses;
+        })(),
       };
 
       const writeSurvey = (payload: any) =>
@@ -555,7 +586,8 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
               totalCost: displayData?.summary?.totalEventCost || displayData?.mindfulnessProgram?.pricing?.totalCost || 0,
               eventDates: displayData?.eventDates || [],
               locations: displayData?.locations || [],
-              surveyResults: updatedData || surveyData // Include full survey results
+              surveyResults: updatedData || surveyData, // Include full survey results
+              eventSlots, // so the alert can give each start time's end time
             })
           });
         }
@@ -698,6 +730,22 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
                 </div>
               );
             })}
+
+            {(() => {
+              const lines = describeStartTimes(readStartTimes(existingResponse.responses), eventSlots);
+              if (!lines.length) return null;
+              return (
+                <div className="bg-white rounded p-4">
+                  <p className="text-sm font-semibold text-gray-900 mb-1">Start Time</p>
+                  {lines.map((line) => (
+                    <p key={line.label || 'one'} className="text-gray-700">
+                      {line.label && <span className="font-semibold">{line.label}: </span>}
+                      {line.text}
+                    </p>
+                  ))}
+                </div>
+              );
+            })()}
 
             {/* Office Address(es) - Show multiple if available or if multiple locations exist */}
             {(() => {
@@ -962,6 +1010,17 @@ const ProposalSurveyForm: React.FC<ProposalSurveyFormProps> = ({
 
         {/* Shared event logistics (asked once for the whole event) */}
         <h3 className="text-base font-bold text-shortcut-navy-blue pt-2">Event logistics</h3>
+
+        <StartTimeField
+          slots={eventSlots}
+          value={startTimes}
+          onChange={(next) => {
+            setStartTimes(next);
+            setError(null);
+          }}
+          perDay={startPerDay}
+          onPerDayChange={setStartPerDay}
+        />
 
         {/* Office Address(es) */}
         {locations.length > 1 ? (

@@ -8,6 +8,7 @@ import { Button } from './Button';
 import { getProposalUrl } from '../utils/url';
 import { supabase } from '../lib/supabaseClient';
 import { buildQuestionPromptMap } from '../utils/serviceSurveyQuestions';
+import { START_TIMES_KEY, readStartTimes, describeStartTimes, getSurveyEventSlots } from '../../netlify/functions/lib/survey-start-times.js';
 import CoiSampleLinks from './CoiSampleLinks';
 
 // Read-only modal that surfaces a completed pre-event survey (fixed columns +
@@ -17,12 +18,15 @@ import CoiSampleLinks from './CoiSampleLinks';
 const SurveyDetailModal: React.FC<{
   response: any;
   clientName: string;
+  /** The proposal's data, so start times show their end time too. */
+  proposalData?: any;
   onClose: () => void;
-}> = ({ response, clientName, onClose }) => {
+}> = ({ response, clientName, proposalData, onClose }) => {
   if (!response) return null;
 
   const promptMap = buildQuestionPromptMap();
-  const perService: Record<string, Record<string, any>> = response.responses || {};
+  const { [START_TIMES_KEY]: _startTimes, ...perService }: Record<string, Record<string, any>> = response.responses || {};
+  const startLines = describeStartTimes(readStartTimes(response.responses), getSurveyEventSlots(proposalData));
 
   const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
     <div>
@@ -55,6 +59,9 @@ const SurveyDetailModal: React.FC<{
             <Row label="Table or Chair" value={response.table_or_chair_preference} />
           )}
           {response.preferred_gender && <Row label="Preferred Gender" value={response.preferred_gender} />}
+          {startLines.map((line) => (
+            <Row key={line.label || 'one'} label={line.label ? `Start time (${line.label})` : 'Start time'} value={line.text} />
+          ))}
           {response.office_address && <Row label="Office Address" value={response.office_address} />}
           {response.entry_and_parking &&
             Object.entries(response.entry_and_parking as Record<string, string>)
@@ -205,7 +212,7 @@ const History: React.FC = () => {
   const [deleteError, setDeleteError] = useState<{ id: string; message: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [surveyResponses, setSurveyResponses] = useState<Record<string, any>>({});
-  const [surveyModal, setSurveyModal] = useState<{ response: any; clientName: string } | null>(null);
+  const [surveyModal, setSurveyModal] = useState<{ response: any; clientName: string; proposalData?: any } | null>(null);
   const [proposalGroupCounts, setProposalGroupCounts] = useState<Record<string, number>>({});
   const [showTestProposals, setShowTestProposals] = useState(false);
   const [invoiceStatuses, setInvoiceStatuses] = useState<Record<string, string>>({});
@@ -968,6 +975,7 @@ const History: React.FC = () => {
                           onClick={() => setSurveyModal({
                             response: surveyResponses[proposal.id],
                             clientName: proposal.data.clientName,
+                            proposalData: proposal.data,
                           })}
                           variant="secondary"
                           size="sm"
@@ -1010,6 +1018,7 @@ const History: React.FC = () => {
         <SurveyDetailModal
           response={surveyModal.response}
           clientName={surveyModal.clientName}
+          proposalData={surveyModal.proposalData}
           onClose={() => setSurveyModal(null)}
         />
       )}
