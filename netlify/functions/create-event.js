@@ -12,6 +12,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { eventInstants, fallbackTimezone, wallClockToDate } from './lib/event-time.js';
 
 // --- Parse Auth (session-level cache) ---
 
@@ -52,13 +53,11 @@ async function getSessionToken() {
   return parseLogin();
 }
 
-async function callAddEvent(payload) {
+/** POST a Parse cloud function as the admin, re-logging in once if the session expired. */
+async function callParseFunction(name, payload) {
   const { PARSE_SERVER_URL, PARSE_APP_ID } = process.env;
-  const token = await getSessionToken();
 
-  console.log('addEvent payload:', JSON.stringify(payload, null, 2));
-
-  const res = await fetch(`${PARSE_SERVER_URL}/functions/addEvent`, {
+  const post = (token) => fetch(`${PARSE_SERVER_URL}/functions/${name}`, {
     method: 'POST',
     headers: {
       'X-Parse-Application-Id': PARSE_APP_ID,
@@ -68,81 +67,57 @@ async function callAddEvent(payload) {
     body: JSON.stringify(payload),
   });
 
-  const responseText = await res.text();
-  console.log('addEvent response status:', res.status, 'body:', responseText);
-
+  let res = await post(await getSessionToken());
+  let responseText = await res.text();
   let responseBody;
   try { responseBody = JSON.parse(responseText); } catch { responseBody = { error: responseText }; }
 
   // Handle expired session — re-auth and retry once
-  if (res.status === 209 || res.status === 401) {
-    const isSessionError = responseBody.code === 209 || responseBody.error?.toLowerCase().includes('invalid session');
-    if (isSessionError) {
-      console.warn('Parse session expired, re-authenticating...');
-      cachedSessionToken = null;
-      const newToken = await parseLogin();
-
-      const retryRes = await fetch(`${PARSE_SERVER_URL}/functions/addEvent`, {
-        method: 'POST',
-        headers: {
-          'X-Parse-Application-Id': PARSE_APP_ID,
-          'X-Parse-Session-Token': newToken,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!retryRes.ok) {
-        const retryErr = await retryRes.json().catch(() => ({}));
-        throw { statusCode: 502, message: `Parse addEvent failed after re-auth: ${retryErr.error || retryRes.statusText}`, code: 'PARSE_ADD_EVENT_FAILED' };
-      }
-
-      return retryRes.json();
-    }
+  const isSessionError = (res.status === 209 || res.status === 401 || res.status === 400) &&
+    (responseBody.code === 209 || String(responseBody.error || '').toLowerCase().includes('invalid session'));
+  if (isSessionError) {
+    console.warn('Parse session expired, re-authenticating...');
+    cachedSessionToken = null;
+    res = await post(await parseLogin());
+    responseText = await res.text();
+    try { responseBody = JSON.parse(responseText); } catch { responseBody = { error: responseText }; }
   }
 
   if (!res.ok) {
-    throw { statusCode: 502, message: `Parse addEvent failed: ${responseBody.error || res.statusText}`, code: 'PARSE_ADD_EVENT_FAILED' };
+    throw { statusCode: 502, message: `Parse ${name} failed: ${responseBody.error || res.statusText}`, code: 'PARSE_FUNCTION_FAILED' };
   }
-
   return responseBody;
 }
 
-// --- Timezone helpers ---
-
-const PACIFIC_STATES = ['CA', 'WA', 'OR', 'NV'];
-const MOUNTAIN_STATES = ['CO', 'AZ', 'UT', 'MT', 'WY', 'NM', 'ID'];
-const CENTRAL_STATES = ['IL', 'TX', 'MN', 'WI', 'IA', 'MO', 'AR', 'LA', 'MS', 'AL', 'TN', 'KY', 'IN', 'KS', 'NE', 'SD', 'ND', 'OK'];
-
-function isDST(date) {
-  // Check if a date falls in US daylight saving time
-  const d = date instanceof Date ? date : new Date();
-  const jan = new Date(d.getFullYear(), 0, 1).getTimezoneOffset();
-  const jul = new Date(d.getFullYear(), 6, 1).getTimezoneOffset();
-  return d.getTimezoneOffset() < Math.max(jan, jul);
+async function callAddEvent(payload) {
+  console.log('addEvent payload:', JSON.stringify(payload, null, 2));
+  const body = await callParseFunction('addEvent', payload);
+  console.log('addEvent response:', JSON.stringify(body));
+  return body;
 }
 
-function getTimezoneOffset(state, eventDate) {
-  // Coordinator expects positive minutes from UTC
-  // DST-aware: EDT=240, CDT=300, MDT=360, PDT=420
-  // Standard:  EST=300, CST=360, MST=420, PST=480
-  const dst = isDST(eventDate ? new Date(eventDate) : new Date());
-  if (!state) return dst ? 240 : 300;
-  const s = state.toUpperCase().trim();
-  if (PACIFIC_STATES.includes(s)) return dst ? 420 : 480;
-  if (MOUNTAIN_STATES.includes(s)) return dst ? 360 : 420;
-  if (CENTRAL_STATES.includes(s)) return dst ? 300 : 360;
-  return dst ? 240 : 300; // Eastern default
-}
+// --- Timezone ---
 
-function getTimezoneAbbreviation(state, eventDate) {
-  const dst = isDST(eventDate ? new Date(eventDate) : new Date());
-  if (!state) return dst ? 'EDT' : 'EST';
-  const s = state.toUpperCase().trim();
-  if (PACIFIC_STATES.includes(s)) return dst ? 'PDT' : 'PST';
-  if (MOUNTAIN_STATES.includes(s)) return dst ? 'MDT' : 'MST';
-  if (CENTRAL_STATES.includes(s)) return dst ? 'CDT' : 'CST';
-  return dst ? 'EDT' : 'EST';
+/**
+ * The office's offset and abbreviation on the event's day, the way the
+ * coordinator's Add Event form gets them: Parse's timezoneInfoForAddress, which
+ * geocodes the address. Falls back to the state's zone (lib/event-time.js).
+ */
+async function resolveTimezone(eventForm) {
+  try {
+    const { result } = await callParseFunction('timezoneInfoForAddress', {
+      address: eventForm.address,
+      apptDate: { __type: 'Date', iso: wallClockToDate(eventForm.eventDate, eventForm.startTime, 0).toISOString() },
+    });
+    if (result && Number.isFinite(result.timezoneOffset) && result.abbreviation) {
+      return { timezoneOffset: result.timezoneOffset, timezoneAbbreviation: result.abbreviation };
+    }
+    console.warn('timezoneInfoForAddress returned no offset, using the state fallback:', result);
+  } catch (err) {
+    console.warn('timezoneInfoForAddress failed, using the state fallback:', err.message || err);
+  }
+  const fb = fallbackTimezone(eventForm.address?.state, eventForm.eventDate, eventForm.startTime);
+  return { timezoneOffset: fb.timezoneOffset, timezoneAbbreviation: fb.abbreviation };
 }
 
 // --- CORS ---
@@ -189,10 +164,15 @@ async function validateAuth(req) {
 
 // --- Transform modal form data to coordinator event payload ---
 
-function transformToCoordinatorPayload(eventForm) {
-  // Build ISO date-times from date + time strings
-  const startDateTime = new Date(`${eventForm.eventDate}T${eventForm.startTime}:00`);
-  const endDateTime = new Date(`${eventForm.eventDate}T${eventForm.endTime}:00`);
+// Optional text: trimmed, or undefined so the coordinator keeps its automatic text.
+const optionalText = (v) => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
+
+function transformToCoordinatorPayload(eventForm, tz) {
+  // The times are the office's wall clock; turn them into real instants with
+  // the office's offset on that day (see lib/event-time.js for the old bug).
+  const { start, end } = eventInstants(eventForm.eventDate, eventForm.startTime, eventForm.endTime, tz.timezoneOffset);
+  const groupClass = eventForm.groupClass === true;
+  const taxRate = parseFloat(eventForm.taxRate);
 
   return {
     // Basic info
@@ -200,7 +180,24 @@ function transformToCoordinatorPayload(eventForm) {
     category: eventForm.category,
     description: eventForm.description || `Event for ${eventForm.name}`,
     mobileEventCode: eventForm.eventCode,
-    locationDescription: eventForm.locationName,
+    // The room on site; blank (or an older modal build without the field) falls
+    // back to the proposal's location label, as before.
+    locationDescription: (eventForm.locationDescription || '').trim() || eventForm.locationName,
+
+    // Page copy, like the coordinator's Add Event form. Blank keeps the
+    // automatic text; the list-page title and intro apply to every event with
+    // this code (addEvent only copies them across when they are not blank).
+    signupTitle: optionalText(eventForm.signupTitle),
+    signupHeadline: optionalText(eventForm.signupHeadline),
+    seriesIntro: optionalText(eventForm.seriesIntro),
+    applyToSeries: true,
+    attendeeInstructions: optionalText(eventForm.attendeeInstructions),
+    confirmationSubject: optionalText(eventForm.confirmationSubject),
+
+    // Who books and how
+    enableGuests: eventForm.enableGuests === true,
+    maxGuests: eventForm.enableGuests === true ? (parseInt(eventForm.maxGuests, 10) || 0) : 0,
+    optionalContact: eventForm.optionalContact === true,
 
     // Address
     address: {
@@ -223,6 +220,7 @@ function transformToCoordinatorPayload(eventForm) {
     payment: eventForm.payment,
     barberHourlyRate: eventForm.hourlyRate,
     numBarbersRequired: eventForm.numPros,
+    taxRate: Number.isFinite(taxRate) ? taxRate : undefined,
 
     // Services — use the coordinator service IDs selected by the admin
     serviceOfferings: eventForm.services
@@ -233,14 +231,14 @@ function transformToCoordinatorPayload(eventForm) {
       })),
 
     // Timing — Parse Cloud Functions expect Date objects in {__type, iso} format
-    startTime: { __type: 'Date', iso: startDateTime.toISOString() },
-    endTime: { __type: 'Date', iso: endDateTime.toISOString() },
+    startTime: { __type: 'Date', iso: start.toISOString() },
+    endTime: { __type: 'Date', iso: end.toISOString() },
     lengthPerService: eventForm.lengthPerService,
-    signupsPerTimeslot: eventForm.signupsPerTimeslot || 1,
+    // Group class: several people book each time (a sound bath, a yoga class).
+    signupsPerTimeslot: groupClass ? Math.min(500, Math.max(2, parseInt(eventForm.signupsPerTimeslot, 10) || 2)) : 1,
 
-    // Timezone — derive from address state, DST-aware
-    timezoneOffset: eventForm.timezoneOffset || getTimezoneOffset(eventForm.address?.state, eventForm.eventDate),
-    timezoneAbbreviation: eventForm.timezoneAbbreviation || getTimezoneAbbreviation(eventForm.address?.state, eventForm.eventDate),
+    timezoneOffset: tz.timezoneOffset,
+    timezoneAbbreviation: tz.timezoneAbbreviation,
 
     // Settings
     isSecret: eventForm.isSecret || false,
@@ -301,9 +299,8 @@ async function handleCreateEvents(req, user, supabase) {
   for (const eventForm of eventForms) {
     if (!eventForm.included) continue;
 
-    const payload = transformToCoordinatorPayload(eventForm);
-
     try {
+      const payload = transformToCoordinatorPayload(eventForm, await resolveTimezone(eventForm));
       const parseResult = await callAddEvent(payload);
       // Parse returns { result: "eventId" } — result is the ID string directly
       const eventId = typeof parseResult?.result === 'string'

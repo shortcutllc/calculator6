@@ -43,9 +43,22 @@ interface EventFormData {
   eventCode: string;
   category: string;
   description: string;
+  /** The proposal's location label ("SoHo, NY"): the card header and the proposal record. */
   locationName: string;
+  /** The room on site ("Banting conference room"), shown to attendees and Pros. */
+  locationDescription: string;
+  // Page copy (coordinator Add Event "Page copy"); blank keeps the automatic text
+  signupTitle: string;
+  signupHeadline: string;
+  seriesIntro: string;
+  attendeeInstructions: string;
+  confirmationSubject: string;
   // Address
   address: EventFormAddress;
+  /** Set when the survey's address differs from the proposal's (the survey wins). */
+  addressNote?: string;
+  /** Which fields were filled from the post-approval survey, for the "From the survey" hints. */
+  fromSurvey: Partial<Record<'address' | 'locationDescription' | 'contact' | 'staffNotes' | 'adminNotes', boolean>>;
   // Contact
   contactName: string;
   contactEmail: string;
@@ -57,7 +70,12 @@ interface EventFormData {
   surveyStartTime?: string;
   eventDate: string;  // YYYY-MM-DD or display string
   lengthPerService: number;
+  /** Group class: several people book each time; signupsPerTimeslot is how many. */
+  groupClass: boolean;
   signupsPerTimeslot: number;
+  enableGuests: boolean;
+  maxGuests: number;
+  optionalContact: boolean;
   // Services
   services: EventFormService[];
   // Financial
@@ -174,11 +192,12 @@ const DEFAULT_SERVICE_MATCH: Record<string, string> = {
   'makeup': 'makeup_01',      // Makeup
 };
 
-function findBestServiceMatch(proposalServiceType: string): CoordinatorService | null {
+function findBestServiceMatch(proposalServiceType: string, massageFormat?: 'chair' | 'table' | ''): CoordinatorService | null {
   const type = proposalServiceType.toLowerCase();
 
-  // Try default match first
-  const defaultId = DEFAULT_SERVICE_MATCH[type];
+  // A plain "massage" line is chair or table by the proposal's massageType, else
+  // the survey's preference; chair when neither says.
+  const defaultId = type === 'massage' && massageFormat === 'table' ? 'm_04' : DEFAULT_SERVICE_MATCH[type];
   if (defaultId) {
     const match = COORDINATOR_SERVICES.find(s => s.id === defaultId);
     if (match) return match;
@@ -326,6 +345,135 @@ function generateEventCode(clientName: string, location: string): string {
   return suffix ? `${prefix}${suffix}` : prefix;
 }
 
+// --- Post-approval survey → event fields ---
+//
+// The survey (ProposalSurveyForm → proposal_survey_responses) is the client's
+// own word after approval, so it beats what the proposal was drafted with.
+
+/** "(415) 933 - 9437" / "+1 415.933.9437" → "(415) 933-9437"; anything else as typed. */
+function normalizePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  const ten = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits;
+  return ten.length === 10 ? `(${ten.slice(0, 3)}) ${ten.slice(3, 6)}-${ten.slice(6)}` : raw.trim();
+}
+
+const EMAIL_RE = /[^\s@,;:<>()]+@[^\s@,;:<>()]+\.[a-z]{2,}/i;
+const PHONE_RE = /(?:\+?1[\s.-]*)?\(?\d{3}\)?[\s.-]*\d{3}[\s.-]*\d{4}/;
+
+/**
+ * The survey's free-text "Point of contact (including phone number)", e.g.
+ * "Emma Sharp: (415) 933 - 9437 \nOffice Manager, People Operations".
+ * The email comes from the contact itself, else from the billing contact when
+ * it names the same person.
+ */
+function parsePointOfContact(poc?: string | null, billing?: string | null): { name: string; phone: string; email: string } {
+  const text = poc || '';
+  const phoneMatch = text.match(PHONE_RE);
+  const emailMatch = text.match(EMAIL_RE);
+  const firstLine = text.split(/\n/)[0]
+    .replace(EMAIL_RE, '')
+    .replace(PHONE_RE, '');
+  const name = (firstLine.split(/[:,(|]/)[0] || '').replace(/[\s.-]+$/, '').trim();
+  const usableName = /[a-z]/i.test(name) && name.length <= 40 ? name : '';
+  let email = emailMatch ? emailMatch[0] : '';
+  if (!email && usableName && billing) {
+    const first = usableName.split(/\s+/)[0].toLowerCase();
+    if (billing.toLowerCase().includes(first)) email = (billing.match(EMAIL_RE) || [''])[0];
+  }
+  return { name: usableName, phone: phoneMatch ? normalizePhone(phoneMatch[0]) : '', email };
+}
+
+/** The survey's address for a location: one string, or a JSON map by location. */
+function surveyAddressFor(surveyResponse: any, location: string): string {
+  const raw = surveyResponse?.office_address;
+  if (!raw || typeof raw !== 'string') return '';
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') return parsed[location] || '';
+  } catch { /* a plain address */ }
+  return raw;
+}
+
+/** Entry and parking for a location; a one-location survey may key it differently. */
+function surveyEntryFor(surveyResponse: any, location: string): string {
+  const map = surveyResponse?.entry_and_parking;
+  if (!map || typeof map !== 'object') return '';
+  const values = Object.values(map).filter((v) => typeof v === 'string' && v.trim()) as string[];
+  return (map[location] || (values.length === 1 ? values[0] : '') || '').trim();
+}
+
+/** Short labels for the per-service survey answers (serviceSurveyQuestions.ts ids). */
+const SURVEY_ANSWER_LABELS: Record<string, string> = {
+  hair_service_interest: 'Hair services the team wants',
+  headshot_retouching: 'Retouching',
+  headshot_background: 'Background',
+  nails_service: 'Nail services',
+  nails_polish: 'Color preferences',
+  facial_skin_type: 'Most common skin type',
+  facial_sensitivities: 'Allergies or sensitivities',
+};
+
+/** Per-service survey answers for the services in this event, one line each. */
+function surveyServiceLines(surveyResponse: any, serviceTypes: string[]): string[] {
+  const responses = surveyResponse?.responses;
+  if (!responses || typeof responses !== 'object') return [];
+  const wanted = new Set(serviceTypes.map((t) => t.toLowerCase()));
+  const lines: string[] = [];
+  for (const [serviceType, answers] of Object.entries(responses)) {
+    if (serviceType === START_TIMES_KEY || !wanted.has(serviceType.toLowerCase())) continue;
+    if (!answers || typeof answers !== 'object') continue;
+    for (const [id, answer] of Object.entries(answers as Record<string, unknown>)) {
+      const value = Array.isArray(answer) ? answer.join(', ') : String(answer ?? '').trim();
+      if (value) lines.push(`${SURVEY_ANSWER_LABELS[id] || id}: ${value}`);
+    }
+  }
+  return lines;
+}
+
+/** Collapse the survey's spacing: "Conference Room:  Banting" → "Conference Room: Banting". */
+function cleanSpaceName(raw?: string | null): string {
+  return (raw || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+}
+
+/** What a service is called in the default description, or '' to leave it out. */
+function serviceNoun(serviceType: string, massageFormat: string): string {
+  const t = serviceType.toLowerCase();
+  if (t === 'chair-massage' || (t === 'massage' && massageFormat === 'chair')) return 'chair massage';
+  if (t === 'table-massage' || (t === 'massage' && massageFormat === 'table')) return 'table massage';
+  if (t === 'massage') return 'massage';
+  if (t === 'hair' || t === 'beard-trim' || t === 'grooming' || t === 'blowout') return 'hair';
+  if (t === 'nails' || t === 'nails-hand-massage') return 'nail';
+  if (t === 'facial' || t === 'facials') return 'facial';
+  if (t === 'makeup') return 'makeup';
+  if (t === 'headshot' || t === 'headshots') return 'headshot';
+  if (t === 'mindfulness') return 'mindfulness';
+  return '';
+}
+
+/**
+ * The sign-up page description, in the coordinator's house lines ("Enjoy
+ * relaxing chair massage services from the Shortcut team") and fitting the
+ * 80-character box. It used to be the same massage sentence for every event,
+ * headshots and nails included, without a full stop.
+ */
+function defaultDescription(nouns: string[]): string {
+  const unique = Array.from(new Set(nouns.filter(Boolean)));
+  const fallback = 'Enjoy wellness services from the Shortcut team.';
+  if (!unique.length) return fallback;
+  if (unique.length === 1) {
+    const n = unique[0];
+    if (n.endsWith('massage')) return `Enjoy relaxing ${n} services from the Shortcut team.`;
+    if (n === 'headshot') return 'Enjoy professional headshots from the Shortcut team.';
+    if (n === 'mindfulness') return 'Enjoy a guided mindfulness session with the Shortcut team.';
+    return `The Shortcut team is here to help you look and feel great with ${n} services.`;
+  }
+  const list = unique.length === 2
+    ? unique.join(' and ')
+    : `${unique.slice(0, -1).join(', ')} and ${unique[unique.length - 1]}`;
+  const line = `Enjoy ${list} services from the Shortcut team.`;
+  return line.length <= 80 ? line : fallback;
+}
+
 // --- Build initial form data from proposal ---
 
 function buildInitialEvents(proposal: Proposal, surveyResponse?: any): EventFormData[] {
@@ -336,12 +484,23 @@ function buildInitialEvents(proposal: Proposal, surveyResponse?: any): EventForm
   const clientName = data.clientName || proposal.clientName || '';
   const clientEmail = data.clientEmail || proposal.clientEmail || '';
 
-  // Try to extract phone from survey point_of_contact
-  let contactPhone = '';
-  if (surveyResponse?.point_of_contact) {
-    const phoneMatch = surveyResponse.point_of_contact.match(/[\d\-\(\)\+\s]{7,}/);
-    if (phoneMatch) contactPhone = phoneMatch[0].trim();
+  // The on-site contact from the survey: name, phone, and an email if one goes with them.
+  const poc = parsePointOfContact(surveyResponse?.point_of_contact, surveyResponse?.billing_contact);
+  const surveyFormat = /table/i.test(surveyResponse?.table_or_chair_preference || '') && !/both/i.test(surveyResponse?.table_or_chair_preference || '')
+    ? 'table'
+    : /chair/i.test(surveyResponse?.table_or_chair_preference || '') ? 'chair' : '';
+  const spaceName = cleanSpaceName(surveyResponse?.massage_space_name);
+
+  // Admin-only notes from the survey: who to staff, COI, billing.
+  const adminLines: string[] = [];
+  const gender = (surveyResponse?.preferred_gender || '').trim();
+  if (gender && !/no preference/i.test(gender)) adminLines.push(`Therapist preference: ${gender}.`);
+  if (surveyResponse?.coi_required) {
+    adminLines.push(surveyResponse?.coi_sample_files?.length
+      ? 'COI required. The client uploaded a sample from their building (on the proposal page).'
+      : 'COI required.');
   }
+  if ((surveyResponse?.billing_contact || '').trim()) adminLines.push(`Billing contact: ${surveyResponse.billing_contact.trim()}`);
 
   for (const [location, dateMap] of Object.entries(data.services)) {
     for (const [dateStr, dateData] of Object.entries(dateMap as Record<string, any>)) {
@@ -352,27 +511,23 @@ function buildInitialEvents(proposal: Proposal, surveyResponse?: any): EventForm
         .map((svc) => effectiveService(svc));
       if (!services.length) continue;
 
-      // Get address for this location
-      let addressData: Partial<EventFormAddress> = {};
-      if (data.officeLocations?.[location]) {
-        addressData = parseAddressString(data.officeLocations[location]);
-      } else if (data.officeLocation) {
-        addressData = parseAddressString(data.officeLocation);
-      } else if (surveyResponse?.office_address) {
-        // Try parsing survey address (could be JSON for multi-location)
-        try {
-          const parsed = JSON.parse(surveyResponse.office_address);
-          if (parsed[location]) {
-            addressData = parseAddressString(parsed[location]);
-          }
-        } catch {
-          addressData = parseAddressString(surveyResponse.office_address);
-        }
-      }
+      // Address: the survey's (the client confirmed it after approving), else
+      // the proposal's. When both exist and differ, say so on the card: for
+      // Forus the proposal said 73 Spring St and the survey 105 Wooster St.
+      const proposalAddress = data.officeLocations?.[location] || data.officeLocation || '';
+      const surveyAddress = surveyAddressFor(surveyResponse, location);
+      const addressData: Partial<EventFormAddress> = parseAddressString(surveyAddress || proposalAddress);
+      const sameStreet = (a: string, b: string) =>
+        (parseAddressString(a).street || '').toLowerCase().replace(/[^a-z0-9]/g, '') ===
+        (parseAddressString(b).street || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const addressNote = surveyAddress && proposalAddress && !sameStreet(surveyAddress, proposalAddress)
+        ? `The survey gave this address. The proposal had ${proposalAddress}.`
+        : undefined;
 
       // Map services with smart matching
       const formServices: EventFormService[] = services.map(s => {
-        const match = findBestServiceMatch(s.serviceType || '');
+        const format = s.massageType === 'table' || s.massageType === 'chair' ? s.massageType : surveyFormat;
+        const match = findBestServiceMatch(s.serviceType || '', format);
         return {
           proposalServiceType: s.serviceType || '',
           proposalNumPros: s.numPros || 1,
@@ -401,14 +556,38 @@ function buildInitialEvents(proposal: Proposal, surveyResponse?: any): EventForm
         services.reduce((sum, s) => sum + (s.appTime || 20), 0) / services.length
       );
 
+      // Notes for Pros, in the coordinator's usual shape ("Please bring your
+      // massage chair." then "Entry instructions: …"), plus the client's
+      // per-service answers (nail services, retouching, skin type…).
+      const entry = surveyEntryFor(surveyResponse, location);
+      const staffLines: string[] = [];
+      if (formServices.some((s) => s.coordinatorServiceId === 'm_03')) staffLines.push('Please bring your massage chair.');
+      if (formServices.some((s) => s.coordinatorServiceId === 'm_04')) staffLines.push('Please bring your massage table.');
+      // Clients write these in the first person ("I will greet you downstairs"),
+      // so say who wrote it.
+      if (entry) staffLines.push(`Entry instructions${poc.name ? ` (from ${poc.name})` : ''}: ${entry}`);
+      const serviceLines = surveyServiceLines(surveyResponse, services.map((s) => s.serviceType || ''));
+      staffLines.push(...serviceLines);
+
+      const nouns = services.map((s) => {
+        const format = s.massageType === 'table' || s.massageType === 'chair' ? s.massageType : surveyFormat;
+        return serviceNoun(s.serviceType || '', format);
+      });
+
       events.push({
         included: true,
         expanded: events.length === 0,
         name: clientName,
         eventCode: generateEventCode(clientName, location),
         category: 'Office',
-        description: 'Relaxing and soothing massages from the Shortcut team for you. Enjoy the service',
+        description: defaultDescription(nouns),
         locationName: location,
+        locationDescription: spaceName,
+        signupTitle: '',
+        signupHeadline: '',
+        seriesIntro: '',
+        attendeeInstructions: '',
+        confirmationSubject: '',
         address: {
           street: addressData.street || '',
           unit: '',
@@ -417,15 +596,27 @@ function buildInitialEvents(proposal: Proposal, surveyResponse?: any): EventForm
           zip: addressData.zip || '',
           country: 'US',
         },
-        contactName: clientName,
-        contactEmail: clientEmail,
-        contactPhone: contactPhone,
+        addressNote,
+        fromSurvey: {
+          address: !!surveyAddress,
+          locationDescription: !!spaceName,
+          contact: !!(poc.name || poc.phone),
+          staffNotes: !!(entry || serviceLines.length),
+          adminNotes: adminLines.length > 0,
+        },
+        contactName: poc.name || clientName,
+        contactEmail: poc.email || clientEmail,
+        contactPhone: poc.phone,
         startTime,
         endTime: addHours(startTime, maxHours),
         surveyStartTime: isClock(surveyStart) ? surveyStart : undefined,
         eventDate: parseProposalDate(dateStr),
         lengthPerService: avgAppTime,
+        groupClass: false,
         signupsPerTimeslot: 1,
+        enableGuests: false,
+        maxGuests: 0,
+        optionalContact: false,
         services: formServices,
         numPros: totalPros,
         hourlyRate: Math.max(30, Math.min(200, avgRate)),
@@ -447,8 +638,8 @@ function buildInitialEvents(proposal: Proposal, surveyResponse?: any): EventForm
         allowMultipleReservations: true,
         oneReservationPerEvent: true,
         managerPassword: '',
-        staffNotes: '',
-        adminNotes: '',
+        staffNotes: staffLines.join('\n'),
+        adminNotes: adminLines.join('\n'),
         clientLogoUrl: data.clientLogoUrl || proposal.clientLogoUrl || '',
       });
     }
@@ -470,7 +661,13 @@ function validateEvents(events: EventFormData[]): ValidationIssue[] {
   events.forEach((evt, i) => {
     if (!evt.included) return;
     if (!evt.name.trim()) issues.push({ eventIndex: i, field: 'name', message: 'Event name required' });
-    if (!evt.locationName.trim()) issues.push({ eventIndex: i, field: 'locationName', message: 'Location description required' });
+    if (!evt.locationDescription.trim()) issues.push({ eventIndex: i, field: 'locationDescription', message: 'Location description required' });
+    if (evt.groupClass && !(evt.signupsPerTimeslot >= 2 && evt.signupsPerTimeslot <= 500)) {
+      issues.push({ eventIndex: i, field: 'signupsPerTimeslot', message: 'Group class needs 2 to 500 spots per time' });
+    }
+    if (evt.enableGuests && !(evt.maxGuests >= 1)) {
+      issues.push({ eventIndex: i, field: 'maxGuests', message: 'Enter the most guests one booking can bring' });
+    }
     if (!evt.contactEmail.trim()) issues.push({ eventIndex: i, field: 'contactEmail', message: 'Contact email required' });
     if (!evt.contactPhone.trim()) issues.push({ eventIndex: i, field: 'contactPhone', message: 'Contact phone missing' });
     if (!evt.address.street.trim()) issues.push({ eventIndex: i, field: 'address.street', message: 'Street address missing' });
@@ -488,6 +685,10 @@ function validateEvents(events: EventFormData[]): ValidationIssue[] {
 }
 
 // --- Component ---
+
+/** Small label tag on a field the post-approval survey filled in. */
+const SurveyHint: React.FC<{ show?: boolean }> = ({ show }) =>
+  show ? <span className="ml-2 text-[10px] font-semibold text-text-dark-60">From the survey</span> : null;
 
 const CATEGORIES = ['Office', 'Hospital', 'Retail', 'Wedding', 'Festival', 'Residential', 'School', 'Pop-Up', 'Other'];
 
@@ -664,31 +865,60 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                       </select>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-shortcut-blue mb-1">Location Description *</label>
-                      <input
-                        value={evt.locationName}
-                        onChange={(e) => updateEvent(eventIndex, { locationName: e.target.value })}
-                        className={inputClass(eventIndex, 'locationName')}
-                        maxLength={40}
-                        placeholder="e.g., Conference Room B"
-                      />
+                  <div>
+                    <label className="block text-xs font-bold text-shortcut-blue mb-1">
+                      Location Description *
+                      <SurveyHint show={evt.fromSurvey.locationDescription} />
+                    </label>
+                    <input
+                      value={evt.locationDescription}
+                      onChange={(e) => updateEvent(eventIndex, { locationDescription: e.target.value })}
+                      className={inputClass(eventIndex, 'locationDescription')}
+                      maxLength={40}
+                      placeholder="The room on site, e.g. Banting conference room"
+                    />
+                  </div>
+
+                  {/* Sign-up page copy (the coordinator's "Page copy": this event) */}
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-shortcut-blue mb-1">Sign-up page title</label>
+                        <input
+                          value={evt.signupTitle}
+                          onChange={(e) => updateEvent(eventIndex, { signupTitle: e.target.value })}
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal"
+                          placeholder="Blank shows the service name, or the list page title"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-shortcut-blue mb-1">
+                          Description
+                          <span className={`ml-2 text-[10px] font-normal ${evt.description.length >= 75 ? 'text-yellow-700' : 'text-text-dark-60'}`}>
+                            {evt.description.length}/80
+                          </span>
+                        </label>
+                        <textarea
+                          value={evt.description}
+                          onChange={(e) => updateEvent(eventIndex, { description: e.target.value })}
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal resize-y"
+                          maxLength={80}
+                          rows={2}
+                        />
+                      </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-shortcut-blue mb-1">
-                        Description
-                        <span className={`ml-2 text-[10px] font-normal ${evt.description.length >= 75 ? 'text-yellow-500' : 'text-gray-400'}`}>
-                          {evt.description.length}/80
-                        </span>
-                      </label>
+                      <label className="block text-xs font-bold text-shortcut-blue mb-1">"Before you come"</label>
                       <textarea
-                        value={evt.description}
-                        onChange={(e) => updateEvent(eventIndex, { description: e.target.value })}
+                        value={evt.attendeeInstructions}
+                        onChange={(e) => updateEvent(eventIndex, { attendeeInstructions: e.target.value })}
                         className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal resize-y"
-                        maxLength={80}
                         rows={2}
+                        placeholder={'Blank shows the usual tips for the service. For your own, e.g.\nJoining In Person\n\n1. Location: Training Room, 1st Floor.'}
                       />
+                      <p className="text-xs text-text-dark-60 mt-1">
+                        Shown on the sign-up and confirmation pages, in the confirmation email and the calendar invite. Leave a blank line between sections. A short line with no full stop becomes a heading.
+                      </p>
                     </div>
                   </div>
 
@@ -696,7 +926,14 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                   <div>
                     <label className="block text-xs font-bold text-shortcut-blue mb-2">
                       Address {hasFieldIssue(eventIndex, 'address.street') && <span className="text-yellow-500 ml-1">⚠️</span>}
+                      <SurveyHint show={evt.fromSurvey.address} />
                     </label>
+                    {evt.addressNote && (
+                      <p className="flex items-start gap-1.5 text-xs text-shortcut-navy-blue bg-yellow-50 border border-yellow-300 rounded-lg px-3 py-2 mb-2">
+                        <AlertCircle className="w-3.5 h-3.5 text-yellow-600 flex-shrink-0 mt-px" />
+                        <span>{evt.addressNote} Check which one the Pros should go to.</span>
+                      </p>
+                    )}
                     <div className="grid grid-cols-1 gap-2">
                       <input
                         placeholder="Street address"
@@ -731,7 +968,10 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                   {/* Contact */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-shortcut-blue mb-1">Contact Name</label>
+                      <label className="block text-xs font-bold text-shortcut-blue mb-1">
+                        Contact Name
+                        <SurveyHint show={evt.fromSurvey.contact} />
+                      </label>
                       <input
                         value={evt.contactName}
                         onChange={(e) => updateEvent(eventIndex, { contactName: e.target.value })}
@@ -911,6 +1151,36 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                     </div>
                   </div>
 
+                  {/* Notes: prefilled from the survey (entry, equipment, the client's answers) */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-shortcut-blue mb-1">
+                        Notes for Pros
+                        <SurveyHint show={evt.fromSurvey.staffNotes} />
+                      </label>
+                      <textarea
+                        value={evt.staffNotes}
+                        onChange={(e) => updateEvent(eventIndex, { staffNotes: e.target.value })}
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal resize-y"
+                        rows={3}
+                        placeholder="Entry instructions, parking, what to bring"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-shortcut-blue mb-1">
+                        Notes for Admins (private)
+                        <SurveyHint show={evt.fromSurvey.adminNotes} />
+                      </label>
+                      <textarea
+                        value={evt.adminNotes}
+                        onChange={(e) => updateEvent(eventIndex, { adminNotes: e.target.value })}
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal resize-y"
+                        rows={3}
+                        placeholder="Staffing requirements?"
+                      />
+                    </div>
+                  </div>
+
                   {/* Optional Settings (collapsible) */}
                   <details className="border-2 border-gray-100 rounded-lg">
                     <summary className="px-4 py-2.5 text-xs font-bold text-shortcut-blue cursor-pointer hover:bg-gray-50">
@@ -958,26 +1228,92 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                         </div>
                       )}
 
-                      {/* Notes */}
+                      {/* Event list page: shared by every event with this code */}
                       <div>
-                        <label className="block text-xs font-bold text-shortcut-blue mb-1">Notes for Pros</label>
-                        <textarea
-                          value={evt.staffNotes}
-                          onChange={(e) => updateEvent(eventIndex, { staffNotes: e.target.value })}
-                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal resize-y"
-                          rows={2}
-                          placeholder="Any notes for our Pros?"
+                        <p className="text-xs font-bold text-shortcut-blue">Event list page</p>
+                        <p className="text-xs text-text-dark-60 mb-2">
+                          The top box above all the events with this code, shared by every one of them. Leave blank to keep the automatic text.
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <input
+                            value={evt.signupHeadline}
+                            onChange={(e) => updateEvent(eventIndex, { signupHeadline: e.target.value })}
+                            className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal"
+                            placeholder="Title, e.g. Wellness at [event name]"
+                          />
+                          <textarea
+                            value={evt.seriesIntro}
+                            onChange={(e) => updateEvent(eventIndex, { seriesIntro: e.target.value })}
+                            className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal resize-y"
+                            rows={2}
+                            placeholder="Description. Blank shows the sign-up page description."
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-shortcut-blue mb-1">Confirmation email subject</label>
+                        <input
+                          value={evt.confirmationSubject}
+                          onChange={(e) => updateEvent(eventIndex, { confirmationSubject: e.target.value })}
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal"
+                          placeholder="Blank uses the standard subject"
                         />
                       </div>
-                      <div>
-                        <label className="block text-xs font-bold text-shortcut-blue mb-1">Notes for Admins (private)</label>
-                        <textarea
-                          value={evt.adminNotes}
-                          onChange={(e) => updateEvent(eventIndex, { adminNotes: e.target.value })}
-                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-shortcut-teal resize-y"
-                          rows={2}
-                          placeholder="Staffing requirements?"
-                        />
+
+                      {/* Who books, and how */}
+                      <div className="space-y-2">
+                        <label className="flex items-start gap-2 text-xs text-text-dark-60 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={evt.groupClass}
+                            onChange={(e) => updateEvent(eventIndex, {
+                              groupClass: e.target.checked,
+                              signupsPerTimeslot: e.target.checked ? Math.max(2, evt.signupsPerTimeslot) : 1,
+                            })}
+                            className="w-3.5 h-3.5 mt-0.5 accent-shortcut-teal"
+                          />
+                          <span><span className="font-bold text-shortcut-blue">Group class.</span> Several people book each time, like a sound bath or a yoga class.</span>
+                        </label>
+                        {evt.groupClass && (
+                          <input
+                            type="number"
+                            min={2}
+                            max={500}
+                            value={evt.signupsPerTimeslot}
+                            onChange={(e) => updateEvent(eventIndex, { signupsPerTimeslot: parseInt(e.target.value, 10) || 0 })}
+                            className={`${inputClass(eventIndex, 'signupsPerTimeslot')} max-w-[220px] ml-5`}
+                            placeholder="Spots per time (e.g. 20)"
+                          />
+                        )}
+                        <label className="flex items-start gap-2 text-xs text-text-dark-60 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={evt.enableGuests}
+                            onChange={(e) => updateEvent(eventIndex, { enableGuests: e.target.checked, maxGuests: e.target.checked ? Math.max(1, evt.maxGuests) : 0 })}
+                            className="w-3.5 h-3.5 mt-0.5 accent-shortcut-teal"
+                          />
+                          <span className="font-bold text-shortcut-blue">Let attendees bring additional guests</span>
+                        </label>
+                        {evt.enableGuests && (
+                          <input
+                            type="number"
+                            min={1}
+                            value={evt.maxGuests}
+                            onChange={(e) => updateEvent(eventIndex, { maxGuests: parseInt(e.target.value, 10) || 0 })}
+                            className={`${inputClass(eventIndex, 'maxGuests')} max-w-[220px] ml-5`}
+                            placeholder="Most guests per booking"
+                          />
+                        )}
+                        <label className="flex items-start gap-2 text-xs text-text-dark-60 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={evt.optionalContact}
+                            onChange={(e) => updateEvent(eventIndex, { optionalContact: e.target.checked })}
+                            className="w-3.5 h-3.5 mt-0.5 accent-shortcut-teal"
+                          />
+                          <span><span className="font-bold text-shortcut-blue">Let attendees book without an email or phone number.</span> For events where the contact belongs to a guardian rather than the attendee.</span>
+                        </label>
                       </div>
 
                       {/* Checkboxes */}
