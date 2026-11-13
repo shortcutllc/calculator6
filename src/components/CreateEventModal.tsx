@@ -158,6 +158,11 @@ const COORDINATOR_SERVICES: CoordinatorService[] = [
   { id: 'mindfulness_01', title: 'Introduction to Mindfulness', type: 'Mindfulness' },
   { id: 'mindfulness_02', title: 'Mindfulness Drop-in Session', type: 'Mindfulness' },
   { id: 'mindfulness_03', title: '6-Week Mindfulness Program', type: 'Mindfulness' },
+  // Courtney's accredited CLE course for law firms (on prod since Nov 13 2026). The
+  // coordinator sends its attendees the CLE version of her after-session text and email,
+  // so a CLE line must use this, never a generic mindfulness service. Kept last so the
+  // "first Mindfulness service" fallback below never lands on it.
+  { id: 'mindfulness_cle', title: 'Mindfulness CLE: Ethics & Attorney Well-Being', type: 'Mindfulness' },
 ];
 
 // --- Service matching: proposal serviceType → coordinator service type ---
@@ -174,6 +179,11 @@ const PROPOSAL_TO_COORDINATOR_TYPE: Record<string, string> = {
   'nails-hand-massage': 'Nails',
   'headshot': 'Photo',
   'mindfulness': 'Mindfulness',
+  'mindfulness-cle': 'Mindfulness',
+  'mindfulness-soles': 'Mindfulness',
+  'mindfulness-movement': 'Mindfulness',
+  'mindfulness-pro': 'Mindfulness',
+  'mindfulness-pro-reactivity': 'Mindfulness',
   'makeup': 'Beauty',
 };
 
@@ -189,6 +199,13 @@ const DEFAULT_SERVICE_MATCH: Record<string, string> = {
   'nails-hand-massage': 'nails_handmassage_01',
   'headshot': 'headshot_04',  // Headshot Only
   'mindfulness': 'mindfulness_01', // Introduction to Mindfulness
+  'mindfulness-cle': 'mindfulness_cle', // Mindfulness CLE: Ethics & Attorney Well-Being
+  // One themed session each (Soles of the Feet, Movement & Stillness, PRO Practice,
+  // Stepping Out of Reactivity): a drop-in, not an introduction.
+  'mindfulness-soles': 'mindfulness_02',
+  'mindfulness-movement': 'mindfulness_02',
+  'mindfulness-pro': 'mindfulness_02',
+  'mindfulness-pro-reactivity': 'mindfulness_02',
   'makeup': 'makeup_01',      // Makeup
 };
 
@@ -446,7 +463,7 @@ function serviceNoun(serviceType: string, massageFormat: string): string {
   if (t === 'facial' || t === 'facials') return 'facial';
   if (t === 'makeup') return 'makeup';
   if (t === 'headshot' || t === 'headshots') return 'headshot';
-  if (t === 'mindfulness') return 'mindfulness';
+  if (t === 'mindfulness' || t.startsWith('mindfulness-')) return 'mindfulness';
   return '';
 }
 
