@@ -59,6 +59,7 @@ const CLELandingPage = lazy(() => import('./components/CLELandingPage'));
 const ClientEmailManager = lazy(() => import('./components/ClientEmailManager'));
 const InvoiceManager = lazy(() => import('./components/InvoiceManager'));
 const ProAgreementManager = lazy(() => import('./components/ProAgreementManager'));
+const SiteChatManager = lazy(() => import('./components/SiteChatManager'));
 const ProAgreementSigning = lazy(() => import('./components/ProAgreementSigning'));
 const NassauBudgetReview = lazy(() => import('./components/NassauBudgetReview'));
 const LowerPyneDashboard = lazy(() => import('./components/LowerPyneDashboard'));
@@ -808,6 +809,21 @@ function App() {
                         <InvoiceManager />
                       </Suspense>
                     </InvoiceProvider>
+                  </PrivateRoute>
+                }
+              />
+              {/* Site Chat: answer website visitors (the website checks the staff list) */}
+              <Route
+                path="/site-chat"
+                element={
+                  <PrivateRoute>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <SiteChatManager />
+                    </Suspense>
                   </PrivateRoute>
                 }
               />
