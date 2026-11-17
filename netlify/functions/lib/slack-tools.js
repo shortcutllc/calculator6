@@ -17,6 +17,7 @@ import { createSponsorPage, updateSponsorPage, getSponsorPage, listSponsorPages 
 import { quoteHolidayPackage, holidayServices, holidayPackageRecord, HolidayPackageError } from './holiday-packages.js';
 import { leadPicture, suggestNextActions, nextActions } from './lead-picture.js';
 import { getAccessToken, getThread, bodyFromPayload, lc as lcGmail } from './gmail.js';
+import { createSignupLink, findSignupLinks, getEventStaffing, findPros, listProGroups, addProToEvent } from './signup-links.js';
 
 const PROPOSAL_BASE_URL = 'https://proposals.getshortcut.co/proposal';
 const PROPOSAL_SHORT_URL = 'https://proposals.getshortcut.co/p';
@@ -71,6 +72,14 @@ const TOOL_HANDLERS = {
   get_qr_code_sign: handleGetQRCodeSign,
   list_qr_code_signs: handleListQRCodeSigns,
   edit_qr_code_sign: handleEditQRCodeSign,
+  // Who asked goes in the event's admin notes: the key's owner, or Pro's Slack user.
+  create_signup_link: async (params, supabase, userId, ctx) =>
+    createSignupLink(params, supabase, userId, { ...ctx, callerEmail: await callerEmail(supabase, ctx) }),
+  find_signup_links: (params, supabase) => findSignupLinks(params, supabase),
+  get_event_staffing: (params, supabase) => getEventStaffing(params, supabase),
+  find_pros: (params, supabase) => findPros(params, supabase),
+  list_pro_groups: (params) => listProGroups(params),
+  add_pro_to_event: (params, supabase) => addProToEvent(params, supabase),
   create_invoice: handleCreateInvoice,
   search_invoices: handleSearchInvoices,
   get_invoice: handleGetInvoice,

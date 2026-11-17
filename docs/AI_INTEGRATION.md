@@ -2,7 +2,7 @@
 
 **Teammates set up from the guide page, not this file: [https://proposals.getshortcut.co/ai-guide/](https://proposals.getshortcut.co/ai-guide/).** It explains, in plain language, what this unlocks, how to connect Muse, Claude or ChatGPT step by step, how to get good results, how to keep a key safe, and what to do when something goes wrong. It is a static page in this repo (`public/ai-guide/index.html`), so anyone with the link can open it without a claude.ai account, and it carries noindex like the rest of the site. It holds no key and no key commands. Change setup steps there, not here. This file is the technical reference behind it.
 
-A teammate's AI (Muse, Claude, ChatGPT, Cursor, or a script) can create and edit proposals, landing pages, sponsor pages and QR signs on proposals.getshortcut.co, the same way Pro does in Slack. It acts as that teammate: what it creates is saved under their user id, and every tool hands back the live link.
+A teammate's AI (Muse, Claude, ChatGPT, Cursor, or a script) can create and edit proposals, landing pages, sponsor pages and QR signs on proposals.getshortcut.co, the same way Pro does in Slack. Through the MCP connector it can also make employee sign-up links (coordinator events) and staff them with Pros. It acts as that teammate: what it creates is saved under their user id, and every tool hands back the live link.
 
 There are two ways in, and both use the same personal key:
 
@@ -58,11 +58,27 @@ A quick check from any client: ask it to "List the latest sponsor pages."
 | Landing pages (for a company's wellness team) | `create_landing_page`, `get_landing_page` |
 | Sponsor pages (for a conference organizer) | `create_sponsor_page`, `edit_sponsor_page`, `get_sponsor_page`, `list_sponsor_pages` |
 | QR signs | `create_qr_code_sign`, `edit_qr_code_sign`, `get_qr_code_sign`, `list_qr_code_signs` |
+| Sign-up links (coordinator events) | `create_signup_link` (preview, then `confirm: true`), `find_signup_links` |
+| Staffing (the /ops Staffing tab's data) | `find_pros`, `list_pro_groups`, `get_event_staffing`, `add_pro_to_event` (preview, then `confirm: true`) |
 | The rules | `get_guide`: the same text as the server's `instructions` (Pro's rules plus the positioning block), for clients that never show instructions to the model. |
 
 Left out on purpose: leads, drafting or sending email, and invoices (those stay in Slack with Pro, where a person sends), and deleting anything (done in the app).
 
 New proposals, duplicates and edits post to #proposals like any other. Proposals start as drafts, the same as Pro's.
+
+### Sign-up links and staffing
+
+These act on the live coordinator (admin.shortcutpros.com) as the coordinator admin account, through the backend's own functions: `addEvent`, `addBarberToEvent`, `swapBarberForEvent`, and the Staffing tab's `pullStaffingRoster_Admin`, `pullProGroups_Admin`, `pullEventStaffing_Admin`. Nothing in SCCloudCode changed for them. They are in the MCP connector and in Pro, not in the HTTP API.
+
+- **`create_signup_link`** makes one coordinator event (one location on one date). With `proposalId`, the fields come from the same rules as the Create Event screen (`lib/coordinator-event-form.js`, shared with `CreateEventModal.tsx`): the client's kept services, the post-approval survey's address, room, contact, start time and notes. Without one, the caller gives client name, date, times, full address, services, Pros and contact email. A call without `confirm: true` only previews. The preview flags anything a person should check: a 9 AM start nobody chose, a survey address that differs from the proposal's, a series code already in use.
+- **It refuses** a past date, an end before the start, an address without street, city, state and zip (the timezone comes from it), and a code whose past events have another name (`addEvent`'s own rule). It also refuses when the proposal already made an event for that location and date, or when the coordinator already has an event for this client that day. Many events are made by hand, so the proposal never hears of them. `createAnother: true` overrides both.
+- **Retries never duplicate.** Before creating, it looks for a live event with the same code and start time and reuses it. A repeat call with the same arguments finishes the same event.
+- **Pro TBD seats.** After creating, it fills the empty Pro seats with the backend's Pro TBD placeholders (`PRO_TBD_IDS`, five of them), one at a time, so the link takes bookings at once. Each add takes about 1.7 s, so it stops starting new ones 5.5 s into the call (Netlify ends functions at 10 s) and says to call again, which carries on.
+- **The record.** The event is added to `proposals.coordinator_events` (merged: `create-event.js` used to overwrite the list, forgetting earlier events) and to `sign_up_links`. Its admin notes say who made it with the AI tool.
+- **`find_pros`** ranks the roster the Staffing tab uses: worked for this client, then at this address, then tier in a matching Pro group, then most recent work, then distance. Each Pro comes with reasons and cautions (already on an event then, contractor agreement, new and needs orientation, opted out of the Pros line). It returns no phone numbers or emails.
+- **`add_pro_to_event`** puts a Pro into a Pro TBD seat (`swapBarberForEvent`, which moves that seat's bookings to them), else an empty seat (`addBarberToEvent`), or the seat named by `replaceBarberId`. The Pro gets the backend's usual "you've been added" text from the Pros line (none for a test event). Preview first.
+
+Testing: on the dev backend there are no Pro TBD accounts (the five ids are prod's), so seat filling needs a stand-in there. Local cloud code (`./dev-watch`) has texts off.
 
 ### Sponsor page fields
 
@@ -251,3 +267,4 @@ Send the key privately (a Slack DM, not a channel) along with the [guide page](h
 - `netlify/functions/lib/holiday-packages.js`: the holiday packages and their math, shared by Pro, the API, MCP, the staff calculator and the client viewer. `node scripts/check-holiday-parity.mjs` prices every package with the www page's own file and both proposal engines, and fails on any difference. Change the www page first, then this file, then run it.
 - `netlify/functions/lib/staff-auth.js`: one auth check for both. It takes a personal key or a staff sign-in token (what the app itself sends).
 - `staff_api_keys` table: `supabase/migrations/20261023000000_create_staff_api_keys.sql`.
+- `netlify/functions/lib/signup-links.js`: the sign-up link and staffing tools. `lib/coordinator-events.js`: the `addEvent` payload, timezone, duplicate checks, Pro TBD seats and the record on the proposal, shared with `create-event.js`. `lib/coordinator-event-form.js`: proposal to event form, shared with `CreateEventModal.tsx`. `lib/pro-paperwork.js`: agreements and orientation, shared with `ops-api.js`.

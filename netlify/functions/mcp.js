@@ -1,7 +1,8 @@
 /**
  * MCP endpoint: lets a teammate's own AI (Claude, ChatGPT, Cursor, anything
  * that speaks the Model Context Protocol) create and edit proposals, landing
- * pages, sponsor pages and QR signs as that teammate.
+ * pages, sponsor pages and QR signs as that teammate, and make employee sign-up
+ * links (coordinator events) and staff them with Pros.
  *
  *   URL:  https://proposals.getshortcut.co/.netlify/functions/mcp
  *   Auth: Authorization: Bearer sk_shortcut_...  (or ?key=sk_shortcut_... for
@@ -34,13 +35,14 @@ const EXPOSED = new Set([
   'create_landing_page', 'get_landing_page',
   'create_sponsor_page', 'edit_sponsor_page', 'get_sponsor_page', 'list_sponsor_pages',
   'create_qr_code_sign', 'get_qr_code_sign', 'list_qr_code_signs', 'edit_qr_code_sign',
+  'create_signup_link', 'find_signup_links', 'get_event_staffing', 'find_pros', 'list_pro_groups', 'add_pro_to_event',
 ]);
 
 /* Some clients never show the server's instructions to the model, so the
    same text is also a tool the model can call. */
 const GUIDE_TOOL = {
   name: 'get_guide',
-  description: 'Call this FIRST, before creating or editing anything: the rules, service menu, pricing, edit operations and URL rules for proposals, landing pages, sponsor pages and QR signs, and how to write the words a client reads.',
+  description: 'Call this FIRST, before creating or editing anything: the rules, service menu, pricing, edit operations and URL rules for proposals, landing pages, sponsor pages, QR signs, sign-up links and staffing, and how to write the words a client reads.',
   inputSchema: { type: 'object', properties: {} },
 };
 
@@ -58,7 +60,7 @@ function guide(email) {
   return [
     `You are connected to Shortcut's proposals site (proposals.getshortcut.co) as ${email}. Everything you create is saved under their name and is live at the URL the tool returns.`,
     '',
-    'You have the proposal, holiday package, landing page, sponsor page, QR sign, pricing, client lookup and logo tools. The lead, email drafting and invoice tools are only in Slack (Pro). Where the rules below say to call lookup_lead, read_thread or draft_email, skip that step and ask the user instead.',
+    'You have the proposal, holiday package, landing page, sponsor page, QR sign, pricing, client lookup and logo tools, and the sign-up link and staffing tools (create_signup_link, find_signup_links, get_event_staffing, find_pros, list_pro_groups, add_pro_to_event), which act on the live coordinator: real events, real Pros, real texts. The lead, email drafting and invoice tools are only in Slack (Pro). Where the rules below say to call lookup_lead, read_thread or draft_email, skip that step and ask the user instead.',
     'The rules below are the ones Pro follows in Slack. Ignore anything about Slack formatting.',
     '',
     '## Words the client reads',
@@ -105,7 +107,8 @@ async function callTool(params, ctx) {
   const input = { ...(params.arguments || {}) };
   if ((name === 'create_proposal' || name === 'create_holiday_proposal') && !input.notes) input.notes = `Created via API by ${ctx.user.email}`;
 
-  const result = await executeTool(name, input, ctx.supabase, ctx.user.id, { callerEmail: ctx.user.email });
+  // startedAt: slow tools (create_signup_link) stop in time to answer within Netlify's limit.
+  const result = await executeTool(name, input, ctx.supabase, ctx.user.id, { callerEmail: ctx.user.email, startedAt: ctx.startedAt });
   console.log(`mcp: ${ctx.user.email} ${name} ${result?.error ? `failed: ${result.error}` : 'ok'}`);
   if (result?.success) await notify(name, result, ctx.supabase);
   return textContent(JSON.stringify(result, null, 2), !!result?.error);
@@ -149,9 +152,10 @@ export default async (req) => {
     });
   }
 
+  const startedAt = Date.now();
   let ctx;
   try {
-    ctx = await authenticate(req, { allowQueryKey: true });
+    ctx = { ...(await authenticate(req, { allowQueryKey: true })), startedAt };
   } catch (err) {
     return json(err.statusCode || 401, rpcError(null, -32001, err.message || 'Unauthorized'));
   }
