@@ -2,6 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Send, Trash2, X } from 'lucide-react';
 import { CardHeading, Eyebrow, T } from './shared/primitives';
 import { formatCurrency } from './data';
+import {
+  addDays,
+  defaultPaymentDue,
+  longDate,
+  parseIsoDate,
+  paymentDueNote,
+  toIsoDate,
+} from '../../../netlify/functions/lib/invoice-defaults.js';
+import type { PaymentDueDefault } from '../../../netlify/functions/lib/invoice-defaults.js';
 
 // InvoiceConfirmationModalV2 — V2-styled drop-in replacement for
 // `InvoiceConfirmationModal`. Same props (`isOpen`, `onClose`, `onSend`, etc.)
@@ -19,14 +28,18 @@ interface InvoiceConfirmationModalV2Props {
     clientName: string;
     clientEmail: string;
     lineItems: InvoiceLineItem[];
-    daysUntilDue: number;
+    /** Calendar day payment is due, "YYYY-MM-DD". */
+    dueDate: string;
     proposalId?: string;
     sendToClient?: boolean;
   }) => Promise<void>;
   initialName?: string;
   initialEmail?: string;
   initialItems?: InvoiceLineItem[];
-  initialDaysUntilDue?: number;
+  /** Where the due date starts (48 hours before the event); 30 days out without one. */
+  paymentDue?: PaymentDueDefault;
+  /** The survey's billing contact answer, shown so staff can check name and email against it. */
+  billingContactText?: string | null;
   proposalId?: string;
   loading?: boolean;
   error?: string | null;
@@ -63,7 +76,8 @@ export const InvoiceConfirmationModalV2: React.FC<InvoiceConfirmationModalV2Prop
   initialName = '',
   initialEmail = '',
   initialItems = [],
-  initialDaysUntilDue = 30,
+  paymentDue,
+  billingContactText,
   proposalId,
   loading = false,
   error: externalError = null,
@@ -71,7 +85,8 @@ export const InvoiceConfirmationModalV2: React.FC<InvoiceConfirmationModalV2Prop
   const [name, setName] = useState(initialName);
   const [email, setEmail] = useState(initialEmail);
   const [items, setItems] = useState<InvoiceLineItem[]>(initialItems);
-  const [daysUntilDue, setDaysUntilDue] = useState(initialDaysUntilDue);
+  const due = paymentDue || defaultPaymentDue(null);
+  const [dueDate, setDueDate] = useState(due.dueDate);
   const [localError, setLocalError] = useState<string | null>(null);
 
   // Sync state when the parent passes new initial values (e.g. proposal switch).
@@ -79,14 +94,16 @@ export const InvoiceConfirmationModalV2: React.FC<InvoiceConfirmationModalV2Prop
     setName(initialName);
     setEmail(initialEmail);
     setItems(initialItems);
-    setDaysUntilDue(initialDaysUntilDue);
+    setDueDate(due.dueDate);
     setLocalError(null);
-  }, [initialName, initialEmail, initialItems, initialDaysUntilDue]);
+  }, [initialName, initialEmail, initialItems, due.dueDate]);
 
   if (!isOpen) return null;
 
   const displayError = externalError || localError;
   const total = items.reduce((sum, it) => sum + (Number(it.amount) || 0), 0);
+  const tomorrow = addDays(toIsoDate(new Date()), 1) as string;
+  const dueNote = paymentDueNote(due);
 
   const updateItem = (idx: number, field: keyof InvoiceLineItem, value: string | number) => {
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, [field]: value } : it)));
@@ -108,12 +125,20 @@ export const InvoiceConfirmationModalV2: React.FC<InvoiceConfirmationModalV2Prop
       setLocalError('Add at least one line item.');
       return;
     }
+    if (!parseIsoDate(dueDate)) {
+      setLocalError('Pick the date payment is due.');
+      return;
+    }
+    if (dueDate < tomorrow) {
+      setLocalError('Pick a due date after today. Stripe does not take today or earlier.');
+      return;
+    }
     setLocalError(null);
     onSend({
       clientName: name.trim(),
       clientEmail: email.trim(),
       lineItems: items,
-      daysUntilDue,
+      dueDate,
       proposalId,
       sendToClient,
     });
@@ -220,15 +245,59 @@ export const InvoiceConfirmationModalV2: React.FC<InvoiceConfirmationModalV2Prop
             </div>
           </div>
 
-          <div style={{ maxWidth: 220 }}>
-            <label style={labelStyle}>Days until due</label>
-            <input
-              type="number"
-              value={daysUntilDue}
-              onChange={(e) => setDaysUntilDue(parseInt(e.target.value) || 0)}
-              min={1}
-              style={inputStyle}
-            />
+          {billingContactText && (
+            <div
+              style={{
+                padding: '10px 14px',
+                background: T.beige,
+                borderRadius: 10,
+              }}
+            >
+              <span style={labelStyle}>Billing contact on the survey</span>
+              <div
+                style={{
+                  fontFamily: T.fontD,
+                  fontSize: 13,
+                  color: T.navy,
+                  whiteSpace: 'pre-line',
+                }}
+              >
+                {billingContactText}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="invoice-due-date-v2" style={labelStyle}>
+              Payment due
+            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <input
+                id="invoice-due-date-v2"
+                type="date"
+                value={dueDate}
+                min={tomorrow}
+                onChange={(e) => setDueDate(e.target.value)}
+                style={{ ...inputStyle, width: 'auto' }}
+              />
+              {parseIsoDate(dueDate) && (
+                <span style={{ fontFamily: T.fontD, fontSize: 14, color: T.navy }}>
+                  {longDate(dueDate)}
+                </span>
+              )}
+            </div>
+            {dueNote && (
+              <div
+                style={{
+                  marginTop: 6,
+                  fontFamily: T.fontD,
+                  fontSize: 12,
+                  color: T.fgMuted,
+                }}
+              >
+                {dueNote}
+              </div>
+            )}
           </div>
 
           {/* Line items */}
@@ -276,7 +345,7 @@ export const InvoiceConfirmationModalV2: React.FC<InvoiceConfirmationModalV2Prop
                   color: T.fgMuted,
                 }}
               >
-                No line items yet — add at least one before sending.
+                No line items yet. Add at least one before sending.
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

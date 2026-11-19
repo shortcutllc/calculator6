@@ -9,6 +9,9 @@ import { format } from 'date-fns';
 import { supabase } from '../lib/supabaseClient';
 import { InvoiceConfirmationModal, InvoiceLineItem } from './InvoiceConfirmationModal';
 import { generateLineItems } from './StripeInvoiceButton';
+import { defaultPaymentDue } from '../../netlify/functions/lib/invoice-defaults.js';
+import type { PaymentDueDefault } from '../../netlify/functions/lib/invoice-defaults.js';
+import { loadInvoiceRecipient } from '../utils/invoiceRecipient';
 
 const STATUS_CONFIG: Record<StripeInvoiceStatus, { label: string; className: string }> = {
   draft: { label: 'Draft', className: 'bg-gray-100 text-gray-700' },
@@ -44,6 +47,8 @@ const InvoiceManager: React.FC = () => {
   const [modalInitialEmail, setModalInitialEmail] = useState('');
   const [modalInitialItems, setModalInitialItems] = useState<InvoiceLineItem[]>([]);
   const [modalProposalId, setModalProposalId] = useState<string | undefined>(undefined);
+  const [modalPaymentDue, setModalPaymentDue] = useState<PaymentDueDefault | undefined>(undefined);
+  const [modalBillingContact, setModalBillingContact] = useState<string | null>(null);
 
   const filteredInvoices = useMemo(() => {
     let filtered = invoices;
@@ -126,6 +131,8 @@ const InvoiceManager: React.FC = () => {
     setModalInitialEmail('');
     setModalInitialItems([]);
     setModalProposalId(undefined);
+    setModalPaymentDue(undefined);
+    setModalBillingContact(null);
     setCreateError(null);
     setShowCreateMenu(false);
     setShowCreateModal(true);
@@ -154,10 +161,20 @@ const InvoiceManager: React.FC = () => {
       const selectedOptions = fullProposal?.selected_options || null;
 
       const items = generateLineItems(proposalData, pricingOptions, selectedOptions);
+      // The person on the survey's billing contact, else the proposal's
+      // contact. client_name is the company and client_email is mostly empty.
+      const recipient = await loadInvoiceRecipient(proposalId, fullProposal || {
+        client_name: proposal.clientName,
+        client_email: proposal.clientEmail,
+        customization: proposal.customization,
+        data: proposal.data,
+      });
 
-      setModalInitialName(proposalData.clientName || '');
-      setModalInitialEmail(fullProposal?.client_email || '');
+      setModalInitialName(recipient.name);
+      setModalInitialEmail(recipient.email);
       setModalInitialItems(items);
+      setModalPaymentDue(defaultPaymentDue(proposalData));
+      setModalBillingContact(recipient.billingContactText);
       setModalProposalId(proposalId);
       setCreateError(null);
       setShowProposalPicker(false);
@@ -166,6 +183,8 @@ const InvoiceManager: React.FC = () => {
       setModalInitialName(proposal.data.clientName || '');
       setModalInitialEmail('');
       setModalInitialItems([]);
+      setModalPaymentDue(defaultPaymentDue(proposal.data));
+      setModalBillingContact(null);
       setModalProposalId(proposalId);
       setCreateError(null);
       setShowProposalPicker(false);
@@ -177,7 +196,7 @@ const InvoiceManager: React.FC = () => {
     clientName: string;
     clientEmail: string;
     lineItems: InvoiceLineItem[];
-    daysUntilDue: number;
+    dueDate: string;
     proposalId?: string;
     sendToClient?: boolean;
   }) => {
@@ -202,7 +221,7 @@ const InvoiceManager: React.FC = () => {
             description: item.description,
             amount: item.amount
           })),
-          daysUntilDue: data.daysUntilDue,
+          dueDate: data.dueDate,
           sendToClient: data.sendToClient ?? true
         })
       });
@@ -356,6 +375,8 @@ const InvoiceManager: React.FC = () => {
         initialName={modalInitialName}
         initialEmail={modalInitialEmail}
         initialItems={modalInitialItems}
+        paymentDue={modalPaymentDue}
+        billingContactText={modalBillingContact}
         proposalId={modalProposalId}
         loading={createLoading}
         error={createError}

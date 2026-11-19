@@ -10,6 +10,7 @@
 
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { buildInvoiceLineItems, stripeDueTimestamp } from './lib/invoice-defaults.js';
 
 // --- CORS ---
 
@@ -55,92 +56,17 @@ async function validateAuth(req) {
 
 // --- Helpers ---
 
-const SERVICE_DISPLAY_NAMES = {
-  massage: 'Chair Massage',
-  facial: 'Facial',
-  hair: 'Hair Services',
-  'beard-trim': 'Beard Trims',
-  nails: 'Nail Services',
-  makeup: 'Makeup Services',
-  headshot: 'Corporate Headshots',
-  'hair-makeup': 'Hair + Makeup',
-  'headshot-hair-makeup': 'Hair + Makeup for Headshots',
-  mindfulness: 'Mindfulness Session',
-  'mindfulness-soles': 'Mindfulness: Soles of the Feet',
-  'mindfulness-movement': 'Mindfulness: Movement & Stillness',
-  'mindfulness-pro': 'Mindfulness: PRO Practice',
-  'mindfulness-cle': 'CLE Ethics: Mindfulness',
-  'mindfulness-pro-reactivity': 'Mindfulness: Stepping Out of Reactivity'
-};
-
-function formatServiceName(serviceType) {
-  return SERVICE_DISPLAY_NAMES[serviceType] ||
-    serviceType.charAt(0).toUpperCase() + serviceType.slice(1);
-}
-
-function formatDate(dateStr) {
-  if (!dateStr || dateStr === 'TBD') return dateStr || 'TBD';
-  try {
-    const [year, month, day] = dateStr.split('-');
-    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  } catch {
-    return dateStr;
-  }
-}
-
 /**
- * Build Stripe line items from proposal services.
- * Respects pricing options: uses selected option's serviceCost when available.
+ * Stripe line items (cents) built from the proposal, for callers that send no
+ * lineItems. Names and order come from the shared invoice rules, so they read
+ * the same as the lines staff see in the Review Invoice window.
  */
 function buildLineItems(proposalData, pricingOptions, selectedOptions) {
-  const lineItems = [];
-  const services = proposalData.services || {};
-
-  Object.entries(services).forEach(([location, locationData]) => {
-    Object.entries(locationData).forEach(([date, dateData]) => {
-      const serviceList = dateData.services || [];
-
-      serviceList.forEach((service, serviceIndex) => {
-        // Determine effective cost: check pricing options first
-        let effectiveCost = service.serviceCost || 0;
-
-        if (pricingOptions && selectedOptions) {
-          const optionKey = `${location}-${date}-${serviceIndex}`;
-          const options = pricingOptions[optionKey];
-          const selectedIdx = selectedOptions[optionKey];
-
-          if (options && selectedIdx !== undefined && options[selectedIdx]) {
-            const selectedOption = options[selectedIdx];
-            if (selectedOption.serviceCost != null) {
-              effectiveCost = selectedOption.serviceCost;
-            }
-          }
-        }
-
-        const description = `${formatServiceName(service.serviceType)} at ${location} on ${formatDate(date)}`;
-
-        lineItems.push({
-          description,
-          amount: Math.round(effectiveCost * 100), // cents
-          quantity: 1
-        });
-      });
-    });
-  });
-
-  // Holiday package combine-and-save: a summary line, so the services above
-  // are at full price and the saving goes on as a credit.
-  const holidaySavings = Number(proposalData.summary?.holidayDiscountAmount) || 0;
-  if (holidaySavings > 0) {
-    lineItems.push({
-      description: `${proposalData.holidayPackage?.name || 'Holiday package'}: combine and save (${proposalData.summary?.holidayDiscountPercent || 10}%)`,
-      amount: -Math.round(holidaySavings * 100),
-      quantity: 1
-    });
-  }
-
-  return lineItems;
+  return buildInvoiceLineItems(proposalData, pricingOptions, selectedOptions).map((item) => ({
+    description: item.description,
+    amount: Math.round((Number(item.amount) || 0) * 100),
+    quantity: 1
+  }));
 }
 
 // --- Slack Notification ---
@@ -223,7 +149,7 @@ async function handleSendExisting(body, stripe, supabase) {
 }
 
 async function handleCreateInvoice(body, stripe, supabase, user) {
-  const { proposalId, proposalData, pricingOptions, selectedOptions, clientEmail, clientName, daysUntilDue, sendToClient = true } = body;
+  const { proposalId, proposalData, pricingOptions, selectedOptions, clientEmail, clientName, daysUntilDue, dueDate, sendToClient = true } = body;
 
   const resolvedName = clientName || proposalData?.clientName;
   if (!resolvedName) {
@@ -231,6 +157,23 @@ async function handleCreateInvoice(body, stripe, supabase, user) {
   }
   if (sendToClient && !clientEmail) {
     return errorResponse(400, 'Client email is required to send an invoice', 'VALIDATION_ERROR');
+  }
+
+  // When payment is due. The staff window sends a calendar day (dueDate,
+  // "YYYY-MM-DD", default 48 hours before the event); older callers and Pro
+  // send daysUntilDue. Checked before anything is created in Stripe.
+  let dueTerms;
+  if (dueDate) {
+    const dueTs = stripeDueTimestamp(dueDate);
+    if (!dueTs) {
+      return errorResponse(400, 'dueDate must be a date like 2026-12-15', 'VALIDATION_ERROR');
+    }
+    if (dueTs <= Math.floor(Date.now() / 1000)) {
+      return errorResponse(400, 'The due date has to be after today.', 'VALIDATION_ERROR');
+    }
+    dueTerms = { due_date: dueTs };
+  } else {
+    dueTerms = { days_until_due: daysUntilDue || 30 };
   }
 
   // Step 1: Create Stripe customer
@@ -269,7 +212,7 @@ async function handleCreateInvoice(body, stripe, supabase, user) {
   const invoice = await stripe.invoices.create({
     customer: customer.id,
     collection_method: 'send_invoice',
-    days_until_due: daysUntilDue || 30,
+    ...dueTerms,
     metadata: { proposalId: proposalId || 'unknown' }
   });
 

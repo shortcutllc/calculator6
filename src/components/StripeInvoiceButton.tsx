@@ -1,119 +1,22 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Receipt, ExternalLink, CheckCircle, Copy, Download, Check } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { InvoiceConfirmationModal, InvoiceLineItem } from './InvoiceConfirmationModal';
+import { buildInvoiceLineItems, defaultPaymentDue } from '../../netlify/functions/lib/invoice-defaults.js';
+import { loadInvoiceRecipient, LoadedInvoiceRecipient } from '../utils/invoiceRecipient';
 
-// --- Client-side line item generation (mirrors server buildLineItems) ---
+// --- Line items: the shared invoice rules (also used by create-stripe-invoice) ---
 
-const SERVICE_DISPLAY_NAMES: Record<string, string> = {
-  massage: 'Chair Massage',
-  facial: 'Facial',
-  hair: 'Hair Services',
-  'beard-trim': 'Beard Trims',
-  nails: 'Nail Services',
-  makeup: 'Makeup Services',
-  headshot: 'Corporate Headshots',
-  'hair-makeup': 'Hair + Makeup',
-  'headshot-hair-makeup': 'Hair + Makeup for Headshots',
-  mindfulness: 'Mindfulness Session',
-  'mindfulness-soles': 'Mindfulness: Soles of the Feet',
-  'mindfulness-movement': 'Mindfulness: Movement & Stillness',
-  'mindfulness-pro': 'Mindfulness: PRO Practice',
-  'mindfulness-cle': 'CLE Ethics: Mindfulness',
-  'mindfulness-pro-reactivity': 'Mindfulness: Stepping Out of Reactivity'
-};
-
-function formatServiceName(serviceType: string): string {
-  return SERVICE_DISPLAY_NAMES[serviceType] ||
-    serviceType.charAt(0).toUpperCase() + serviceType.slice(1);
-}
-
-function formatDate(dateStr: string): string {
-  if (!dateStr || dateStr === 'TBD') return dateStr || 'TBD';
-  try {
-    const [year, month, day] = dateStr.split('-');
-    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  } catch {
-    return dateStr;
-  }
-}
-
+/**
+ * Line items for an invoice made from a proposal, named like
+ * "Atmosphere TV December 17th Manicure Event".
+ */
 export function generateLineItems(
   proposalData: any,
   pricingOptions?: any,
   selectedOptions?: any
 ): InvoiceLineItem[] {
-  const items: InvoiceLineItem[] = [];
-  const services = proposalData?.services || {};
-
-  Object.entries(services).forEach(([location, locationData]: [string, any]) => {
-    if (Array.isArray(locationData)) return;
-    Object.entries(locationData).forEach(([date, dateData]: [string, any]) => {
-      const serviceList = dateData?.services || [];
-      serviceList.forEach((service: any, serviceIndex: number) => {
-        let effectiveCost = service.serviceCost || 0;
-
-        if (pricingOptions && selectedOptions) {
-          const optionKey = `${location}-${date}-${serviceIndex}`;
-          const options = pricingOptions[optionKey];
-          const selectedIdx = selectedOptions[optionKey];
-          if (options && selectedIdx !== undefined && options[selectedIdx]) {
-            const selectedOption = options[selectedIdx];
-            if (selectedOption.serviceCost != null) {
-              effectiveCost = selectedOption.serviceCost;
-            }
-          }
-        }
-
-        items.push({
-          description: `${formatServiceName(service.serviceType)} at ${location} on ${formatDate(date)}`,
-          amount: effectiveCost
-        });
-      });
-    });
-  });
-
-  // Holiday package combine-and-save: a summary line, so the services above
-  // are at full price and the saving goes on as a credit.
-  const holidaySavings = Number(proposalData?.summary?.holidayDiscountAmount) || 0;
-  if (holidaySavings > 0) {
-    items.push({
-      description: `${proposalData?.holidayPackage?.name || 'Holiday package'}: combine and save (${proposalData?.summary?.holidayDiscountPercent || 10}%)`,
-      amount: -holidaySavings
-    });
-  }
-
-  // Custom line items
-  if (proposalData?.customLineItems && Array.isArray(proposalData.customLineItems)) {
-    proposalData.customLineItems.forEach((item: any) => {
-      if (item.amount) {
-        items.push({
-          description: item.name || item.description || 'Custom item',
-          amount: item.amount
-        });
-      }
-    });
-  }
-
-  // Gratuity
-  if (proposalData?.gratuityType && proposalData?.summary) {
-    const summary = proposalData.summary;
-    let gratuityAmount = 0;
-    if (proposalData.gratuityType === 'percentage' && proposalData.gratuityValue) {
-      gratuityAmount = (summary.subtotalBeforeGratuity || summary.totalEventCost || 0) * (proposalData.gratuityValue / 100);
-    } else if (proposalData.gratuityType === 'dollar' && proposalData.gratuityValue) {
-      gratuityAmount = proposalData.gratuityValue;
-    }
-    if (gratuityAmount > 0) {
-      items.push({
-        description: `Gratuity (${proposalData.gratuityType === 'percentage' ? `${proposalData.gratuityValue}%` : 'flat'})`,
-        amount: gratuityAmount
-      });
-    }
-  }
-
-  return items;
+  return buildInvoiceLineItems(proposalData, pricingOptions, selectedOptions);
 }
 
 // --- Invoice Status Config ---
@@ -158,6 +61,14 @@ export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({
   const [invoicePdf, setInvoicePdf] = useState<string | null>(existingInvoicePdf || null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [recipient, setRecipient] = useState<LoadedInvoiceRecipient | null>(null);
+  const [opening, setOpening] = useState(false);
+  // Stable between renders, so the modal keeps staff edits while it sends.
+  const initialItems = useMemo(
+    () => generateLineItems(proposalData, pricingOptions, selectedOptions),
+    [proposalData, pricingOptions, selectedOptions]
+  );
+  const paymentDue = useMemo(() => defaultPaymentDue(proposalData), [proposalData]);
 
   // If already invoiced, show view-only state with status
   if (invoiceUrl) {
@@ -214,8 +125,11 @@ export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({
     );
   }
 
-  const openConfirmation = () => {
+  const openConfirmation = async () => {
     setError(null);
+    setOpening(true);
+    setRecipient(await loadInvoiceRecipient(proposalId));
+    setOpening(false);
     setShowConfirmation(true);
   };
 
@@ -223,7 +137,7 @@ export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({
     clientName: string;
     clientEmail: string;
     lineItems: InvoiceLineItem[];
-    daysUntilDue: number;
+    dueDate: string;
     sendToClient?: boolean;
   }) => {
     try {
@@ -247,7 +161,7 @@ export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({
             description: item.description,
             amount: item.amount
           })),
-          daysUntilDue: data.daysUntilDue,
+          dueDate: data.dueDate,
           sendToClient: data.sendToClient ?? true
         })
       });
@@ -278,12 +192,12 @@ export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({
     }
   };
 
-  const initialItems = generateLineItems(proposalData, pricingOptions, selectedOptions);
 
   return (
     <>
       <button
         onClick={openConfirmation}
+        disabled={opening}
         className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#635BFF] hover:bg-[#4B45C6] text-white font-bold rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#635BFF] focus:ring-offset-2"
       >
         <Receipt size={18} />
@@ -294,9 +208,11 @@ export const StripeInvoiceButton: React.FC<StripeInvoiceButtonProps> = ({
         isOpen={showConfirmation}
         onClose={() => { setShowConfirmation(false); setError(null); }}
         onSend={handleSendInvoice}
-        initialName={proposalData?.clientName || ''}
-        initialEmail={clientEmail || ''}
+        initialName={recipient?.name || proposalData?.clientName || ''}
+        initialEmail={recipient?.email || clientEmail || ''}
         initialItems={initialItems}
+        paymentDue={paymentDue}
+        billingContactText={recipient?.billingContactText}
         proposalId={proposalId}
         loading={loading}
         error={error}

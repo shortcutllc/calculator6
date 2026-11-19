@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Receipt, Plus, Trash2, X, Link2, Send } from 'lucide-react';
 import { Button } from './Button';
+import {
+  addDays,
+  defaultPaymentDue,
+  longDate,
+  parseIsoDate,
+  paymentDueNote,
+  toIsoDate,
+} from '../../netlify/functions/lib/invoice-defaults.js';
+import type { PaymentDueDefault } from '../../netlify/functions/lib/invoice-defaults.js';
 
 export interface InvoiceLineItem {
   description: string;
@@ -14,14 +23,18 @@ interface InvoiceConfirmationModalProps {
     clientName: string;
     clientEmail: string;
     lineItems: InvoiceLineItem[];
-    daysUntilDue: number;
+    /** Calendar day payment is due, "YYYY-MM-DD". */
+    dueDate: string;
     proposalId?: string;
     sendToClient?: boolean;
   }) => Promise<void>;
   initialName?: string;
   initialEmail?: string;
   initialItems?: InvoiceLineItem[];
-  initialDaysUntilDue?: number;
+  /** Where the due date starts (48 hours before the event); 30 days out without one. */
+  paymentDue?: PaymentDueDefault;
+  /** The survey's billing contact answer, shown so staff can check name and email against it. */
+  billingContactText?: string | null;
   proposalId?: string;
   loading?: boolean;
   error?: string | null;
@@ -34,7 +47,8 @@ export const InvoiceConfirmationModal: React.FC<InvoiceConfirmationModalProps> =
   initialName = '',
   initialEmail = '',
   initialItems = [],
-  initialDaysUntilDue = 30,
+  paymentDue,
+  billingContactText,
   proposalId,
   loading = false,
   error: externalError = null
@@ -42,7 +56,8 @@ export const InvoiceConfirmationModal: React.FC<InvoiceConfirmationModalProps> =
   const [name, setName] = useState(initialName);
   const [email, setEmail] = useState(initialEmail);
   const [items, setItems] = useState<InvoiceLineItem[]>(initialItems);
-  const [daysUntilDue, setDaysUntilDue] = useState(initialDaysUntilDue);
+  const due = paymentDue || defaultPaymentDue(null);
+  const [dueDate, setDueDate] = useState(due.dueDate);
   const [localError, setLocalError] = useState<string | null>(null);
 
   // Sync when props change (e.g. different proposal selected)
@@ -50,9 +65,9 @@ export const InvoiceConfirmationModal: React.FC<InvoiceConfirmationModalProps> =
     setName(initialName);
     setEmail(initialEmail);
     setItems(initialItems);
-    setDaysUntilDue(initialDaysUntilDue);
+    setDueDate(due.dueDate);
     setLocalError(null);
-  }, [initialName, initialEmail, initialItems, initialDaysUntilDue]);
+  }, [initialName, initialEmail, initialItems, due.dueDate]);
 
   if (!isOpen) return null;
 
@@ -73,6 +88,8 @@ export const InvoiceConfirmationModal: React.FC<InvoiceConfirmationModalProps> =
   };
 
   const total = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  const tomorrow = addDays(toIsoDate(new Date()), 1) as string;
+  const dueNote = paymentDueNote(due);
 
   const handleSubmit = (sendToClient: boolean) => {
     if (sendToClient && (!email.trim() || !email.includes('@'))) {
@@ -87,12 +104,20 @@ export const InvoiceConfirmationModal: React.FC<InvoiceConfirmationModalProps> =
       setLocalError('At least one line item is required');
       return;
     }
+    if (!parseIsoDate(dueDate)) {
+      setLocalError('Pick the date payment is due');
+      return;
+    }
+    if (dueDate < tomorrow) {
+      setLocalError('Pick a due date after today. Stripe does not take today or earlier.');
+      return;
+    }
     setLocalError(null);
     onSend({
       clientName: name.trim(),
       clientEmail: email.trim(),
       lineItems: items,
-      daysUntilDue,
+      dueDate,
       proposalId,
       sendToClient
     });
@@ -140,6 +165,13 @@ export const InvoiceConfirmationModal: React.FC<InvoiceConfirmationModalProps> =
             </div>
           </div>
 
+          {billingContactText && (
+            <div className="rounded-lg bg-gray-50 border border-gray-200 px-3 py-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Billing contact on the survey</p>
+              <p className="text-sm text-gray-700 whitespace-pre-line">{billingContactText}</p>
+            </div>
+          )}
+
           {/* Line Items */}
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Line Items</label>
@@ -182,18 +214,23 @@ export const InvoiceConfirmationModal: React.FC<InvoiceConfirmationModalProps> =
             </button>
           </div>
 
-          {/* Days Until Due */}
-          <div className="flex items-center gap-3">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Payment Due</label>
-            <input
-              type="number"
-              value={daysUntilDue}
-              onChange={(e) => setDaysUntilDue(parseInt(e.target.value) || 30)}
-              min="1"
-              max="365"
-              className="w-16 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent text-center"
-            />
-            <span className="text-sm text-gray-500">days after sending</span>
+          {/* Payment Due */}
+          <div>
+            <div className="flex flex-wrap items-center gap-3">
+              <label htmlFor="invoice-due-date" className="text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Payment Due</label>
+              <input
+                id="invoice-due-date"
+                type="date"
+                value={dueDate}
+                min={tomorrow}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-shortcut-blue focus:border-transparent"
+              />
+              {parseIsoDate(dueDate) && (
+                <span className="text-sm text-gray-600">{longDate(dueDate)}</span>
+              )}
+            </div>
+            {dueNote && <p className="mt-1.5 text-xs text-gray-600">{dueNote}</p>}
           </div>
 
           {/* Total */}

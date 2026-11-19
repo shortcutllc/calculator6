@@ -99,6 +99,9 @@ import WhyShortcutSection from './proposal/sections/WhyShortcutSection';
 import FacilitatorCard from './proposal/sidebar/FacilitatorCard';
 import { FACILITATOR_KIRSTEN } from './proposal/sections/serviceContent';
 import { generateLineItems } from './StripeInvoiceButton';
+import { defaultPaymentDue } from '../../netlify/functions/lib/invoice-defaults.js';
+import { loadInvoiceRecipient } from '../utils/invoiceRecipient';
+import type { LoadedInvoiceRecipient } from '../utils/invoiceRecipient';
 import type { InvoiceLineItem } from './InvoiceConfirmationModal';
 import InvoiceConfirmationModalV2 from './proposal/InvoiceConfirmationModalV2';
 import { holidayComboActive, holidayComboSavings, COMBINE_PCT } from '../../netlify/functions/lib/holiday-packages.js';
@@ -545,6 +548,20 @@ const ProposalViewerV2: React.FC = () => {
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
   const [invoiceLinkCopied, setInvoiceLinkCopied] = useState(false);
+  // Who the invoice goes to, read from the proposal and its survey when staff
+  // open the invoice window.
+  const [invoiceRecipient, setInvoiceRecipient] = useState<LoadedInvoiceRecipient | null>(null);
+  // Stable between renders, so the invoice window keeps staff edits while it sends.
+  const invoiceInitialItems = useMemo(
+    () =>
+      generateLineItems(
+        displayData,
+        currentProposal?.pricingOptions,
+        currentProposal?.selectedOptions
+      ),
+    [displayData, currentProposal?.pricingOptions, currentProposal?.selectedOptions]
+  );
+  const invoicePaymentDue = useMemo(() => defaultPaymentDue(displayData), [displayData]);
 
   // -----------------------------------------------------------------------
   // Hydrate admin notes from proposal.notes when it loads
@@ -2228,7 +2245,7 @@ const ProposalViewerV2: React.FC = () => {
     clientName: string;
     clientEmail: string;
     lineItems: InvoiceLineItem[];
-    daysUntilDue: number;
+    dueDate: string;
     sendToClient?: boolean;
   }) => {
     if (!id) return;
@@ -2253,7 +2270,7 @@ const ProposalViewerV2: React.FC = () => {
             description: li.description,
             amount: li.amount,
           })),
-          daysUntilDue: data.daysUntilDue,
+          dueDate: data.dueDate,
           sendToClient: data.sendToClient ?? true,
         }),
       });
@@ -5343,8 +5360,9 @@ const ProposalViewerV2: React.FC = () => {
               invoiceStatus={invoiceStatus}
               copied={invoiceLinkCopied}
               onCopyLink={handleCopyInvoiceLink}
-              onCreate={() => {
+              onCreate={async () => {
                 setInvoiceError(null);
+                if (id) setInvoiceRecipient(await loadInvoiceRecipient(id));
                 setShowInvoiceConfirm(true);
               }}
             />
@@ -6116,13 +6134,11 @@ const ProposalViewerV2: React.FC = () => {
           setInvoiceError(null);
         }}
         onSend={handleSendInvoice}
-        initialName={displayData?.clientName || ''}
-        initialEmail={currentProposal?.clientEmail || ''}
-        initialItems={generateLineItems(
-          displayData,
-          currentProposal?.pricingOptions,
-          currentProposal?.selectedOptions
-        )}
+        initialName={invoiceRecipient?.name || displayData?.clientName || ''}
+        initialEmail={invoiceRecipient?.email || currentProposal?.clientEmail || ''}
+        initialItems={invoiceInitialItems}
+        paymentDue={invoicePaymentDue}
+        billingContactText={invoiceRecipient?.billingContactText}
         proposalId={id}
         loading={invoiceLoading}
         error={invoiceError}
