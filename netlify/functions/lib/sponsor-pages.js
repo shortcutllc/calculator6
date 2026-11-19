@@ -16,11 +16,19 @@
  *
  * Everything else on the page (the copy, pricing, photos) is shared across
  * conferences in SponsorOnePager.tsx. These fields are facts, never copy.
+ *
+ * SPONSOR DECK: the page the organizer sends ITS sponsors once it has bought
+ * the lounge (SponsorDeck.tsx), stored on the same row: `deck` (the
+ * organizer's offer and the conference's facts) and `deck_token` (its own
+ * link, /lounge/<token>, which never leads back to this partner page).
+ * Migration 20261119000000_sponsor_page_decks.sql.
  */
+import { randomBytes } from 'node:crypto';
 import { CALL_HOSTS, hostFor } from './call-hours.js';
 import { storeProvidedLogo } from './logo-fetcher.js';
 
 export const SPONSOR_PAGE_BASE_URL = 'https://proposals.getshortcut.co/sponsor';
+export const SPONSOR_DECK_BASE_URL = 'https://proposals.getshortcut.co/lounge';
 
 /** KEEP IN STEP with SPONSOR_SERVICES in src/utils/sponsorPackages.ts. */
 export const SPONSOR_STATIONS = [
@@ -104,6 +112,81 @@ export function resolveSender(value) {
   return host;
 }
 
+/* ── Sponsor decks ── */
+
+const TIER_IDS = ['title', 'station', 'mindful'];
+const deckStr = (v, max = 300) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : '');
+
+/** A deck with anything malformed or empty dropped. KEEP IN STEP with
+ *  cleanDeck in src/services/sponsorPageService.ts. */
+export function cleanDeck(v) {
+  const d = v && typeof v === 'object' ? v : {};
+  const out = {};
+  if (deckStr(d.venue)) out.venue = deckStr(d.venue, 120);
+  if (deckStr(d.about)) out.about = deckStr(d.about, 400);
+  if (Array.isArray(d.audience)) {
+    const a = d.audience.map((x) => deckStr(x, 90)).filter(Boolean).slice(0, 9);
+    if (a.length) out.audience = a;
+  }
+  if (Array.isArray(d.stats)) {
+    const st = d.stats
+      .map((x) => (x && typeof x === 'object' ? { fig: deckStr(x.fig, 16), label: deckStr(x.label, 90) } : null))
+      .filter((x) => x && x.fig && x.label)
+      .slice(0, 3);
+    if (st.length) out.stats = st;
+  }
+  if (deckStr(d.statsSource)) out.statsSource = deckStr(d.statsSource, 160);
+  if (d.tiers && typeof d.tiers === 'object') {
+    const tiers = {};
+    for (const id of TIER_IDS) {
+      const t = d.tiers[id] || {};
+      const price = deckStr(t.price, 24);
+      const available = deckStr(t.available, 24);
+      if (price || available) tiers[id] = { ...(price ? { price } : {}), ...(available ? { available } : {}) };
+    }
+    if (Object.keys(tiers).length) out.tiers = tiers;
+  }
+  if (d.salesContact && typeof d.salesContact === 'object' && deckStr(d.salesContact.name)) {
+    out.salesContact = { name: deckStr(d.salesContact.name, 80) };
+    if (deckStr(d.salesContact.team)) out.salesContact.team = deckStr(d.salesContact.team, 80);
+    if (deckStr(d.salesContact.email)) out.salesContact.email = deckStr(d.salesContact.email, 120);
+  }
+  return out;
+}
+
+/** An edit to a deck: only the parts given change. Within tiers and the
+ *  sales contact, only the fields given change. '' clears a field. */
+function mergeDeck(existing, patch) {
+  const base = cleanDeck(existing);
+  if (!patch || typeof patch !== 'object') throw new SponsorPageError('deck must be an object.');
+  const next = { ...base };
+  for (const [k, v] of Object.entries(patch)) {
+    if (k === 'tiers' && v && typeof v === 'object') {
+      next.tiers = { ...(base.tiers || {}) };
+      for (const id of Object.keys(v)) {
+        if (!TIER_IDS.includes(id)) throw new SponsorPageError(`deck.tiers has title, station and mindful, not "${id}".`);
+        next.tiers[id] = { ...(next.tiers[id] || {}), ...v[id] };
+      }
+    } else if (k === 'salesContact' && v && typeof v === 'object') {
+      next.salesContact = { ...(base.salesContact || {}), ...v };
+    } else {
+      next[k] = v;
+    }
+  }
+  const email = next.salesContact && deckStr(next.salesContact.email);
+  if (email && !/^\S+@\S+\.\S+$/.test(email)) throw new SponsorPageError(`deck.salesContact.email "${email}" doesn't look like an email.`);
+  const cleaned = cleanDeck(next);
+  if (cleaned.stats && !cleaned.statsSource) {
+    throw new SponsorPageError('deck.stats need deck.statsSource: where the figures come from (the organizer\'s site). Never invent a figure.');
+  }
+  return cleaned;
+}
+
+const newDeckToken = () => {
+  const abc = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  return Array.from(randomBytes(12), (b) => abc[b % abc.length]).join('');
+};
+
 /** What callers see. The password hash never leaves this module. */
 function toPage(r) {
   return {
@@ -118,6 +201,10 @@ function toPage(r) {
     logoUrl: r.logo_url || null,
     hasPassword: !!r.password_hash,
     status: r.status,
+    // The sponsor deck: send `deckUrl` to the organizer for its sponsors,
+    // never `url` (the partner page shows the organizer's margin).
+    deckUrl: r.deck_token ? `${SPONSOR_DECK_BASE_URL}/${r.deck_token}` : null,
+    deck: r.deck ? cleanDeck(r.deck) : null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
@@ -139,6 +226,9 @@ async function storedLogo(supabase, logoUrl, organizerName) {
 
 function dbFail(error) {
   const msg = error?.message || 'Database error';
+  if (/deck/i.test(msg) && (error?.code === '42703' || error?.code === 'PGRST204' || /column|could not find the/i.test(msg))) {
+    throw new SponsorPageError('Sponsor decks need migration 20261119000000_sponsor_page_decks.sql first.', 503);
+  }
   if (error?.code === '42P01' || error?.code === 'PGRST205' || /does not exist|could not find the/i.test(msg)) {
     throw new SponsorPageError('The sponsor_pages table is missing. Run 20260929000000_create_sponsor_pages.sql first.', 503);
   }
@@ -275,6 +365,15 @@ export async function updateSponsorPage(supabase, ref, changes = {}) {
     if (!STATUSES.has(v)) throw new SponsorPageError('status is "published" or "draft".');
     row.status = v;
     changed.push(v);
+  }
+  if (has('deck')) {
+    row.deck = mergeDeck(existing.deck, changes.deck);
+    changed.push('sponsor deck');
+  }
+  if (has('makeDeckLink') && changes.makeDeckLink && !existing.deck_token) {
+    // The link never changes once made, so a sent link keeps working.
+    row.deck_token = newDeckToken();
+    changed.push('sponsor deck link made');
   }
   if (!changed.length) throw new SponsorPageError('Nothing to change. Pass at least one field.');
 

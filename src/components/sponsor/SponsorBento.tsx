@@ -1,5 +1,6 @@
 import WhyShortcutBento from '../proposal/sections/WhyShortcutBento';
 import MobileSignupModule from '../proposal/MobileSignupModule';
+import { useSponsorStatic } from './sponsorUi';
 import '../../styles/proposal-refresh.css';
 
 /* ─────────────────────────────────────────────
@@ -40,44 +41,79 @@ const CHECKLIST = [
   'Setup and cleanup',
 ];
 
-export default function SponsorBento({ conferenceName, dateLabel }: {
-  conferenceName: string; dateLabel: string;
+/* The few lines that change when the reader is the sponsor (the sponsor
+   deck) rather than the organizer (the partner page). */
+const COPY = {
+  organizer: {
+    wideBody: 'Invites, booking and reminders before the show, check-in during it, and a results report after. It all plugs into your event app.',
+    brandBody: 'Your sponsor\u2019s logo, colors, questions and opt-in language on the booking page, the emails and the texts.',
+    leadBody: 'Captured in the fields your sponsor chooses, and handed over after the show.',
+    questionNote: 'Sponsor\u2019s question',
+    checklist: CHECKLIST,
+    brandText: 'SPONSOR LOGO',
+    eventLine: 'Chair massage with a licensed therapist, on the sponsor.',
+  },
+  sponsor: {
+    wideBody: 'Invites, booking and reminders before the show, check-in during it, and a results report after.',
+    brandBody: 'Your logo, colors, questions and opt-in language on the booking page, the emails and the texts.',
+    leadBody: 'Captured in the fields you choose and handed to you after the show. The list is yours alone.',
+    questionNote: 'Your question',
+    checklist: [
+      'Certificates of insurance to the venue',
+      'Show orders and freight',
+      'A layout for your lounge space',
+      'Lounge build and signage',
+      'A Shortcut lead on site',
+      'Setup and cleanup',
+    ],
+    brandText: 'YOUR LOGO',
+    eventLine: 'Chair massage with a licensed therapist, courtesy of your brand.',
+  },
+};
+
+export default function SponsorBento({ conferenceName, dateLabel, audience = 'organizer' }: {
+  conferenceName: string; dateLabel: string; audience?: 'organizer' | 'sponsor';
 }) {
+  const copy = COPY[audience];
+  /* The sponsor deck's PDF: the proposal PDF's settled bento (.pv-static in
+     proposal-refresh.css) and a still phone. */
+  const isStatic = useSponsorStatic();
   return (
-    <div className="pv-root !bg-transparent [&_.pv-bento]:mt-0 [&_.mv-live]:!bg-[#EEF2F1] [&_.mv-live]:!text-[#45596A]">
+    <div className={`pv-root ${isStatic ? 'pv-static ' : ''}!bg-transparent [&_.pv-bento]:mt-0 [&_.mv-live]:!bg-[#EEF2F1] [&_.mv-live]:!text-[#45596A]`}>
       <div>
         <WhyShortcutBento
           label="What sets Shortcut apart"
           headA="Tech that runs every sign-up,"
           headB="and a team that handles the rest."
           wideTitle="Sign-ups handled before, during and after"
-          wideBody="Invites, booking and reminders before the show, check-in during it, and a results report after. It all plugs into your event app."
+          wideBody={copy.wideBody}
           eventName={`Wellness Lounge · ${conferenceName}`}
           eventWhen={dateLabel}
           cityTitle={<>One vendor.<br />Every venue.</>}
           cityBody="Hotels, convention centers and offsites, coast to coast."
           handledTitle="All the logistics, handled."
           statusLabel="Example"
-          checklist={CHECKLIST}
+          checklist={copy.checklist}
           extraRowFirst
           extraRow={
-            <div className="pv-bento-row ![grid-template-columns:1fr] min-[981px]:![grid-template-columns:1.15fr_1fr]">
+            <div className="pv-bento-row ![grid-template-columns:1fr] deskp:![grid-template-columns:1.15fr_1fr]">
               <article className="pv-bcard pv-bcard--aqua sp-bcard">
                 <div className="pv-bcard-copy">
                   <h3>White-labeled and fully customizable</h3>
-                  <p>Your sponsor&rsquo;s logo, colors, questions and opt-in language on the booking page, the emails and the texts.</p>
+                  <p>{copy.brandBody}</p>
                 </div>
                 <div className="pv-bcard-art">
                   <div>
                     <MobileSignupModule
                       size={300}
+                      still={isStatic}
                       eyebrow="The attendee sign-up"
                       copy={{
                         eventTitle: `Wellness Lounge at ${conferenceName}`,
-                        eventLine: 'Chair massage with a licensed therapist, on the sponsor.',
+                        eventLine: copy.eventLine,
                         location: 'Expo hall lounge',
                         barSub: `Free for ${conferenceName} attendees`,
-                        brandText: 'SPONSOR LOGO',
+                        brandText: copy.brandText,
                         whenLine: dateLabel || conferenceName,
                         slotLine: dateLabel ? `${dateLabel} · 12:40 pm` : '12:40 pm',
                         slotShort: '12:40 pm',
@@ -91,7 +127,7 @@ export default function SponsorBento({ conferenceName, dateLabel }: {
               <article className="pv-bcard pv-bcard--navy sp-bcard">
                 <div className="pv-bcard-copy">
                   <h3>Every sign-up is a lead</h3>
-                  <p>Captured in the fields your sponsor chooses, and handed over after the show.</p>
+                  <p>{copy.leadBody}</p>
                 </div>
                 <div className="pv-bcard-art">
                   <div className="sp-lead w-[min(340px,calc(100%-48px))] rounded-[20px] bg-white px-5 pt-5 pb-9 shadow-[0_12px_36px_rgba(0,0,0,.28)]" aria-hidden="true">
@@ -108,7 +144,7 @@ export default function SponsorBento({ conferenceName, dateLabel }: {
                         <div key={r.k} className="flex items-baseline justify-between gap-3 py-2 border-b border-[#E2E9E8]">
                           <dt className="text-[12px] font-semibold text-[#45596A]">
                             {r.k}
-                            {r.note && <span className="ml-1.5 rounded-full bg-[#FEDC64] px-1.5 py-px text-[9.5px] font-extrabold uppercase tracking-[.05em] text-[#003756]">{r.note}</span>}
+                            {r.note && <span className="ml-1.5 rounded-full bg-[#FEDC64] px-1.5 py-px text-[9.5px] font-extrabold uppercase tracking-[.05em] text-[#003756]">{copy.questionNote}</span>}
                           </dt>
                           <dd className="m-0 text-[13px] font-bold text-[#003756] text-right">{r.v}</dd>
                         </div>

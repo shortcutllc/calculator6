@@ -116,5 +116,20 @@ export default {
   },
   plugins: [
     require('@tailwindcss/typography'),
+    /* Breakpoints that are also on when printing: smp, mdp, deskp (981),
+       lgp and xlp behave like sm, md, min-[981px], lg and xl on screen, and
+       all apply in print and inside `.sp-static` (the sponsor deck's PDF
+       mode). Chrome matches print media queries against its default paper
+       (about 756px), not the CSS page size, so the conference partner pages
+       use these to print their desktop layout, and PDF mode lays out the
+       same desktop page on any screen so it can be measured. Registered
+       smallest first, so larger wins. */
+    function ({ addVariant }) {
+      addVariant('smp', ['@media (min-width: 640px)', '@media print', '.sp-static &']);
+      addVariant('mdp', ['@media (min-width: 768px)', '@media print', '.sp-static &']);
+      addVariant('deskp', ['@media (min-width: 981px)', '@media print', '.sp-static &']);
+      addVariant('lgp', ['@media (min-width: 1024px)', '@media print', '.sp-static &']);
+      addVariant('xlp', ['@media (min-width: 1280px)', '@media print', '.sp-static &']);
+    },
   ],
 };

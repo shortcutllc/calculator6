@@ -70,6 +70,7 @@ const KeplerReport = lazy(() => import('./components/KeplerReport'));
 const YW3OnePager = lazy(() => import('./components/YW3OnePager'));
 const AACSBOnePager = lazy(() => import('./components/AACSBOnePager'));
 const SponsorOnePager = lazy(() => import('./components/sponsor/SponsorOnePager'));
+const SponsorDeck = lazy(() => import('./components/sponsor/SponsorDeck'));
 const RedesignPreview = lazy(() => import('./components/RedesignPreview'));
 const ProposalGalleryAdmin = lazy(() => import('./components/ProposalGalleryAdmin'));
 const UsersManagement = lazy(() => import('./components/UsersManagement'));
@@ -125,6 +126,7 @@ function App() {
     location.pathname === '/lower-pyne' ||
     location.pathname === '/yw3' ||
     location.pathname.startsWith('/sponsor/') ||
+    location.pathname.startsWith('/lounge/') ||
     location.pathname === '/draftkings' ||
     location.pathname === '/draftkings-report' ||
     location.pathname === '/draftkings-lv' ||
@@ -1217,6 +1219,34 @@ function App() {
                   }>
                     <AACSBOnePager />
                   </Suspense>
+                }
+              />
+              {/* The sponsor deck: its own link for organizers to send their
+                  sponsors, and a staff-only preview under the partner page. */}
+              <Route
+                path="/lounge/:token"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <SponsorDeck />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/sponsor/:slug/deck"
+                element={
+                  <PrivateRoute>
+                    <Suspense fallback={
+                      <div className="min-h-screen flex items-center justify-center">
+                        <LoadingSpinner size="large" />
+                      </div>
+                    }>
+                      <SponsorDeck />
+                    </Suspense>
+                  </PrivateRoute>
                 }
               />
               <Route

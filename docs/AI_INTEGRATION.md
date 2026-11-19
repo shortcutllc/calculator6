@@ -95,6 +95,21 @@ The page's copy is the same for every conference. What you set are the facts:
 | `password` | Visitors type it to see the page. On an edit, `""` removes it. |
 | `status` | `published` (default, live at once) or `draft`. |
 
+### Sponsor deck
+
+Once an organizer has bought the lounge, the sponsor deck is the page **they** send **their** sponsors, with a Download PDF button. It sits on the same sponsor page. Set it with `edit_sponsor_page` (or the update call below), passing only what changes:
+
+| Field | Notes |
+|---|---|
+| `deck.salesContact` | `{ name, team, email }`: the organizer's person sponsors contact to reserve. |
+| `deck.tiers` | The organizer's own prices and availability: `title` (the whole lounge), `station` (one station each), `mindful` (a Mindful Reset sponsorship), each `{ price, available }`. Never our prices. |
+| `deck.venue`, `deck.about` | The venue, and one plain sentence about the conference. |
+| `deck.audience` | Who attends, one group per item, up to nine. |
+| `deck.stats`, `deck.statsSource` | Up to three figures from the organizer, each `{ fig, label }`, with where they come from. Never invent one. |
+| `makeDeckLink` | `true` makes the deck's own link, returned as `deckUrl`. It never changes after that. |
+
+Send the organizer the `deckUrl`, never the sponsor page `url`: the sponsor page shows the organizer's margin.
+
 ## 3. The HTTP API
 
 Base URL: `https://proposals.getshortcut.co/.netlify/functions/generate-proposal`
@@ -221,6 +236,18 @@ curl -X PATCH "https://proposals.getshortcut.co/.netlify/functions/generate-prop
 ```
 
 The reply has the page and a `changed` list, here `["dates", "password removed"]`.
+
+The sponsor deck, then its link:
+
+```bash
+curl -X PATCH "https://proposals.getshortcut.co/.netlify/functions/generate-proposal?action=update-sponsor-page" \
+  -H "Authorization: Bearer sk_shortcut_YOUR_KEY" -H "Content-Type: application/json" \
+  -d '{ "page": "gcuc-miami", "makeDeckLink": true,
+        "deck": { "salesContact": { "name": "Jamie Russo", "team": "GCUC Partnerships", "email": "jamie@gcuc.co" },
+                  "tiers": { "title": { "price": "$35,000", "available": "1 available" } } } }'
+```
+
+The reply's `page.deckUrl` is the link to send, like `https://proposals.getshortcut.co/lounge/k7qm2px9dalr`.
 
 ### Create a landing page
 

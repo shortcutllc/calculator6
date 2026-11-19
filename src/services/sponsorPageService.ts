@@ -2,7 +2,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase as typedClient } from '../lib/supabaseClient';
 import { SPONSOR_SERVICES, type SponsorServiceId } from '../utils/sponsorPackages';
 import { SPONSOR_PAGES } from '../components/sponsor/sponsorPages';
-import type { SponsorPageConfig, SponsorPageInput, SponsorPageRecord } from '../types/sponsorPage';
+import type {
+  SponsorPageConfig, SponsorPageInput, SponsorPageRecord, SponsorDeckConfig, SponsorDeckDetails, DeckTierId,
+} from '../types/sponsorPage';
 
 /* ─────────────────────────────────────────────
    Conference partner pages (/sponsor/:slug), stored in `sponsor_pages`.
@@ -95,6 +97,8 @@ function toRecord(r: Record<string, unknown>): SponsorPageRecord {
     logoUrl: typeof r.logo_url === 'string' && r.logo_url ? r.logo_url : null,
     hasPassword: !!r.password_hash,
     status: r.status === 'draft' ? 'draft' : 'published',
+    deck: r.deck ? cleanDeck(r.deck) : null,
+    deckToken: typeof r.deck_token === 'string' && r.deck_token ? r.deck_token : null,
     createdAt: String(r.created_at),
     updatedAt: String(r.updated_at),
   };
@@ -209,4 +213,133 @@ export function slugify(text: string): string {
     .replace(/^-+|-+$/g, '')
     .slice(0, 60)
     .replace(/-+$/g, '');
+}
+
+/* ── Sponsor decks (/lounge/<token>) ──
+   The page an organizer sends its sponsors. The public reads it only
+   through get_sponsor_deck(token), which never returns the slug, so a deck
+   can't lead a sponsor back to the partner page. Migration:
+   20261119000000_sponsor_page_decks.sql. */
+
+export const SPONSOR_DECKS_MIGRATION = '20261119000000_sponsor_page_decks.sql';
+
+/** The deck's own link. */
+export const deckUrl = (token: string) => `${window.location.origin}/lounge/${token}`;
+
+const str = (v: unknown, max = 300) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : '');
+const TIER_IDS: DeckTierId[] = ['title', 'station', 'mindful'];
+
+/** A deck from stored JSON, with anything malformed or empty dropped. */
+export function cleanDeck(v: unknown): SponsorDeckDetails {
+  const d = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>;
+  const out: SponsorDeckDetails = {};
+  if (str(d.venue)) out.venue = str(d.venue, 120);
+  if (str(d.about)) out.about = str(d.about, 400);
+  if (Array.isArray(d.audience)) {
+    const a = d.audience.map((x) => str(x, 90)).filter(Boolean).slice(0, 9);
+    if (a.length) out.audience = a;
+  }
+  if (Array.isArray(d.stats)) {
+    const st = d.stats
+      .map((x) => (x && typeof x === 'object' ? { fig: str((x as { fig?: unknown }).fig, 16), label: str((x as { label?: unknown }).label, 90) } : null))
+      .filter((x): x is { fig: string; label: string } => !!x && !!x.fig && !!x.label)
+      .slice(0, 3);
+    if (st.length) out.stats = st;
+  }
+  if (str(d.statsSource)) out.statsSource = str(d.statsSource, 160);
+  if (d.tiers && typeof d.tiers === 'object') {
+    const tiers: SponsorDeckDetails['tiers'] = {};
+    for (const id of TIER_IDS) {
+      const t = (d.tiers as Record<string, unknown>)[id] as Record<string, unknown> | undefined;
+      const price = str(t?.price, 24);
+      const available = str(t?.available, 24);
+      if (price || available) tiers[id] = { ...(price ? { price } : {}), ...(available ? { available } : {}) };
+    }
+    if (Object.keys(tiers).length) out.tiers = tiers;
+  }
+  if (d.salesContact && typeof d.salesContact === 'object') {
+    const c = d.salesContact as Record<string, unknown>;
+    if (str(c.name)) {
+      out.salesContact = { name: str(c.name, 80) };
+      if (str(c.team)) out.salesContact.team = str(c.team, 80);
+      if (str(c.email)) out.salesContact.email = str(c.email, 120);
+    }
+  }
+  return out;
+}
+
+export type PublicSponsorDeck = { kind: 'deck'; cfg: SponsorDeckConfig } | { kind: 'missing' };
+
+function toDeckConfig(d: Record<string, unknown>): SponsorDeckConfig {
+  const logoUrl = typeof d.logo_url === 'string' && d.logo_url ? d.logo_url : undefined;
+  return {
+    organizer: { mark: String(d.organizer_mark || d.organizer_name), name: String(d.organizer_name), logoUrl },
+    conference: { name: String(d.conference_name), dateLabel: String(d.date_label || '') },
+    services: cleanServices(d.services) ?? undefined,
+    deck: cleanDeck(d.deck),
+  };
+}
+
+/** The deck at /lounge/<token>, for anyone with the link. */
+export async function fetchPublicSponsorDeck(token: string): Promise<PublicSponsorDeck> {
+  const { data, error } = await supabase.rpc('get_sponsor_deck', { p_token: token.toLowerCase() });
+  if (error || !data) return { kind: 'missing' };
+  return { kind: 'deck', cfg: toDeckConfig(data as Record<string, unknown>) };
+}
+
+/** Staff preview of a page's deck at /sponsor/<slug>/deck, before or after
+ *  its link exists. Reads the row directly (staff only). */
+export async function fetchSponsorDeckPreview(slug: string): Promise<{ cfg: SponsorDeckConfig; deckToken: string | null } | null> {
+  const { data, error } = await supabase.from('sponsor_pages').select('*').eq('slug', slug.toLowerCase()).maybeSingle();
+  if (error || !data) return null;
+  const r = data as Record<string, unknown>;
+  return { cfg: toDeckConfig(r), deckToken: typeof r.deck_token === 'string' && r.deck_token ? r.deck_token : null };
+}
+
+/** Saves a page's deck details. */
+export async function saveSponsorDeck(id: string, deck: SponsorDeckDetails): Promise<SponsorPageRecord> {
+  const { data, error } = await supabase
+    .from('sponsor_pages')
+    .update({ deck: cleanDeck(deck) })
+    .eq('id', id)
+    .select('*')
+    .single();
+  if (error) {
+    if (isMissingSchema(error)) throw new SponsorPageError(`Sponsor decks need ${SPONSOR_DECKS_MIGRATION} first.`, true);
+    fail(error);
+  }
+  return toRecord(data as Record<string, unknown>);
+}
+
+/** A random link token: 12 characters, a to z and 0 to 9. */
+export function newDeckToken(): string {
+  const abc = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => abc[b % abc.length]).join('');
+}
+
+/** Gives a page's deck its own link (a no-op when it has one). */
+export async function createDeckLink(id: string): Promise<SponsorPageRecord> {
+  for (let n = 0; n < 5; n++) {
+    const { data, error } = await supabase
+      .from('sponsor_pages')
+      .update({ deck_token: newDeckToken() })
+      .eq('id', id)
+      .is('deck_token', null)
+      .select('*')
+      .maybeSingle();
+    if (error) {
+      if (isMissingSchema(error)) throw new SponsorPageError(`Sponsor decks need ${SPONSOR_DECKS_MIGRATION} first.`, true);
+      // 23505: another deck has that token. Draw again.
+      if (error.code !== '23505') fail(error);
+      continue;
+    }
+    if (data) return toRecord(data as Record<string, unknown>);
+    // Nothing updated: it already has a link.
+    const { data: row, error: readError } = await supabase.from('sponsor_pages').select('*').eq('id', id).single();
+    if (readError) fail(readError);
+    return toRecord(row as Record<string, unknown>);
+  }
+  throw new SponsorPageError('Could not make a unique link. Try again.');
 }

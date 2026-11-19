@@ -121,6 +121,9 @@ interface MobileSignupModuleProps {
   eyebrow?: string;
   /** Overrides the demo's BCG event copy. See MdCopyContext. */
   copy?: Partial<MdCopy>;
+  /** Hold the still, fitted first frame, as with reduced motion: for a PDF
+   *  (the sponsor deck's static mode). */
+  still?: boolean;
 }
 
 const MobileSignupModule: React.FC<MobileSignupModuleProps> = ({
@@ -132,8 +135,9 @@ const MobileSignupModule: React.FC<MobileSignupModuleProps> = ({
   eyebrow = 'The employee sign-up',
   copy,
   description = 'No app to download. No account to make. Book a sample appointment and see how little your team has to do. You do even less.',
+  still = false,
 }) => {
-  const reduced = usePrefersReducedMotion();
+  const reduced = usePrefersReducedMotion() || still;
   const state = useMdTimeline(speed, reduced);
   const baseCopy = React.useContext(MdCopyContext);
   // The phone stage keeps the design's ~square proportion; the CTA footer (if

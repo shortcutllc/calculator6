@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Copy, ExternalLink, Lock, Pencil, Trash2, X, Check, ImagePlus, Search } from 'lucide-react';
+import { Copy, ExternalLink, Lock, Pencil, Trash2, X, Check, ImagePlus, Search, Presentation } from 'lucide-react';
 import { Button } from './Button';
 import {
   listSponsorPages, createSponsorPage, updateSponsorPage, deleteSponsorPage,
@@ -8,6 +8,7 @@ import {
 import { SPONSOR_SERVICES, type SponsorServiceId } from '../utils/sponsorPackages';
 import type { SponsorPageInput, SponsorPageRecord } from '../types/sponsorPage';
 import { ACCOUNT_TEAM } from './proposal/sidebar/AccountTeamCard';
+import SponsorDeckForm from './sponsor/SponsorDeckForm';
 
 /* ─────────────────────────────────────────────
    Staff screen for conference partner pages (/sponsor/:slug).
@@ -272,6 +273,7 @@ export default function SponsorPagesManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [formFor, setFormFor] = useState<SponsorPageRecord | 'new' | null>(null);
+  const [deckFor, setDeckFor] = useState<SponsorPageRecord | null>(null);
   const [copied, setCopied] = useState('');
   const [search, setSearch] = useState('');
 
@@ -382,6 +384,11 @@ export default function SponsorPagesManager() {
                       <Lock size={12} /> Password
                     </span>
                   )}
+                  {p.deckToken && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#FEDC64] px-2.5 py-0.5 text-xs font-bold text-shortcut-blue">
+                      <Presentation size={12} /> Sponsor link
+                    </span>
+                  )}
                 </div>
                 <p className="mt-0.5 text-sm text-text-dark-60">
                   {p.organizerName}{p.dateLabel ? ` · ${p.dateLabel}` : ''} · {p.services ? `${p.services.length} services` : 'All services'} · From {p.contactName}
@@ -397,6 +404,11 @@ export default function SponsorPagesManager() {
                 <a href={`/sponsor/${p.slug}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-md bg-shortcut-teal/20 px-3 py-2 text-sm font-bold text-shortcut-blue hover:bg-shortcut-teal/30">
                   <ExternalLink size={15} /> Open
                 </a>
+                {/* What the organizer sends its sponsors once it has bought the
+                    lounge: their offer, and the deck's own link (SponsorDeckForm). */}
+                <button type="button" onClick={() => setDeckFor(p)} className="inline-flex items-center gap-1.5 rounded-md bg-shortcut-teal/20 px-3 py-2 text-sm font-bold text-shortcut-blue hover:bg-shortcut-teal/30">
+                  <Presentation size={15} /> Sponsor deck
+                </button>
                 <button type="button" onClick={() => setFormFor(p)} className="inline-flex items-center gap-1.5 rounded-md bg-shortcut-teal/20 px-3 py-2 text-sm font-bold text-shortcut-blue hover:bg-shortcut-teal/30">
                   <Pencil size={15} /> Edit
                 </button>
@@ -408,6 +420,14 @@ export default function SponsorPagesManager() {
           ))}
         </div>
         </>
+      )}
+
+      {deckFor && (
+        <SponsorDeckForm
+          page={deckFor}
+          onClose={() => setDeckFor(null)}
+          onSaved={(saved) => setPages((prev) => prev.map((x) => (x.id === saved.id ? saved : x)))}
+        />
       )}
 
       {formFor && (

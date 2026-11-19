@@ -233,6 +233,9 @@ Never add the free class as a service, never set a discount on holiday services 
 - NEVER fabricate a sponsor page URL. Use the exact "url" field from the tool result.
 - To change a page, use edit_sponsor_page with only the fields that change. To find one, use list_sponsor_pages (search by conference or organizer) or get_sponsor_page.
 - Pages can't be deleted from Slack. Staff delete them at proposals.getshortcut.co/sponsor-pages.
+- SPONSOR DECK, the next step: once an organizer has bought the lounge, the sponsor deck is the page THEY send THEIR sponsors (it has a Download PDF button). It lives on the same sponsor page. Fill it with edit_sponsor_page \`deck\` (only the parts that change): the organizer's sales contact (salesContact name, team, email), their own price and availability per sponsorship (tiers.title, tiers.station, tiers.mindful), the venue, one plain sentence about the conference (about), who attends (audience, one group per item) and up to three figures with their source (stats, statsSource). Then make its link with \`makeDeckLink: true\`.
+- Send the organizer the \`deckUrl\` from the result, never the sponsor page \`url\`: the sponsor page shows the organizer's margin and must never reach a sponsor. NEVER fabricate a deck URL.
+- Deck fields are facts. Figures come from the organizer's own site or materials, with statsSource; never invent one, and leave stats out if you have none. Prices are the organizer's to set, never ours: ask, don't guess.
 
 ## QR Code Signs
 - When a user says "create a QR code sign", "make a sign", "QR sign", or similar → call create_qr_code_sign.
@@ -702,14 +705,36 @@ const TOOLS = [
         stations: { type: 'array', items: { type: 'string' }, description: 'The full new list of stations, or ["all"].' },
         logoUrl: { type: 'string', description: 'https link to a new logo, or "" to remove it.' },
         password: { type: 'string', description: 'A new password, or "" to remove it and open the page.' },
-        status: { type: 'string', enum: ['published', 'draft'] }
+        status: { type: 'string', enum: ['published', 'draft'] },
+        deck: {
+          type: 'object',
+          description: 'The sponsor deck the organizer sends its sponsors. Pass only the parts that change; "" clears a field. Facts only, never copy.',
+          properties: {
+            venue: { type: 'string', description: 'e.g. "Miami Ironside, Little River".' },
+            about: { type: 'string', description: 'One plain sentence about the conference, from its site.' },
+            audience: { type: 'array', items: { type: 'string' }, description: 'Who attends, one group per item, up to nine, as the organizer describes them.' },
+            stats: { type: 'array', items: { type: 'object', properties: { fig: { type: 'string' }, label: { type: 'string' } } }, description: 'Up to three conference figures from the organizer, e.g. { fig: "20,000+", label: "people through GCUC’s doors" }. Needs statsSource.' },
+            statsSource: { type: 'string', description: 'Where the figures come from, e.g. "gcuc.co".' },
+            tiers: {
+              type: 'object',
+              description: 'The organizer\'s own price and availability per sponsorship. title = the whole lounge; station = one station each; mindful = a Mindful Reset sponsorship.',
+              properties: {
+                title: { type: 'object', properties: { price: { type: 'string' }, available: { type: 'string' } } },
+                station: { type: 'object', properties: { price: { type: 'string' }, available: { type: 'string' } } },
+                mindful: { type: 'object', properties: { price: { type: 'string' }, available: { type: 'string' } } }
+              }
+            },
+            salesContact: { type: 'object', description: 'The organizer\'s person sponsors contact to reserve.', properties: { name: { type: 'string' }, team: { type: 'string' }, email: { type: 'string' } } }
+          }
+        },
+        makeDeckLink: { type: 'boolean', description: 'true makes the sponsor deck\'s own link (deckUrl in the result). Once made it never changes.' }
       },
       required: ['page']
     }
   },
   {
     name: 'get_sponsor_page',
-    description: 'Get one conference partner page by id, link or slug: its fields, URL, stations, sender and whether it has a password.',
+    description: 'Get one conference partner page by id, link or slug: its fields, URL, stations, sender, whether it has a password, and its sponsor deck (deck, deckUrl).',
     input_schema: {
       type: 'object',
       properties: {

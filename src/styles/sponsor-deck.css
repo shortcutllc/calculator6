@@ -1,0 +1,78 @@
+/* ─────────────────────────────────────────────
+   Sponsor deck (/sponsor/:slug/deck): PDF mode.
+
+   The page is the partner page's design (sponsorUi.tsx, sponsor-page.css).
+   "Download PDF" turns on static mode (`.sp-static`, SponsorStatic) and
+   prints, the way the V2 proposal's PDF works. In static mode every section
+   is one page: 1440 x 1114 (letter landscape proportions), filled with the
+   section's own background, its content centred and scaled to fit by
+   fitPages() in SponsorDeck.tsx. Keep PAGE_H there in step with @page here.
+
+   Layout in static mode is always the desktop one: the print-aware Tailwind
+   variants (smp:, mdp:, lgp:, xlp:) also apply under `.sp-static`
+   (tailwind.config.js), because Chrome matches print media queries against
+   its default paper (about 756px), not this page size.
+   ───────────────────────────────────────────── */
+
+/* Motion, settled: the hero's entrance and pill drop, the logo marquee. */
+.sp-static .sp-hero .sp-rise,
+.sp-static .sp-hero .hb-pill { animation: none !important; opacity: 1 !important; transform: none !important; }
+.sp-static .animate-logo-marquee { animation: none !important; transform: none !important; margin: 0 auto; }
+/* The marquee repeats its logos so the loop is seamless; still, one set. */
+.sp-static .animate-logo-marquee > [aria-hidden="true"] { display: none !important; }
+
+/* Screen-only controls drop out: the sticky bar, hero buttons. */
+.sp-static nav[data-print-hide],
+.sp-static [data-pdf-hide] { display: none !important; }
+
+/* One page per section, at the desktop width. */
+.sp-static main { width: 1440px; margin: 0 auto; padding-top: 0 !important; }
+.sp-static main > section,
+.sp-static main > .sd-cover {
+  position: relative;
+  margin-top: 0 !important;
+  border-radius: 0 !important;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.sp-static main > section { padding-top: 72px !important; padding-bottom: 72px !important; }
+
+/* The cover: the partner page's top bar (organizer and Shortcut marks) over
+   the hero, which takes the rest of the page. */
+.sp-static .sd-cover { justify-content: flex-start; background: #003756; }
+.sp-static .sd-cover > section { flex: 1; display: flex; flex-direction: column; justify-content: center; padding-top: 56px !important; padding-bottom: 72px !important; }
+
+/* The bento (proposal-refresh.css) stacks below 981px by media query. Its
+   desktop values, for PDF mode on any screen and on paper. */
+.sd-page.sp-static .pv-bento-row { grid-template-columns: repeat(3, 1fr); }
+.sd-page.sp-static .pv-bcard { height: 340px; padding: 26px 26px 0; }
+.sd-page.sp-static .pv-bcard--wide { height: 600px; padding: 40px 40px 0; }
+.sd-page.sp-static .pv-bcard-art { height: auto; flex: 1; margin: 0 -26px; }
+.sd-page.sp-static .pv-bcard--wide .pv-bcard-art { position: absolute; inset: 0; height: auto; margin: 0; flex: none; }
+.sd-page.sp-static .pv-bento .mv-card { top: 200px; transform: translateX(-50%) scale(.9); transform-origin: 50% 0; }
+.sd-page.sp-static .pv-bcard-copy h3 { font-size: 20px; }
+.sd-page.sp-static .pv-bcard--wide .pv-bcard-copy h3 { font-size: 26px; }
+.sd-page.sp-static .pv-bcard-copy p { font-size: 13.5px; }
+.sd-page.sp-static .pv-bcard--wide .pv-bcard-copy p { font-size: 16px; }
+.sd-page.sp-static .pv-bento .wd-map { width: 100%; height: auto; }
+/* Hung from the top of its well rather than centred with a translate:
+   Chrome paginates by the box before its transform. */
+.sd-page.sp-static .pv-static .pv-bento .wd-mf { top: 15px !important; transform: translateX(-50%) scale(.72) !important; transform-origin: 50% 0 !important; }
+
+@media screen {
+  /* The PDF preview (?pdf=1): pages stacked with a gap, like a deck. */
+  .sd-page.sp-static { background: #D9E2E1; }
+  .sp-static main { display: flex; flex-direction: column; gap: 24px; padding: 24px 0 !important; }
+}
+
+@media print {
+  @page { size: 1440px 1114px; margin: 0; }
+  html, body { background: #fff !important; }
+  .sd-page * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .sd-page [data-print-hide] { display: none !important; }
+  .sd-page main > section,
+  .sd-page main > .sd-cover { break-after: page; break-inside: avoid; }
+  .sd-page main > :last-child { break-after: auto; }
+}

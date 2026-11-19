@@ -33,6 +33,42 @@ export interface SponsorPageConfig {
   heroPhoto?: { src: string; alt: string };
 }
 
+/* ── Sponsor decks ──
+   The page an organizer sends its SPONSORS (SponsorDeck.tsx), at its own
+   link /lounge/<token>. Stored on the sponsor_pages row: `deck` and
+   `deck_token` (migration 20261119000000_sponsor_page_decks.sql). */
+
+export type DeckTierId = 'title' | 'station' | 'mindful';
+
+/** The conference's own facts and the organizer's offer. Every field is
+ *  optional; the deck leaves out what isn't set. Conference facts come from
+ *  the organizer's own site and carry a source. Never invent one. */
+export interface SponsorDeckDetails {
+  /** Shown with the dates in the hero: 'Miami Ironside, Little River'. */
+  venue?: string;
+  /** A sentence about the conference, from its site. */
+  about?: string;
+  /** Who attends, as the organizer describes them. */
+  audience?: string[];
+  /** Conference figures from the organizer's site. */
+  stats?: { fig: string; label: string }[];
+  /** Where `stats` came from: 'gcuc.co, including its coworking market projection'. */
+  statsSource?: string;
+  /** The organizer's price and availability per sponsorship option. */
+  tiers?: Partial<Record<DeckTierId, { price?: string; available?: string }>>;
+  /** The organizer's person who sells sponsorships. */
+  salesContact?: { name: string; team?: string; email?: string };
+}
+
+/** What the deck renders from: the page's conference facts plus its deck.
+ *  No slug and no Shortcut sender: nothing that leads to the partner page. */
+export interface SponsorDeckConfig {
+  organizer: { mark: string; name: string; logoUrl?: string };
+  conference: { name: string; dateLabel: string };
+  services?: SponsorServiceId[];
+  deck: SponsorDeckDetails;
+}
+
 /** A sponsor_pages row as the staff screen sees it. The password hash never
  *  leaves the service; `hasPassword` says whether one is set. */
 export interface SponsorPageRecord {
@@ -47,6 +83,9 @@ export interface SponsorPageRecord {
   logoUrl: string | null;
   hasPassword: boolean;
   status: 'draft' | 'published';
+  /** The sponsor deck's details, and its link token once created. */
+  deck: SponsorDeckDetails | null;
+  deckToken: string | null;
   createdAt: string;
   updatedAt: string;
 }
