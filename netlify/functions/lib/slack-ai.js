@@ -918,16 +918,17 @@ const TOOLS = [
   },
   {
     name: 'create_invoice',
-    description: 'Create and send a Stripe invoice to a client. Can be linked to an existing proposal or created standalone. Always confirm line items and amount with the user before calling this tool.',
+    description: 'Create and email a Stripe invoice. For a proposal, pass proposalId and leave out clientName, clientEmail, lineItems and dueDate: the tool fills them the same way the staff Review Invoice window does (the person on the pre-event survey\'s billing contact, lines named like "Atmosphere TV December 17th Manicure Event", payment due 48 hours before the event). ALWAYS call it first with preview: true, which creates nothing, and show the user who it goes to, each line, the total, the due date and its dueDateNote. Only after the user confirms, call it again without preview, passing only what the user changed. If the preview lists clientEmail as missing, ask the user for the billing email. Never write or rename line items yourself unless the user asks for that wording. A standalone invoice (no proposal) needs clientName, clientEmail, lineItems and dueDate.',
     input_schema: {
       type: 'object',
       properties: {
-        proposalId: { type: 'string', description: 'UUID of proposal to invoice (optional — omit for standalone invoices)' },
-        clientName: { type: 'string', description: 'Client company name' },
-        clientEmail: { type: 'string', description: 'Client email address for invoice delivery' },
+        proposalId: { type: 'string', description: 'UUID of the proposal to invoice. Leave out only for a standalone invoice.' },
+        preview: { type: 'boolean', description: 'true returns what would be sent and creates nothing. Always preview first and get the user\'s confirmation.' },
+        clientName: { type: 'string', description: 'The person the invoice is addressed to. Leave out for a proposal invoice unless the user names someone else.' },
+        clientEmail: { type: 'string', description: 'Billing email. Leave out for a proposal invoice unless the user gives a different address or the preview says it is missing.' },
         lineItems: {
           type: 'array',
-          description: 'Line items for the invoice',
+          description: 'Leave out for a proposal invoice: the lines are built from the proposal. Pass the full list only when the user changes lines or amounts, or for a standalone invoice.',
           items: {
             type: 'object',
             properties: {
@@ -937,9 +938,8 @@ const TOOLS = [
             required: ['description', 'amount']
           }
         },
-        daysUntilDue: { type: 'integer', description: 'Payment due in N days (default 30)' }
-      },
-      required: ['clientEmail', 'lineItems']
+        dueDate: { type: 'string', description: 'Day payment is due, YYYY-MM-DD, after today. Leave out to use 48 hours before the event (30 days out when the event date is TBD or has passed). Pass it only when the user asks for a different date.' }
+      }
     }
   },
   {

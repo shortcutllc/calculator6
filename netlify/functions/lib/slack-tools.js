@@ -18,6 +18,7 @@ import { quoteHolidayPackage, holidayServices, holidayPackageRecord, HolidayPack
 import { leadPicture, suggestNextActions, nextActions } from './lead-picture.js';
 import { getAccessToken, getThread, bodyFromPayload, lc as lcGmail } from './gmail.js';
 import { createSignupLink, findSignupLinks, getEventStaffing, findPros, listProGroups, addProToEvent } from './signup-links.js';
+import { addDays, buildInvoiceLineItems, defaultPaymentDue, invoiceRecipient, paymentDueNote, stripeDueTimestamp } from './invoice-defaults.js';
 
 const PROPOSAL_BASE_URL = 'https://proposals.getshortcut.co/proposal';
 const PROPOSAL_SHORT_URL = 'https://proposals.getshortcut.co/p';
@@ -1659,11 +1660,123 @@ async function handleEditQRCodeSign(params, supabase) {
 
 // --- Invoice Tools ---
 
-async function handleCreateInvoice(params, supabase, userId) {
-  if (!params.clientEmail) return { error: 'clientEmail is required' };
-  if (!params.lineItems || !Array.isArray(params.lineItems) || params.lineItems.length === 0) {
-    return { error: 'lineItems array is required and must not be empty' };
+// Today in New York, where ops works (Netlify runs in UTC).
+function todayInNewYork() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+}
+
+/**
+ * What an invoice will say, before anything exists in Stripe. For a proposal
+ * the fields start where the staff Review Invoice window starts (shared rules
+ * in invoice-defaults.js): the person on the survey's billing contact, lines
+ * named "Company + date + service + Event", payment due 48 hours before the
+ * next event. Anything the user changed comes in on params and wins.
+ */
+async function draftInvoice(params, supabase) {
+  let proposal = null;
+  let survey = null;
+  if (params.proposalId) {
+    const { data, error } = await supabase
+      .from('proposals')
+      .select('id, client_name, client_email, customization, data, pricing_options, selected_options')
+      .eq('id', params.proposalId)
+      .maybeSingle();
+    if (error || !data) return { error: `Proposal ${params.proposalId} not found` };
+    proposal = data;
+    const { data: rows } = await supabase
+      .from('proposal_survey_responses')
+      .select('billing_contact, point_of_contact')
+      .eq('proposal_id', params.proposalId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    survey = (rows && rows[0]) || null;
   }
+
+  const recipient = proposal
+    ? invoiceRecipient({
+        companyName: proposal.data?.clientName || proposal.client_name,
+        customization: proposal.customization,
+        clientEmail: proposal.client_email,
+        billingContact: survey?.billing_contact,
+        pointOfContact: survey?.point_of_contact
+      })
+    : { name: '', email: '', nameFrom: null, emailFrom: null };
+
+  const lineItems = Array.isArray(params.lineItems) && params.lineItems.length > 0
+    ? params.lineItems.map((item) => ({
+        description: String(item.description || '').trim() || 'Line item',
+        amount: Number(item.amount) || 0
+      }))
+    : proposal
+      ? buildInvoiceLineItems(proposal.data, proposal.pricing_options, proposal.selected_options)
+      : [];
+
+  const today = todayInNewYork();
+  const dueDefault = defaultPaymentDue(proposal ? proposal.data : null, today);
+  let dueDate = params.dueDate ? String(params.dueDate).trim() : null;
+  if (!dueDate && params.daysUntilDue) dueDate = addDays(today, Number(params.daysUntilDue));
+  if (!dueDate) dueDate = dueDefault.dueDate;
+
+  const nameGiven = String(params.clientName || '').trim();
+  const emailGiven = String(params.clientEmail || '').trim();
+  return {
+    proposal,
+    today,
+    clientName: nameGiven || recipient.name,
+    clientEmail: emailGiven || recipient.email,
+    nameFrom: nameGiven ? 'given' : recipient.nameFrom,
+    emailFrom: emailGiven ? 'given' : recipient.emailFrom,
+    billingContactOnSurvey: survey?.billing_contact?.trim() || null,
+    lineItems,
+    dueDate,
+    dueDateNote: dueDate === dueDefault.dueDate ? paymentDueNote(dueDefault) : 'Set by the user.'
+  };
+}
+
+async function handleCreateInvoice(params, supabase, userId) {
+  const draft = await draftInvoice(params, supabase);
+  if (draft.error) return draft;
+
+  if (draft.lineItems.length === 0) {
+    return { error: 'lineItems is required for an invoice without a proposalId' };
+  }
+  const dueTs = stripeDueTimestamp(draft.dueDate);
+  if (!dueTs) return { error: `dueDate must be YYYY-MM-DD, got "${draft.dueDate}"` };
+  if (draft.dueDate <= draft.today || dueTs <= Math.floor(Date.now() / 1000)) {
+    return { error: `dueDate ${draft.dueDate} is not after today (${draft.today}). Stripe only takes a future due date.` };
+  }
+
+  const totalCents = draft.lineItems.reduce((sum, item) => sum + Math.round(item.amount * 100), 0);
+  const summary = {
+    clientName: draft.clientName || null,
+    clientEmail: draft.clientEmail || null,
+    nameFrom: draft.nameFrom,
+    emailFrom: draft.emailFrom,
+    billingContactOnSurvey: draft.billingContactOnSurvey,
+    lineItems: draft.lineItems,
+    totalDollars: totalCents / 100,
+    dueDate: draft.dueDate,
+    dueDateNote: draft.dueDateNote,
+    proposalId: params.proposalId || null
+  };
+
+  if (params.preview) {
+    return {
+      preview: true,
+      ...summary,
+      missing: draft.clientEmail ? [] : ['clientEmail'],
+      next: 'Nothing was created. Show the user who it goes to, each line, the total and the due date. After they confirm, call create_invoice again without preview, passing only the fields they changed.'
+    };
+  }
+
+  if (!draft.clientEmail) {
+    return {
+      error: params.proposalId
+        ? 'This proposal and its survey have no billing email. Ask the user for it and pass clientEmail.'
+        : 'clientEmail is required'
+    };
+  }
+  const clientName = draft.clientName || 'Unknown';
 
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   if (!stripeKey) return { error: 'Stripe not configured on server' };
@@ -1671,43 +1784,28 @@ async function handleCreateInvoice(params, supabase, userId) {
   const Stripe = (await import('stripe')).default;
   const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
 
-  // Resolve client name — from params or from linked proposal
-  let clientName = params.clientName;
-  if (!clientName && params.proposalId) {
-    const { data: proposal } = await supabase
-      .from('proposals')
-      .select('client_name')
-      .eq('id', params.proposalId)
-      .single();
-    clientName = proposal?.client_name;
-  }
-  if (!clientName) clientName = 'Unknown';
-
   // Create Stripe customer
   const customer = await stripe.customers.create({
     name: clientName,
-    email: params.clientEmail,
+    email: draft.clientEmail,
     metadata: { proposalId: params.proposalId || 'standalone' }
   });
 
-  // Create invoice
+  // Create invoice, due on the chosen day (noon UTC, see stripeDueTimestamp)
   const invoice = await stripe.invoices.create({
     customer: customer.id,
     collection_method: 'send_invoice',
-    days_until_due: params.daysUntilDue || 30,
+    due_date: dueTs,
     metadata: { proposalId: params.proposalId || 'standalone' }
   });
 
   // Add line items
-  let totalCents = 0;
-  for (const item of params.lineItems) {
-    const amountCents = Math.round((item.amount || 0) * 100);
-    totalCents += amountCents;
+  for (const item of draft.lineItems) {
     await stripe.invoiceItems.create({
       customer: customer.id,
       invoice: invoice.id,
-      description: item.description || 'Line item',
-      amount: amountCents,
+      description: item.description,
+      amount: Math.round(item.amount * 100),
       currency: 'usd'
     });
   }
@@ -1723,10 +1821,12 @@ async function handleCreateInvoice(params, supabase, userId) {
       stripe_invoice_id: sentInvoice.id,
       stripe_customer_id: customer.id,
       invoice_url: sentInvoice.hosted_invoice_url,
+      invoice_pdf: sentInvoice.invoice_pdf || null,
       status: sentInvoice.status || 'sent',
       amount_cents: totalCents,
       client_name: clientName,
-      created_by_user_id: userId
+      created_by_user_id: userId,
+      sent_to_client: true
     });
 
   if (insertError) {
@@ -1747,7 +1847,7 @@ async function handleCreateInvoice(params, supabase, userId) {
     const amount = `$${(totalCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const fields = [
       { type: 'mrkdwn', text: `*Client:* ${clientName}` },
-      { type: 'mrkdwn', text: `*Email:* ${params.clientEmail}` },
+      { type: 'mrkdwn', text: `*Email:* ${draft.clientEmail}` },
       { type: 'mrkdwn', text: `*Amount:* ${amount}` },
       { type: 'mrkdwn', text: `*Invoice:* <${sentInvoice.hosted_invoice_url}|View Invoice>` }
     ];
@@ -1775,11 +1875,10 @@ async function handleCreateInvoice(params, supabase, userId) {
     success: true,
     invoiceId: sentInvoice.id,
     invoiceUrl: sentInvoice.hosted_invoice_url,
-    amountDollars: totalCents / 100,
+    ...summary,
     clientName,
-    clientEmail: params.clientEmail,
-    status: sentInvoice.status || 'sent',
-    proposalId: params.proposalId || null
+    amountDollars: totalCents / 100,
+    status: sentInvoice.status || 'sent'
   };
 }
 
