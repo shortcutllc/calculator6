@@ -3,7 +3,6 @@ import { Check, Copy, ExternalLink, Eye, Link2, X } from 'lucide-react';
 import { Button } from '../Button';
 import { saveSponsorDeck, createDeckLink, deckUrl, cleanDeck } from '../../services/sponsorPageService';
 import type { SponsorDeckDetails, SponsorPageRecord, DeckTierId } from '../../types/sponsorPage';
-import { SPONSOR_SERVICES } from '../../utils/sponsorPackages';
 
 /* ─────────────────────────────────────────────
    Staff form for a page's SPONSOR DECK (SponsorDeck.tsx), opened from its
@@ -27,9 +26,9 @@ const SECTION = 'mt-7 border-t border-gray-200 pt-6';
 const H3 = 'm-0 mb-1 text-lg font-bold text-shortcut-blue';
 
 const TIERS: { id: DeckTierId; label: string; when: string; example: string }[] = [
-  { id: 'title', label: 'Title sponsor', when: 'The whole lounge in one sponsor’s name.', example: '$35,000' },
-  { id: 'station', label: 'Station sponsor', when: 'One station each.', example: '$12,000' },
-  { id: 'mindful', label: 'Mindful Reset sponsor', when: 'A guided session in one sponsor’s name.', example: '$8,000' },
+  { id: 'title', label: 'Title sponsor', when: 'The whole lounge in one sponsor’s name.', example: '$60,000' },
+  { id: 'station', label: 'Station sponsor', when: 'One station each.', example: '$20,000' },
+  { id: 'mindful', label: 'Mindful Reset sponsor', when: 'A guided session in one sponsor’s name.', example: '$10,000' },
 ];
 
 interface Draft {
@@ -91,10 +90,6 @@ export default function SponsorDeckForm({ page, onClose, onSaved }: {
     setD((prev) => ({ ...prev, tiers: { ...prev.tiers, [id]: { ...prev.tiers[id], [k]: v } } }));
   const setStat = (i: number, k: 'fig' | 'label', v: string) =>
     setD((prev) => ({ ...prev, stats: prev.stats.map((s, j) => (j === i ? { ...s, [k]: v } : s)) }));
-
-  /* The deck shows every station Shortcut offers, whatever the partner page
-     was set to, so every option applies. */
-  const stationCount = SPONSOR_SERVICES.length;
 
   const makeLink = async () => {
     setError('');
@@ -211,12 +206,12 @@ export default function SponsorDeckForm({ page, onClose, onSaved }: {
                 </div>
                 <div>
                   <label className={LABEL} htmlFor={`dk-${t.id}-a`}>Available</label>
-                  <input id={`dk-${t.id}-a`} className={INPUT} value={d.tiers[t.id].available} onChange={(e) => setTier(t.id, 'available', e.target.value)} placeholder={t.id === 'station' ? `Up to ${stationCount}` : '1 available'} />
+                  <input id={`dk-${t.id}-a`} className={INPUT} value={d.tiers[t.id].available} onChange={(e) => setTier(t.id, 'available', e.target.value)} placeholder={t.id === 'station' ? 'Leave blank to show none' : '1 of 1 available'} />
                 </div>
               </div>
             ))}
           </div>
-          <p className={HINT}>Leave a price blank to show none. Blank availability shows the placeholder.</p>
+          <p className={HINT}>Leave a price blank and the sponsor link says “Price set by” your organizer. The staff preview shows labeled sample prices in its place.</p>
         </div>
 
         {/* The conference */}

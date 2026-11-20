@@ -172,14 +172,14 @@ export const SPONSOR_SERVICES: SponsorServiceDef[] = [
     id: 'mindful', name: 'The Mindful Reset', lower: 'the Mindful Reset',
     image: `${S}/mindfulness.png`, cropArt: true, tint: '#C7CBFB',
     meta: 'Guided practices and workshops · 5 to 60 min',
-    body: 'Guided mindfulness for the main stage, between sessions, in breakouts or in the lounge.',
+    body: 'Guided mindfulness for the main stage, between sessions or in breakouts.',
     chip: 'Mindfulness · 5 to 60 min',
     proNoun: ['Facilitator', 'Facilitators'],
     numPros: 1, appMinutes: 30, pricing: { type: 'session', perSession: 1250 },
     detail: {
       group: 'Group sessions',
       desc: 'Short guided practices and interactive workshops, fitted to your schedule, your audience and your goals for the show. They help attendees settle in, refocus between sessions and go back to the program with more energy. Led by Courtney Schulnick, an attorney with two decades of experience and extensive training from the Myrna Brind Center for Mindfulness.',
-      bring: [['Dedicated facilitator', 'on the main stage, in breakouts or in the lounge'], ['Custom audio recordings', 'guided meditations to keep'], ['Practical tools', 'for demanding workdays']],
+      bring: [['Dedicated facilitator', 'on the main stage, between sessions or in breakouts'], ['Custom audio recordings', 'guided meditations to keep'], ['Practical tools', 'for demanding workdays']],
       colKind: 'Formats',
       items: [
         ['Start Your Day with Mindfulness', 'a 15 to 20 minute morning kickoff'],

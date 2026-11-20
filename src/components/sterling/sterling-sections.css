@@ -443,7 +443,7 @@
 /* ===========================================================================
    Mobile collapse (best effort; no 390 design yet)
    =========================================================================== */
-@media (max-width: 1023px) {
+@media screen and (max-width: 1023px) {
   .sp .sw-nav { padding: 16px var(--sw-gutter) 0; gap: 12px; }
   .sp .sw-nav[data-scrolled="1"] { padding-top: 10px; padding-bottom: 10px; }
   .sp .sw-nav-logo { width: 120px; height: 44px; }

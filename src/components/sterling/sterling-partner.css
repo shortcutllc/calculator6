@@ -172,14 +172,14 @@
    Mobile collapse (no 390 design yet, Will 2026-10-06: best effort).
    Single column, 24px gutters, sections still lap.
    --------------------------------------------------------------------------- */
-@media (max-width: 1023px) {
+@media screen and (max-width: 1023px) {
   .sp { --sw-gutter: 24px; }
   .sp .sw-sec { padding: 72px 0 112px; }
   .sp .sw-sec--lap { border-radius: 32px 32px 0 0; }
   .sp .sw-h2 { font-size: 36px; }
   .sp .sw-lead { font-size: 17px; }
 }
-@media (min-width: 640px) and (max-width: 1023px) {
+@media screen and (min-width: 640px) and (max-width: 1023px) {
   .sp { --sw-gutter: 40px; }
   .sp .sw-h2 { font-size: 44px; }
 }

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Play } from 'lucide-react';
 import type { SponsorServiceDef } from '../../utils/sponsorPackages';
+import { LOUNGE_RENDERING, PROOF_GALLERY, PROOF_STATS } from './sponsorData';
 
 /* ─────────────────────────────────────────────
    The conference partner page's design system, shared by both pages built
@@ -36,13 +37,7 @@ export const CARD_TITLE = 'm-0 text-[22px] mdp:text-[24px] font-bold leading-[1.
 export const CARD_KICKER = 'm-0 text-[12px] font-extrabold uppercase tracking-[.09em]';
 export const CARD_BODY = 'm-0 text-[16px] font-medium leading-[1.55]';
 
-/* The AACSB rendering: a lounge built in one sponsor's brand, which is the
-   product in a single picture. It carries the University of Cincinnati's
-   branding, so confirm that is fine to show other organizers. */
-export const LOUNGE_RENDERING = {
-  src: '/aacsb/lounge-rendering-uc.jpg',
-  alt: 'Rendering of a conference wellness lounge built in one sponsor’s brand, with a branded welcome desk, privacy screens and massage chairs',
-};
+export { LOUNGE_RENDERING, PROOF_GALLERY, PROOF_STATS };
 
 export const SIZZLE_VIDEO =
   'https://oxigtmlqqfbhzekpdalt.supabase.co/storage/v1/object/public/site-media/yw3/tradestation-sizzle.mp4';
@@ -84,23 +79,6 @@ export const DEMO_LEADS = [
   { ini: 'MR', name: 'Maya R.', role: 'VP, People', av: 'bg-[#9EFAFF]' },
   { ini: 'DK', name: 'Devon K.', role: 'Head of Talent', av: 'bg-[#F7BBFF]' },
   { ini: 'PS', name: 'Priya S.', role: 'Benefits Director', av: 'bg-[#C7CBFB]' },
-];
-
-/* Workhuman Live 2026, from the website's conference gallery
-   (conferences-data.js, CONF_GALLERY). Only this event's photos sit under
-   the Workhuman headline. */
-export const PROOF_GALLERY = [
-  { cap: 'Workhuman Live · The Gratitude Garden', img: '/ds-assets/conference/zone-signage.jpeg', tint: '#9EFAFF' },
-  { cap: 'Chair massage on the floor', img: '/ds-assets/conference/welcome-desk.jpeg', tint: '#C7CBFB' },
-  { cap: 'The Zen Zone', img: '/ds-assets/conference/zen-zone.jpeg', tint: '#FFCBA6' },
-];
-
-/* The headline carries the 400 and the 200; these are the numbers it
-   doesn't (live page, #9). Recorded in CLAIMS_VERIFICATION §2. */
-export const PROOF_STATS = [
-  { fig: '400', label: 'fifteen minute massages' },
-  { fig: '100%', label: 'of slots booked' },
-  { fig: '200+', label: 'on the waitlist, all three days' },
 ];
 
 /* What a sponsor's brand looks like on the booking page and on the floor.

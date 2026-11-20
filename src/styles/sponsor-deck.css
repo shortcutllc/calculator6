@@ -1,70 +1,223 @@
 /* ─────────────────────────────────────────────
-   Sponsor deck (/sponsor/:slug/deck): PDF mode.
+   Sponsor deck (/lounge/:token, staff preview /sponsor/:slug/deck).
 
-   The page is the partner page's design (sponsorUi.tsx, sponsor-page.css).
-   "Download PDF" turns on static mode (`.sp-static`, SponsorStatic) and
-   prints, the way the V2 proposal's PDF works. In static mode every section
-   is one page: 1440 x 1114 (letter landscape proportions), filled with the
-   section's own background, its content centred and scaled to fit by
-   fitPages() in SponsorDeck.tsx. Keep PAGE_H there in step with @page here.
+   Built on the website design language as the SterlingRisk partner page
+   ports it (src/components/sterling/sterling-partner.css and
+   sterling-sections.css): the `.sp` root, lapping `.sw-sec` sections, the
+   centred kicker + two line h2, the navy hero module, the flip-card rail,
+   the aqua call to action and the navy footer panel. This
+   file adds only what the deck has that Sterling does not, and the PDF.
 
-   Layout in static mode is always the desktop one: the print-aware Tailwind
-   variants (smp:, mdp:, lgp:, xlp:) also apply under `.sp-static`
-   (tailwind.config.js), because Chrome matches print media queries against
-   its default paper (about 756px), not this page size.
+   The hero is `.sd-hero`, not Sterling's `.sp-hero`: the partner page's
+   stylesheet (sponsor-page.css) styles every `.sp-hero .hb-pill`, and it
+   is in the bundle once a staff member has opened a partner page.
    ───────────────────────────────────────────── */
 
-/* Motion, settled: the hero's entrance and pill drop, the logo marquee. */
-.sp-static .sp-hero .sp-rise,
-.sp-static .sp-hero .hb-pill { animation: none !important; opacity: 1 !important; transform: none !important; }
-.sp-static .animate-logo-marquee { animation: none !important; transform: none !important; margin: 0 auto; }
-/* The marquee repeats its logos so the loop is seamless; still, one set. */
-.sp-static .animate-logo-marquee > [aria-hidden="true"] { display: none !important; }
+/* ── Section z ladder: each section laps the one above. ── */
+.sp .sd-hero { --sw-z: 1; overflow: hidden; padding: 180px 0 146px; }
+.sp .sd-get { --sw-z: 2; }
+.sp .sd-who { --sw-z: 3; }
+.sp .sd-stations { --sw-z: 4; }
+.sp .sd-options { --sw-z: 5; }
+.sp .sd-next { --sw-z: 6; }
 
-/* Screen-only controls drop out: the sticky bar, hero buttons. */
-.sp-static nav[data-print-hide],
+/* ── Nav: the organizer's mark in the co-brand pill ── */
+.sp .sd-co-mark { font-size: 15px; font-weight: 800; letter-spacing: -.01em; color: #003756; white-space: nowrap; }
+
+/* ── Hero ── */
+.sp .sd-hero .sp-hero-lead {
+  margin: 32px 0 0; animation-delay: .12s;
+  font-size: 20px; line-height: 1.5; max-width: 52ch;
+  color: rgba(255, 255, 255, .86); font-weight: 400; text-wrap: pretty;
+}
+.sp .sd-btn-reset { border: 0; padding: 0; background: none; cursor: pointer; font-family: inherit; }
+.sp .hb-pill { border: 0; cursor: pointer; font-family: inherit; }
+
+/* The first photo has a caption too (Sterling's starts at the second). */
+.sp .hpm .gg-cap1 { animation-name: sp-ph1 }
+
+/* Booking tile: the sponsor's logo goes where the client's would. */
+.sp .sd-yourlogo {
+  height: 22px; display: inline-flex; align-items: center; padding: 0 8px; border-radius: 6px;
+  border: 1.5px dashed rgba(0, 55, 86, .35);
+  font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #45596A;
+  white-space: nowrap; flex: none;
+}
+.sp .sd-book-conf { font-size: 11.5px; font-weight: 700; color: #45596A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp .sd-book-svc { margin: -4px 0 0; font-size: 12px; font-weight: 600; color: #45596A; }
+@keyframes sd-slot { 0%, 12% { background: #F1F6F5; color: #003756 } 16%, 100% { background: #003756; color: #fff } }
+.sp .hpm .sd-slot-on { animation: sd-slot 12s linear infinite both; }
+.sp .sd-fields { display: flex; flex-direction: column; gap: 5px; }
+.sp .sd-field { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 11px; border-radius: 10px; background: #F1F6F5; font-size: 12px; line-height: 1.35; }
+.sp .sd-field-k { font-weight: 600; color: #45596A; }
+.sp .sd-field-v { font-weight: 700; color: #003756; white-space: nowrap; }
+
+/* The conference tile (the flip card's place, held still). */
+.sp .sd-conf { border-radius: 20px; background: #FEDC64; padding: 26px; display: flex; flex-direction: column; justify-content: center; }
+.sp .sd-conf-k { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: #003756; }
+.sp .sd-conf-t { margin: 10px 0 0; font-size: 30px; line-height: 1.08; font-weight: 800; letter-spacing: -.035em; color: #003756; text-wrap: balance; }
+.sp .sd-conf-s { margin: 12px 0 0; font-size: 14px; line-height: 1.45; font-weight: 600; color: #003756; }
+
+/* "Powered by [Shortcut]": the lockup set as a word in the line (see
+   sponsor/ShortcutLockup.tsx for the sizing). */
+.sp .sd-lockup-inline { display: inline-block; height: .904em; width: 5.472em; vertical-align: -.0956em; color: #fff; }
+
+/* ── What you get: Sterling's handoff cards, without the "who" pill ── */
+.sp .sd-get .sp-how-card { min-height: 280px; }
+
+/* ── Who attends ── */
+.sp .sd-head-lead { max-width: 60ch; }
+.sp .sd-statgrid { margin-top: 56px; display: grid; gap: 24px; }
+.sp .sd-n1 { grid-template-columns: minmax(0, 1fr); }
+.sp .sd-n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sp .sd-n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sp .sd-statgrid .sp-carrier { min-height: 0; gap: 16px; }
+.sp .sd-stat-n { font-size: 56px; line-height: .95; font-weight: 800; letter-spacing: -.045em; color: #003756; }
+.sp .sd-stat-l { margin: 0; font-size: 17px; line-height: 1.4; font-weight: 600; color: #2A5468; text-wrap: pretty; }
+.sp .sd-source { margin: 18px 0 0; text-align: center; font-size: 13.5px; font-weight: 600; color: #45596A; }
+.sp .sd-aud { grid-template-columns: 1fr; gap: 0; }
+.sp .sd-aud-list { margin: 18px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 10px; }
+.sp .sd-aud-list li {
+  height: 40px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 9999px;
+  background: rgba(255, 255, 255, .1); font-size: 15.5px; font-weight: 700; letter-spacing: -.01em; color: #fff;
+}
+
+/* ── Stations: the homepage flip-card rail, sponsor lines on the back ── */
+.sp .sd-stations .sw-head .sw-lead { max-width: 56ch; }
+.sp .sd-stations .sc-rc-bq { font-size: 22px; line-height: 1.3; font-weight: 600; }
+.sp .sd-stations .sc-rc-img--crop { transform: scale(1.12); }
+/* Up to how many guests a day, in the station's color. */
+.sp .sd-rc-guests { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-top: 6px; }
+.sp .sd-rc-count { height: 28px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 9999px; color: #003756; font-size: 13.5px; font-weight: 800; white-space: nowrap; }
+.sp .sd-rc-note { font-size: 13.5px; font-weight: 600; color: #45596A; white-space: nowrap; }
+
+/* ── Sponsorship options ── */
+.sp .sd-opts { margin: 56px 0 0; padding: 0; list-style: none; display: grid; gap: 24px; }
+.sp .sd-opts--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sp .sd-opts--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 900px; margin-inline: auto; }
+.sp .sd-opts--1 { grid-template-columns: minmax(0, 1fr); max-width: 480px; margin-inline: auto; }
+.sp .sd-opts .sp-ben { min-height: 0; }
+.sp .sd-opts .sp-ben-h { text-wrap: balance; }
+/* Every chip is a light fill, so its text is navy (Sterling's dark card sets white). */
+/* The chip never breaks inside. When the cards are too narrow for the chip
+   and "1 available" side by side (the widest pair is 236px), every card
+   stacks them together, with the same height, so the headings stay level. */
+.sp .sd-opts .sp-ben { container-type: inline-size; }
+.sp .sd-opts .sp-ben .sp-ben-chip { color: #003756; white-space: nowrap; }
+.sp .sd-opt-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+@container (max-width: 239px) {
+  .sp .sd-opt-top { flex-direction: column; align-items: flex-start; justify-content: flex-start; min-height: 58px; }
+}
+.sp .sd-opt-avail { font-size: 13px; font-weight: 700; color: #45596A; white-space: nowrap; }
+.sp .sp-ben--dark .sd-opt-avail { color: rgba(255, 255, 255, .86); }
+/* Under the heading: the organizer's price, a labeled sample (staff
+   preview only), or "Price set by <organizer>". */
+.sp .sd-opt-price { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.sp .sd-opt-price-v { font-size: 30px; line-height: 1; font-weight: 800; letter-spacing: -.02em; color: #003756; font-variant-numeric: tabular-nums; }
+.sp .sp-ben--dark .sd-opt-price-v { color: #9EFAFF; }
+.sp .sd-opt-sample { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #45596A; border: 1.5px solid #45596A; border-radius: 9999px; padding: 4px 9px; white-space: nowrap; }
+.sp .sp-ben--dark .sd-opt-sample { color: #fff; border-color: rgba(255, 255, 255, .7); }
+.sp .sd-opt-price-tbd { margin: 0; font-size: 16px; font-weight: 700; color: #003756; }
+.sp .sp-ben--dark .sd-opt-price-tbd { color: #9EFAFF; }
+.sp .sd-sample-note { margin: 14px 0 0; font-size: 15px; font-weight: 600; color: #45596A; }
+.sp .sd-opt-body { margin: 0; font-size: 16.5px; line-height: 1.5; color: #2A5468; text-wrap: pretty; }
+.sp .sp-ben--dark .sd-opt-body { color: rgba(255, 255, 255, .86); }
+/* "Included": a hairline, a small label, then the lines. */
+.sp .sd-opt-inc { margin-top: 6px; padding-top: 18px; border-top: 1px solid #E2E9E8; display: flex; flex-direction: column; gap: 12px; }
+.sp .sp-ben--dark .sd-opt-inc { border-top-color: rgba(255, 255, 255, .15); }
+.sp .sd-opt-inc-k { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: #45596A; }
+.sp .sp-ben--dark .sd-opt-inc-k { color: rgba(255, 255, 255, .72); }
+.sp .sd-opt-lines { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.sp .sd-opt-lines li { display: flex; align-items: flex-start; gap: 10px; font-size: 16px; line-height: 1.45; color: #2A5468; }
+.sp .sp-ben--dark .sd-opt-lines li { color: rgba(255, 255, 255, .86); }
+.sp .sd-opt-lines svg { flex: none; margin-top: 3px; }
+
+/* ── Next step ── */
+.sp .sd-cta-row { margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
+.sp .sd-cta-ghost { background: transparent; color: #003756; box-shadow: inset 0 0 0 2px rgba(0, 55, 86, .28); }
+.sp .sd-cta-ghost:hover { color: #003756; box-shadow: inset 0 0 0 2px #003756; }
+.sp .sd-foot-mark { height: 44px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 9999px; background: #fff; }
+.sp .sd-foot-mark img { height: 28px; width: auto; display: block; }
+
+/* ── Staff preview bar (bottom of the screen, clear of the nav) ── */
+.sd-preview {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 80; background: #FEDC64; color: #003756;
+  font-family: 'Outfit', system-ui, sans-serif; font-size: 13.5px; font-weight: 600;
+  box-shadow: 0 -6px 20px rgba(3, 34, 50, .12);
+}
+.sd-preview-in { max-width: 1720px; margin: 0 auto; padding: 10px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+
+/* ── Phones and small tablets (screen only, so print keeps desktop) ── */
+@media screen and (max-width: 1023px) {
+  .sp .sd-hero { padding: 120px 0 96px; }
+  .sp .sd-hero .sp-hero-lead { font-size: 17px; margin-top: 20px; }
+  .sp .sd-conf { padding: 22px; }
+  .sp .sd-conf-t { font-size: 24px; }
+  .sp .sd-statgrid { grid-template-columns: 1fr; gap: 16px; margin-top: 40px; }
+  .sp .sd-statgrid .sp-carrier { min-height: 0; gap: 14px; padding: 26px 24px; }
+  .sp .sd-stat-n { font-size: 44px; }
+  .sp .sd-aud-list li { height: auto; min-height: 38px; padding: 8px 14px; font-size: 14.5px; }
+  .sp .sd-get .sp-how-card { min-height: 0; }
+  .sp .sd-stations .sc-rc-bq { font-size: 19px; }
+  .sp .sd-opts { grid-template-columns: 1fr !important; gap: 16px; margin-top: 40px; max-width: none; }
+  .sp .sd-opts .sp-ben { padding: 28px 24px 30px; }
+  .sp .sd-hide-phone { display: none; }
+  .sd-preview-in { padding: 8px 16px; font-size: 12.5px; }
+}
+
+/* ===========================================================================
+   PDF: "Download PDF" turns on static mode (`.sp-static`) and prints. Every
+   section is one page, 1440 x 1114 (letter landscape proportions), filled
+   with its own background: fitPages() in SponsorDeck.tsx scales each one
+   with CSS zoom until it fits. Keep PAGE_H there in step with @page here.
+   Chrome matches print media queries against its default paper (about
+   756px), so every phone rule above and in the Sterling files is
+   `screen and`, and print keeps the desktop layout.
+   =========================================================================== */
+.sd-page.sp-static { width: 1440px; margin: 0 auto; }
+.sp-static .sw-sec {
+  margin-top: 0 !important; border-radius: 0 !important; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 72px 0 !important;
+}
+.sp-static .sd-hero { padding: 132px 0 64px !important; }
+.sp-static .sd-next { padding: 72px 0 !important; }
+/* A zoomed section lays out wider than the page, so the column fills it
+   rather than centring at the screen's 1720px. In a flex column its auto
+   margins would also shrink it to its content, hence the width. */
+.sp-static .sw-wrap { max-width: none; width: 100%; }
+/* The cover keeps the headline, the module and the trust row; the pills and
+   buttons are for the screen. */
+.sp-static .sp-hero-row { display: none; }
+
+/* The nav sits on the cover only, its buttons gone. */
+.sp-static .sw-nav { position: absolute; }
 .sp-static [data-pdf-hide] { display: none !important; }
 
-/* One page per section, at the desktop width. */
-.sp-static main { width: 1440px; margin: 0 auto; padding-top: 0 !important; }
-.sp-static main > section,
-.sp-static main > .sd-cover {
-  position: relative;
-  margin-top: 0 !important;
-  border-radius: 0 !important;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-.sp-static main > section { padding-top: 72px !important; padding-bottom: 72px !important; }
+/* Motion, settled: entrances shown, loops held on a useful frame. */
+.sp-static .sw-in-rise, .sp-static .sw-in-fade,
+.sp-static .hb-pill,
+.sp-static .sp-mark-joy, .sp-static .sp-wm-joy > path { animation: none !important; opacity: 1 !important; transform: none !important; }
+.sp-static .hpm .gg-ph, .sp-static .hpm .gg-cap, .sp-static .hpm .gg-dot,
+.sp-static .hpm .hb-panel, .sp-static .hpm .sd-slot-on, .sp-static .hpm .hb-check { animation: none !important; }
+.sp-static .hpm .gg-ph, .sp-static .hpm .gg-cap, .sp-static .hpm .hb-panel { opacity: 0 !important; }
+.sp-static .hpm .gg-ph1, .sp-static .hpm .gg-cap1, .sp-static .hpm .hb-p2 { opacity: 1 !important; transform: none !important; }
+.sp-static .hpm .gg-dot1 { background: #fff; }
+.sp-static .hb-logos { -webkit-mask-image: none; mask-image: none; }
+.sp-static .pl-track { animation: none !important; width: auto; flex-wrap: wrap; justify-content: center; gap: 28px 48px; }
 
-/* The cover: the partner page's top bar (organizer and Shortcut marks) over
-   the hero, which takes the rest of the page. */
-.sp-static .sd-cover { justify-content: flex-start; background: #003756; }
-.sp-static .sd-cover > section { flex: 1; display: flex; flex-direction: column; justify-content: center; padding-top: 56px !important; padding-bottom: 72px !important; }
-
-/* The bento (proposal-refresh.css) stacks below 981px by media query. Its
-   desktop values, for PDF mode on any screen and on paper. */
-.sd-page.sp-static .pv-bento-row { grid-template-columns: repeat(3, 1fr); }
-.sd-page.sp-static .pv-bcard { height: 340px; padding: 26px 26px 0; }
-.sd-page.sp-static .pv-bcard--wide { height: 600px; padding: 40px 40px 0; }
-.sd-page.sp-static .pv-bcard-art { height: auto; flex: 1; margin: 0 -26px; }
-.sd-page.sp-static .pv-bcard--wide .pv-bcard-art { position: absolute; inset: 0; height: auto; margin: 0; flex: none; }
-.sd-page.sp-static .pv-bento .mv-card { top: 200px; transform: translateX(-50%) scale(.9); transform-origin: 50% 0; }
-.sd-page.sp-static .pv-bcard-copy h3 { font-size: 20px; }
-.sd-page.sp-static .pv-bcard--wide .pv-bcard-copy h3 { font-size: 26px; }
-.sd-page.sp-static .pv-bcard-copy p { font-size: 13.5px; }
-.sd-page.sp-static .pv-bcard--wide .pv-bcard-copy p { font-size: 16px; }
-.sd-page.sp-static .pv-bento .wd-map { width: 100%; height: auto; }
-/* Hung from the top of its well rather than centred with a translate:
-   Chrome paginates by the box before its transform. */
-.sd-page.sp-static .pv-static .pv-bento .wd-mf { top: 15px !important; transform: translateX(-50%) scale(.72) !important; transform-origin: 50% 0 !important; }
+/* The rail as a grid, unflipped, without its arrows. */
+.sp-static .sw-srail { overflow: visible; }
+.sp-static .sw-srail-track { width: auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px 24px; padding: 0; }
+.sp-static .sc-rc { margin-right: 0; }
+.sp-static .sc-rc-tile { height: 260px; transform: none !important; }
+.sp-static .sc-rc-face--back, .sp-static .sc-rc-plus, .sp-static .sw-snavbar { display: none !important; }
 
 @media screen {
   /* The PDF preview (?pdf=1): pages stacked with a gap, like a deck. */
-  .sd-page.sp-static { background: #D9E2E1; }
-  .sp-static main { display: flex; flex-direction: column; gap: 24px; padding: 24px 0 !important; }
+  html:has(.sd-page.sp-static), body:has(.sd-page.sp-static) { background: #D9E2E1; }
+  .sd-page.sp-static { background: #D9E2E1; display: flex; flex-direction: column; gap: 24px; padding: 24px 0; }
+  .sp-static .sw-nav { top: 24px; }
 }
 
 @media print {
@@ -72,7 +225,6 @@
   html, body { background: #fff !important; }
   .sd-page * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .sd-page [data-print-hide] { display: none !important; }
-  .sd-page main > section,
-  .sd-page main > .sd-cover { break-after: page; break-inside: avoid; }
-  .sd-page main > :last-child { break-after: auto; }
+  .sd-page .sw-sec { break-after: page; break-inside: avoid; }
+  .sd-page .sw-sec:last-of-type { break-after: auto; }
 }
