@@ -208,35 +208,28 @@ export default function SponsorPricing({ hostFirst, onQuote }: { hostFirst: stri
 
   return (
     <div ref={rootRef} className="pv-root !bg-transparent">
-      {/* ── The step rail ── */}
-      <ol className="m-0 p-0 list-none grid grid-cols-1 md:grid-cols-3 gap-5">
+      {/* ── The step rail: three white cards, each with its step's colored
+             number disc, the step and where it stands. Tapping one scrolls
+             to that step (the website's card style, 2026-11-20). ── */}
+      <ol className="m-0 p-0 list-none grid grid-cols-1 md:grid-cols-3 gap-4">
         {rail.map((r, i) => (
-          <li key={r.id} className="relative flex">
+          <li key={r.id} className="flex">
             <button
               type="button"
               onClick={() => scrollTo(r.id)}
-              className={`relative flex flex-1 min-h-[200px] flex-col overflow-hidden rounded-[28px] p-7 text-left transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(3,34,50,.14)] ${RAIL_FILLS[i]}`}
+              className="flex flex-1 items-center gap-3.5 rounded-[20px] bg-white px-5 py-[18px] text-left shadow-[0_1px_2px_rgba(3,34,50,.05),0_8px_24px_rgba(3,34,50,.06)] transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(3,34,50,.12)]"
             >
-              <span aria-hidden="true" className="pointer-events-none absolute -bottom-[22px] right-5 text-[150px] font-extrabold leading-none tracking-[-.06em] text-[#003756]/10">{i + 1}</span>
-              <span className="relative text-[12px] font-extrabold uppercase tracking-[.09em] text-[#003756]/70">Step {i + 1}</span>
-              <span className="relative mt-3 text-[24px] font-bold leading-[1.15] tracking-[-.025em] text-[#003756]">{r.t}</span>
-              <span className="relative mt-auto pt-7">
-                <span className="inline-flex h-9 max-w-full items-center gap-2 whitespace-nowrap rounded-full bg-white px-4 text-[14.5px] font-bold text-[#003756] shadow-[0_2px_8px_rgba(3,34,50,.08)]">
-                  <span className="h-2 w-2 flex-none rounded-full bg-[#FF5050]" />
-                  {r.v}
-                </span>
+              <span className={`grid h-[38px] w-[38px] flex-none place-items-center rounded-full text-[14px] font-extrabold text-[#003756] ${RAIL_FILLS[i]}`}>{i + 1}</span>
+              <span className="flex min-w-0 flex-col">
+                <span className="text-[17px] font-bold leading-[1.25] tracking-[-.015em] text-[#003756]">{r.t}</span>
+                <span className={`truncate text-[13.5px] font-medium ${META}`}>{r.v}</span>
               </span>
             </button>
-            {i < rail.length - 1 && (
-              <span aria-hidden="true" className="absolute -right-6 top-1/2 z-[2] -mt-3.5 hidden h-7 w-7 place-items-center rounded-full bg-[#003756] shadow-[0_4px_12px_rgba(3,34,50,.24)] md:grid">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h13M12.5 6l6 6-6 6" stroke="#fff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              </span>
-            )}
           </li>
         ))}
       </ol>
 
-      <div className="mt-16 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-10 items-start">
+      <div className="mt-10 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-8 items-start">
         <div className="min-w-0 flex flex-col gap-14">
           {/* The banner, where the holiday page has its offer: a real sale. */}
           <div className="flex flex-col gap-1.5 rounded-[24px] border border-[rgba(254,220,100,.9)] bg-[rgba(254,220,100,.28)] px-7 py-6">
@@ -278,7 +271,7 @@ export default function SponsorPricing({ hostFirst, onQuote }: { hostFirst: stri
                       })}
                     </span>
                     <span className="flex flex-col gap-1.5 px-6 pt-[22px] pb-6">
-                      <span className={`text-[11.5px] font-extrabold uppercase tracking-[.08em] ${on ? 'text-[#FEDC64]' : 'text-[#FF5050]'}`}>{p.inside}</span>
+                      <span className={`text-[11.5px] font-extrabold uppercase tracking-[.08em] ${on ? 'text-[#FEDC64]' : META}`}>{p.inside}</span>
                       <span className="text-[21px] font-bold leading-[1.15] tracking-[-.025em]">{p.name}</span>
                       <span className={`mt-1.5 text-[15px] font-bold ${on ? 'text-[#9EFAFF]' : META}`}>
                         {p.optIn ? 'All seven services' : !days ? `From ${money(from || 0)} a day` : `From ${money(from || 0)}`}

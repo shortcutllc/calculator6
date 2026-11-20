@@ -63,16 +63,19 @@
 /* ---------------------------------------------------------------------------
    Element defaults: what the reference renders with (the DS element rules
    plus the browser's own button/link styles), not this app's globals.
+   A subtree marked `.sp-tw` (Tailwind-built components hosted on an `.sp`
+   page, like the partner page's pricing builder) opts out. The exclusion
+   sits inside :where, so the specificity stays (0,1,0).
    --------------------------------------------------------------------------- */
-.sp :where(h1) { font-size: clamp(40px, 5vw, 72px); font-weight: 700; line-height: 1.1; letter-spacing: -.01em; color: #09364F; text-wrap: wrap; }
-.sp :where(h2) { font-size: clamp(32px, 3.6vw, 48px); font-weight: 700; line-height: 1.1; letter-spacing: -.01em; color: #09364F; }
-.sp :where(h3) { font-size: clamp(24px, 2vw, 28px); font-weight: 600; line-height: 1.15; letter-spacing: -.01em; color: #09364F; }
-.sp :where(p) { font-size: 17px; font-weight: 400; line-height: 1.5; color: #09364F; }
-.sp :where(a) { color: #003756; text-decoration: underline; }
-.sp :where(a:hover) { color: #FF5050; }
-.sp :where(button) { font-size: 13.3333px; font-weight: 400; line-height: normal; letter-spacing: normal; text-align: center; color: #000; }
-.sp :where(img, svg) { display: inline; max-width: none; vertical-align: baseline; }
-.sp :where(b) { font-weight: 700; }
+.sp :where(h1:not(.sp-tw *)) { font-size: clamp(40px, 5vw, 72px); font-weight: 700; line-height: 1.1; letter-spacing: -.01em; color: #09364F; text-wrap: wrap; }
+.sp :where(h2:not(.sp-tw *)) { font-size: clamp(32px, 3.6vw, 48px); font-weight: 700; line-height: 1.1; letter-spacing: -.01em; color: #09364F; }
+.sp :where(h3:not(.sp-tw *)) { font-size: clamp(24px, 2vw, 28px); font-weight: 600; line-height: 1.15; letter-spacing: -.01em; color: #09364F; }
+.sp :where(p:not(.sp-tw *)) { font-size: 17px; font-weight: 400; line-height: 1.5; color: #09364F; }
+.sp :where(a:not(.sp-tw *)) { color: #003756; text-decoration: underline; }
+.sp :where(a:hover:not(.sp-tw *)) { color: #FF5050; }
+.sp :where(button:not(.sp-tw *)) { font-size: 13.3333px; font-weight: 400; line-height: normal; letter-spacing: normal; text-align: center; color: #000; }
+.sp :where(img:not(.sp-tw *), svg:not(.sp-tw *)) { display: inline; max-width: none; vertical-align: baseline; }
+.sp :where(b:not(.sp-tw *)) { font-weight: 700; }
 
 /* ---------------------------------------------------------------------------
    Sections and the lap
