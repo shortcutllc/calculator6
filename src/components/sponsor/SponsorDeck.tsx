@@ -210,7 +210,7 @@ function Nav({ cfg }: { cfg: SponsorDeckConfig }) {
   );
 }
 
-function Deck({ cfg, isStatic, samplePrices, onDownload }: { cfg: SponsorDeckConfig; isStatic: boolean; samplePrices: boolean; onDownload: () => void }) {
+function Deck({ cfg, isStatic, preview, onDownload }: { cfg: SponsorDeckConfig; isStatic: boolean; preview: boolean; onDownload: () => void }) {
   const d = cfg.deck;
   const { organizer, conference: conf } = cfg;
   const org = organizer.name;
@@ -250,7 +250,7 @@ function Deck({ cfg, isStatic, samplePrices, onDownload }: { cfg: SponsorDeckCon
   const priceOf = (id: DeckTierId) => {
     const set = d.tiers?.[id]?.price;
     if (set) return { price: set, sample: false };
-    return samplePrices ? { price: SAMPLE_PRICE[id], sample: true } : { price: undefined, sample: false };
+    return preview ? { price: SAMPLE_PRICE[id], sample: true } : { price: undefined, sample: false };
   };
   const tiers = [
     {
@@ -434,6 +434,9 @@ function Deck({ cfg, isStatic, samplePrices, onDownload }: { cfg: SponsorDeckCon
               <p className="sw-kicker sw-in-fade">Who attends</p>
               <h2 className="sw-h2 sw-in-rise">Who you will meet<br /><span className="sp-coral">at {conf.name}.</span></h2>
               {d.about && <p className="sw-lead sw-in-rise sd-head-lead">{d.about}</p>}
+              {/* In the preview only, like the sample prices: the facts are a
+                  starting point the organizer checks (Will, 2026-11-20). */}
+              {preview && <p className="sd-sample-note">Figures and attendee groups shown are examples. {org} can edit them before this goes to sponsors.</p>}
             </div>
             {stats.length > 0 && (
               <>
@@ -714,7 +717,7 @@ export default function SponsorDeck() {
     <>
       <div className={`sp sw-page sd-page${isStatic ? ' sp-static' : ''}`}>
         <Nav cfg={cfg} />
-        <Deck cfg={cfg} isStatic={isStatic} samplePrices={!!preview} onDownload={downloadPdf} />
+        <Deck cfg={cfg} isStatic={isStatic} preview={!!preview} onDownload={downloadPdf} />
       </div>
       {preview && (
         /* Staff preview: say so, and hand over the link to send. */
