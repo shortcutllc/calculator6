@@ -313,3 +313,26 @@ If `preview_start` reports success but nothing is listening and there are zero l
 - Run commands directly without pipes when possible
 - Use command-specific flags (e.g., `git log -n 10` instead of `git log | head -10`)
 - Avoid chained pipes that can cause output to buffer indefinitely
+
+## Site Chat (`/site-chat`, 2026-11-13)
+
+Staff page for answering the website's chat visitors from a reply box, with a
+"seen by the visitor" receipt on every reply. `src/components/SiteChatManager.tsx`
+and `src/utils/siteChatApi.ts`; nav entry under Event Operations.
+
+- **The data is not in Supabase.** Conversations live on the website
+  (`shortcutllc/getshortcut.co`, Netlify Blobs). This page only calls
+  `https://www.getshortcut.co/api/chat/admin/{list,thread,reply,handled}` with the
+  signed-in person's Supabase session token and polls (list 15s, open thread 4s).
+- **Who can use it is decided by the website, not here.** It verifies the token
+  with this app's Supabase project and then checks a named list,
+  `frontend/data/chat-staff.js` in the website repo. This project has open
+  sign-up with auto-confirmed emails, so "signed in" or "@getshortcut.co" alone
+  is not proof of staff. To add a teammate: they sign in here once, then add
+  their email to that file. Anyone else sees "This account is not on the site
+  chat staff list."
+- `VITE_SITE_CHAT_API` (build env or `env-config.js`, never the URL) points the
+  page at a website deploy preview for testing. The website only accepts this
+  app's production origin, its Netlify previews, and localhost against a
+  website preview.
+- Slack is unchanged and still gets a copy of every reply made here.
