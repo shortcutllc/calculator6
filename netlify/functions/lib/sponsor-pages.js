@@ -204,6 +204,10 @@ function toPage(r) {
     // The sponsor deck: send `deckUrl` to the organizer for its sponsors,
     // never `url` (the partner page shows the organizer's margin).
     deckUrl: r.deck_token ? `${SPONSOR_DECK_BASE_URL}/${r.deck_token}` : null,
+    // The staff preview of the deck (staff sign-in), there before the link
+    // exists. It shows labeled SAMPLE prices where the organizer has none;
+    // they are examples, never the organizer's prices. Never send it out.
+    deckPreviewUrl: `${urlFor(r.slug)}/deck`,
     deck: r.deck ? cleanDeck(r.deck) : null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,

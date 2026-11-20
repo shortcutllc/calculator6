@@ -236,6 +236,9 @@ Never add the free class as a service, never set a discount on holiday services 
 - SPONSOR DECK, the next step: once an organizer has bought the lounge, the sponsor deck is the page THEY send THEIR sponsors (it has a Download PDF button). It lives on the same sponsor page. Fill it with edit_sponsor_page \`deck\` (only the parts that change): the organizer's sales contact (salesContact name, team, email), their own price and availability per sponsorship (tiers.title, tiers.station, tiers.mindful), the venue, one plain sentence about the conference (about), who attends (audience, one group per item) and up to three figures with their source (stats, statsSource). Then make its link with \`makeDeckLink: true\`.
 - Send the organizer the \`deckUrl\` from the result, never the sponsor page \`url\`: the sponsor page shows the organizer's margin and must never reach a sponsor. NEVER fabricate a deck URL.
 - Deck fields are facts. Figures come from the organizer's own site or materials, with statsSource; never invent one, and leave stats out if you have none. Prices are the organizer's to set, never ours: ask, don't guess.
+- A blank price shows sponsors "Price set by <organizer>", so leaving it blank is fine until the organizer decides. Write availability the way it reads, e.g. "1 of 1 available" or "3 available". Title and Mindful Reset show "1 of 1 available" when it's blank; a blank station availability shows nothing.
+- To let a teammate check the deck, give them \`deckPreviewUrl\` (staff sign-in needed). It works before the deck link exists. Where the organizer has no price yet, it shows labeled SAMPLE prices ($60,000 title, $20,000 station, $10,000 Mindful Reset). Those are examples only: never copy them into tiers, never quote them as the organizer's prices, and never send the preview link outside Shortcut.
+- The deck always shows all seven stations, each with how many guests it serves a day. The page's \`stations\` list only changes the partner page, not the deck.
 
 ## QR Code Signs
 - When a user says "create a QR code sign", "make a sign", "QR sign", or similar → call create_qr_code_sign.
@@ -717,7 +720,7 @@ const TOOLS = [
             statsSource: { type: 'string', description: 'Where the figures come from, e.g. "gcuc.co".' },
             tiers: {
               type: 'object',
-              description: 'The organizer\'s own price and availability per sponsorship. title = the whole lounge; station = one station each; mindful = a Mindful Reset sponsorship.',
+              description: 'The organizer\'s own price and availability per sponsorship, written as the organizer gives them (availability reads like "1 of 1 available"). title = the whole lounge; station = one station each; mindful = a Mindful Reset sponsorship. A blank price shows "Price set by <organizer>". Never use the staff preview\'s sample prices.',
               properties: {
                 title: { type: 'object', properties: { price: { type: 'string' }, available: { type: 'string' } } },
                 station: { type: 'object', properties: { price: { type: 'string' }, available: { type: 'string' } } },
@@ -734,7 +737,7 @@ const TOOLS = [
   },
   {
     name: 'get_sponsor_page',
-    description: 'Get one conference partner page by id, link or slug: its fields, URL, stations, sender, whether it has a password, and its sponsor deck (deck, deckUrl).',
+    description: 'Get one conference partner page by id, link or slug: its fields, URL, stations, sender, whether it has a password, and its sponsor deck (deck, deckUrl, and deckPreviewUrl, the staff-only preview).',
     input_schema: {
       type: 'object',
       properties: {
