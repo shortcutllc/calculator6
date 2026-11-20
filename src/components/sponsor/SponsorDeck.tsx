@@ -102,6 +102,21 @@ const HERO_PHOTOS = [
   { src: '/conference/tradestation/ts-event-51.jpg', alt: 'The Fresh Look sign at TradeStation’s lounge', cap: 'The Fresh Look sign', fill: '#A9F0CC' },
 ];
 
+/* The gallery strip (Will, 2026-11-20): the stations at work, as the
+   website's "In the room" reel (HomeReels.vue). None of these photos appear
+   elsewhere on the deck. The first is a pre-event photo of a Pro in the
+   University of Cincinnati's uniform for AACSB (added 2026-09-22, before the
+   show), so its caption says what it shows, not that it is from the event.
+   `wide` cards take the 3:2 photos. */
+const GALLERY: { img: string; alt: string; k: string; v: string; wide?: boolean; pos?: string }[] = [
+  { img: '/aacsb/lounge-hero.jpg', alt: 'A Shortcut Pro giving a chair massage in a sponsor’s branded shirt', k: 'Chair massage', v: 'A Pro in a sponsor’s uniform', wide: true, pos: 'center 30%' },
+  { img: '/conference/tradestation/ts-hair-2.jpg', alt: 'A stylist at TradeStation’s Fresh Look event', k: 'Haircuts', v: 'TradeStation’s Fresh Look', pos: 'center 25%' },
+  { img: '/crystal-sound-bath-rooftop.webp', alt: 'A sound bath on a rooftop', k: 'Sound bath', v: 'A group session on a rooftop', wide: true },
+  { img: '/conference/onepager/wh/booth-2.jpeg', alt: 'Chair massage at Workhuman Live 2026', k: 'Chair massage', v: 'Workhuman Live 2026', pos: 'center 35%' },
+  { img: '/ds-assets/gallery/headshots-studio.jpg', alt: 'A photographer reviewing headshots at an on-site studio', k: 'Headshots', v: 'A photo studio set up on site' },
+  { img: '/ds-assets/gallery/nails-station.jpg', alt: 'A manicure at a Shortcut nail station', k: 'Manicures', v: 'At a client’s office', pos: 'center 60%' },
+];
+
 /* The booking a guest makes, which is the sponsor's lead. Demo person. */
 const DEMO_FIELDS: [string, string][] = [
   ['Name', 'Maya Reyes'],
@@ -432,6 +447,33 @@ function Deck({ cfg, isStatic, preview, onDownload }: { cfg: SponsorDeckConfig; 
               </li>
             ))}
           </ol>
+        </div>
+      </Sec>
+
+      {/* ══════════ GALLERY (the website's "In the room" strip) ══════════
+          A marquee on screen: the track holds the photos twice and slides
+          -50%, so the second, aria-hidden copy makes the loop seamless. The
+          PDF gets one copy as a grid. */}
+      <Sec id="gallery" className="sw-sec--lap sw-sec--navy sd-gallery" label="Gallery">
+        <div className="sw-wrap">
+          <div className="sw-head sw-head--center">
+            <p className="sw-kicker sw-in-fade">Gallery</p>
+            <h2 className="sw-h2 sw-in-rise">What the stations<br /><span className="sp-aqua">look like.</span></h2>
+            <p className="sw-lead sw-in-rise sd-head-lead">Photos from lounges and stations Shortcut has run, from Workhuman Live and TradeStation to client offices.</p>
+          </div>
+        </div>
+        <div className="sd-gal sw-in-rise">
+          <div className="sd-gal-track">
+            {(isStatic ? [0] : [0, 1]).map((pass) => GALLERY.map((g) => (
+              <figure key={`${pass}${g.img}`} className={`sd-gal-ev${g.wide ? ' sd-gal-ev--wide' : ''}`} aria-hidden={pass ? true : undefined}>
+                <span className="sd-gal-ph" role="img" aria-label={pass ? undefined : g.alt} style={{ backgroundImage: `url('${g.img}')`, backgroundPosition: g.pos }} />
+                <figcaption className="sd-gal-lab">
+                  <span className="sd-gal-k">{g.k}</span>
+                  <span className="sd-gal-v">{g.v}</span>
+                </figcaption>
+              </figure>
+            )))}
+          </div>
         </div>
       </Sec>
 

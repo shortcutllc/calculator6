@@ -156,8 +156,42 @@
 }
 .sd-preview-in { max-width: 1720px; margin: 0 auto; padding: 10px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
 
+/* ── Gallery: the website's "In the room" strip (HomeReels.vue, .gl-* in
+   web-home.css): a full-bleed marquee of photo cards, each with a white
+   label card. Cards space with margin, not gap, so -50% is exactly one
+   pass and the loop never jumps. It pauses on hover, and without motion it
+   is a plain scroller. ── */
+.sp .sd-gal {
+  margin-top: 56px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+}
+.sp .sd-gal::-webkit-scrollbar { display: none; }
+.sp .sd-gal-track { display: flex; width: max-content; animation: sp-pl-scroll 60s linear infinite; will-change: transform; }
+.sp .sd-gal:hover .sd-gal-track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .sp .sd-gal-track { animation: none !important; } }
+.sp .sd-gal-ev { position: relative; flex: none; margin: 0 20px 0 0; width: 262px; height: 392px; border-radius: 24px; overflow: hidden; background: #0A4864; }
+.sp .sd-gal-ev--wide { width: 588px; }
+.sp .sd-gal-ph {
+  position: absolute; inset: 0; display: block; background-size: cover; background-position: center; background-repeat: no-repeat;
+  transition: transform .7s cubic-bezier(.22, .9, .28, 1);
+}
+.sp .sd-gal-ev:hover .sd-gal-ph { transform: scale(1.05); }
+.sp .sd-gal-lab {
+  position: absolute; left: 14px; bottom: 14px; width: 234px; max-width: calc(100% - 28px); box-sizing: border-box;
+  padding: 14px 16px 15px; border-radius: 20px; background: rgba(255, 255, 255, .96);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 8px 24px rgba(3, 34, 50, .16);
+}
+.sp .sd-gal-k { display: block; font-size: 10.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: #45596A; }
+.sp .sd-gal-v { display: block; margin-top: 5px; font-size: 16px; line-height: 1.15; font-weight: 800; letter-spacing: -.02em; color: #003756; }
+
 /* ── Phones and small tablets (screen only, so print keeps desktop) ── */
 @media screen and (max-width: 1023px) {
+  .sp .sd-gal { margin-top: 40px; }
+  .sp .sd-gal-ev { width: 220px; height: 330px; margin-right: 14px; border-radius: 20px; }
+  .sp .sd-gal-ev--wide { width: 300px; }
+  .sp .sd-gal-lab { left: 10px; bottom: 10px; width: 200px; max-width: calc(100% - 20px); padding: 11px 13px 12px; border-radius: 16px; }
+  .sp .sd-gal-v { font-size: 14.5px; }
   .sp .sd-hero { padding: 120px 0 96px; }
   .sp .sd-hero .sp-hero-lead { font-size: 17px; margin-top: 20px; }
   .sp .sd-conf { padding: 22px; }
@@ -214,6 +248,11 @@
 .sp-static .hpm .gg-dot1 { background: #fff; }
 .sp-static .hb-logos { -webkit-mask-image: none; mask-image: none; }
 .sp-static .pl-track { animation: none !important; width: auto; flex-wrap: wrap; justify-content: center; gap: 28px 48px; }
+
+/* The gallery as a still three by two grid, one copy of each photo. */
+.sp-static .sd-gal { overflow: visible; -webkit-mask-image: none; mask-image: none; padding: 0 var(--sw-gutter); }
+.sp-static .sd-gal-track { animation: none !important; width: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.sp-static .sd-gal-ev, .sp-static .sd-gal-ev--wide { width: auto; height: 300px; margin: 0; }
 
 /* The rail as a grid, unflipped, without its arrows. */
 .sp-static .sw-srail { overflow: visible; }
