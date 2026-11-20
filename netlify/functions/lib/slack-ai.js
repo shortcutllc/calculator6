@@ -239,6 +239,8 @@ Never add the free class as a service, never set a discount on holiday services 
 - A blank price shows sponsors "Price set by <organizer>", so leaving it blank is fine until the organizer decides. Write availability the way it reads, e.g. "1 of 1 available" or "3 available". Title and Mindful Reset show "1 of 1 available" when it's blank; a blank station availability shows nothing.
 - To let a teammate check the deck, give them \`deckPreviewUrl\` (staff sign-in needed). It works before the deck link exists. Where the organizer has no price yet, it shows labeled SAMPLE prices ($60,000 title, $20,000 station, $10,000 Mindful Reset), and it notes that the figures and attendee groups are examples the organizer can edit. The sample prices are examples only: never copy them into tiers, never quote them as the organizer's prices, and never send the preview link outside Shortcut.
 - The deck always shows all seven stations, each with how many guests it serves a day. The page's \`stations\` list only changes the partner page, not the deck.
+- \`demoUrl\` is a demo of the attendee booking page, shown as this conference's wellness lounge with a placeholder where the sponsor's logo goes. Bookings on it are tests. Share it with the organizer or a sponsor who wants to try booking; the partner page and the deck already link it ("Try it yourself", "Try the booking page").
+- For the ORGANIZER to review the deck before it goes to sponsors, make their preview link with \`makeOrganizerPreviewLink: true\` and send them \`organizerPreviewUrl\`. It opens without a sign-in and shows the same samples and notes as the staff preview, with a banner pointing to the sponsor link. Send it to the organizer only, never to a sponsor. NEVER fabricate it.
 
 ## QR Code Signs
 - When a user says "create a QR code sign", "make a sign", "QR sign", or similar → call create_qr_code_sign.
@@ -730,14 +732,15 @@ const TOOLS = [
             salesContact: { type: 'object', description: 'The organizer\'s person sponsors contact to reserve.', properties: { name: { type: 'string' }, team: { type: 'string' }, email: { type: 'string' } } }
           }
         },
-        makeDeckLink: { type: 'boolean', description: 'true makes the sponsor deck\'s own link (deckUrl in the result). Once made it never changes.' }
+        makeDeckLink: { type: 'boolean', description: 'true makes the sponsor deck\'s own link (deckUrl in the result). Once made it never changes.' },
+        makeOrganizerPreviewLink: { type: 'boolean', description: 'true makes the organizer\'s preview link (organizerPreviewUrl in the result): the deck with sample prices and notes, openable without a sign-in, for the ORGANIZER to review. Once made it never changes.' }
       },
       required: ['page']
     }
   },
   {
     name: 'get_sponsor_page',
-    description: 'Get one conference partner page by id, link or slug: its fields, URL, stations, sender, whether it has a password, and its sponsor deck (deck, deckUrl, and deckPreviewUrl, the staff-only preview).',
+    description: 'Get one conference partner page by id, link or slug: its fields, URL, stations, sender, whether it has a password, and its sponsor deck (deck, deckUrl, deckPreviewUrl for staff, and organizerPreviewUrl for the organizer), and demoUrl, the demo booking page as this conference\'s lounge.',
     input_schema: {
       type: 'object',
       properties: {

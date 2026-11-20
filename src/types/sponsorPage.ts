@@ -86,6 +86,9 @@ export interface SponsorPageRecord {
   /** The sponsor deck's details, and its link token once created. */
   deck: SponsorDeckDetails | null;
   deckToken: string | null;
+  /** The organizer's preview link token (/lounge/preview/<token>), once
+   *  created. Migration 20261120000000_sponsor_deck_preview_links.sql. */
+  deckPreviewToken: string | null;
   createdAt: string;
   updatedAt: string;
 }

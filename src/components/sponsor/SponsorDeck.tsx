@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal, flushSync } from 'react-dom';
 import { useParams } from 'react-router-dom';
-import { Check, Copy } from 'lucide-react';
-import { fetchPublicSponsorDeck, fetchSponsorDeckPreview, deckUrl } from '../../services/sponsorPageService';
+import { Check, Copy, ExternalLink } from 'lucide-react';
+import { buildLoungeDemoLink } from '../../utils/demoSignupLink';
+import { fetchPublicSponsorDeck, fetchSponsorDeckPreview, fetchOrganizerDeckPreview, deckUrl } from '../../services/sponsorPageService';
 import type { DeckTierId, SponsorDeckConfig } from '../../types/sponsorPage';
 import StationModal, { useGalleryByKey } from './StationModal';
 import { ShortcutLockup as InlineLockup } from './ShortcutLockup';
@@ -210,7 +211,7 @@ function Nav({ cfg }: { cfg: SponsorDeckConfig }) {
   );
 }
 
-function Deck({ cfg, isStatic, preview, onDownload }: { cfg: SponsorDeckConfig; isStatic: boolean; preview: boolean; onDownload: () => void }) {
+function Deck({ cfg, isStatic, preview, onDownload }: { cfg: SponsorDeckConfig; isStatic: boolean; preview: boolean; onDownload?: () => void }) {
   const d = cfg.deck;
   const { organizer, conference: conf } = cfg;
   const org = organizer.name;
@@ -278,6 +279,9 @@ function Deck({ cfg, isStatic, preview, onDownload }: { cfg: SponsorDeckConfig; 
   const anySample = tiers.some((t) => t.sample);
 
   const contact = d.salesContact;
+  /* The demo booking page, shown as this conference's wellness lounge with a
+     sponsor logo placeholder (utils/demoSignupLink; Will, 2026-11-20). */
+  const demoUrl = buildLoungeDemoLink(conf.name, organizer.logoUrl, ids);
   /* White and surface alternate down the page. Who attends is surface when
      it shows; without it, What you get takes the surface instead. */
   const tone = (surface: boolean) => (surface ? ' sw-sec--surface' : '');
@@ -297,7 +301,7 @@ function Deck({ cfg, isStatic, preview, onDownload }: { cfg: SponsorDeckConfig; 
             <div className="sp-hero-row">
               <div className="sw-in-rise sp-hero-ctas" data-pdf-hide>
                 <a className="sw-btn sw-btn--coral" href="#options">See sponsorship options</a>
-                <button type="button" className="sp-hero-talk sd-btn-reset sd-hide-phone" onClick={onDownload}>Download the PDF</button>
+                {onDownload && <button type="button" className="sp-hero-talk sd-btn-reset sd-hide-phone" onClick={onDownload}>Download the PDF</button>}
               </div>
               <div className="hb-pile" aria-label="The stations">
                 {PILLS.map((row, r) => (
@@ -375,6 +379,11 @@ function Deck({ cfg, isStatic, preview, onDownload }: { cfg: SponsorDeckConfig; 
                   </div>
                 </div>
               </div>
+              {demoUrl && !isStatic && (
+                <a className="sd-try" href={demoUrl} target="_blank" rel="noopener noreferrer" data-pdf-hide>
+                  Try the booking page <ExternalLink size={14} strokeWidth={2.4} />
+                </a>
+              )}
             </div>
 
             {/* Where and when. */}
@@ -583,9 +592,11 @@ function Deck({ cfg, isStatic, preview, onDownload }: { cfg: SponsorDeckConfig; 
                   Email {contact.name}
                 </a>
               )}
-              <button type="button" className="sw-btn sd-cta-ghost sd-hide-phone" onClick={onDownload} data-pdf-hide>
-                Download the PDF
-              </button>
+              {onDownload && (
+                <button type="button" className="sw-btn sd-cta-ghost sd-hide-phone" onClick={onDownload} data-pdf-hide>
+                  Download the PDF
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -624,9 +635,12 @@ function Deck({ cfg, isStatic, preview, onDownload }: { cfg: SponsorDeckConfig; 
                            link exists. Never send this one: its address
                            leads back to the partner page. */
 export default function SponsorDeck() {
-  const { token, slug } = useParams<{ token?: string; slug?: string }>();
+  const { token, slug, previewToken } = useParams<{ token?: string; slug?: string; previewToken?: string }>();
+  /* `preview` is set for both previews: `who` says whose. Both show the
+     sample prices and notes; the sponsor link never does. */
   const [state, setState] = useState<
-    { kind: 'loading' } | { kind: 'missing' } | { kind: 'deck'; cfg: SponsorDeckConfig; preview?: { deckToken: string | null } }
+    { kind: 'loading' } | { kind: 'missing' }
+    | { kind: 'deck'; cfg: SponsorDeckConfig; preview?: { deckToken: string | null; who: 'staff' | 'organizer' } }
   >({ kind: 'loading' });
   /* Static mode, for the PDF: on from the button, or from the browser's own
      print (Ctrl+P), and off again once printing ends. */
@@ -638,16 +652,21 @@ export default function SponsorDeck() {
     setState({ kind: 'loading' });
     if (token) {
       fetchPublicSponsorDeck(token).then((res) => { if (live) setState(res); });
+    } else if (previewToken) {
+      fetchOrganizerDeckPreview(previewToken).then((res) => {
+        if (!live) return;
+        setState(res ? { kind: 'deck', cfg: res.cfg, preview: { deckToken: res.deckToken, who: 'organizer' } } : { kind: 'missing' });
+      });
     } else if (slug) {
       fetchSponsorDeckPreview(slug).then((res) => {
         if (!live) return;
-        setState(res ? { kind: 'deck', cfg: res.cfg, preview: { deckToken: res.deckToken } } : { kind: 'missing' });
+        setState(res ? { kind: 'deck', cfg: res.cfg, preview: { deckToken: res.deckToken, who: 'staff' } } : { kind: 'missing' });
       });
     } else {
       setState({ kind: 'missing' });
     }
     return () => { live = false; };
-  }, [token, slug]);
+  }, [token, slug, previewToken]);
 
   const cfg = state.kind === 'deck' ? state.cfg : null;
   const preview = state.kind === 'deck' ? state.preview : undefined;
@@ -717,9 +736,33 @@ export default function SponsorDeck() {
     <>
       <div className={`sp sw-page sd-page${isStatic ? ' sp-static' : ''}`}>
         <Nav cfg={cfg} />
-        <Deck cfg={cfg} isStatic={isStatic} preview={!!preview} onDownload={downloadPdf} />
+        {/* The organizer's preview has no Download PDF: a PDF from it would
+            carry the sample prices. The banner sends them to the sponsor
+            link, which has the button. */}
+        <Deck cfg={cfg} isStatic={isStatic} preview={!!preview} onDownload={preview?.who === 'organizer' ? undefined : downloadPdf} />
       </div>
-      {preview && (
+      {preview?.who === 'organizer' && (
+        /* The organizer's preview: say what's sample, and which link goes to
+           sponsors. */
+        <div data-print-hide className="sd-preview">
+          <div className="sd-preview-in">
+            <span className="font-extrabold">Preview for {cfg.organizer.name}.</span>
+            <span>Sample prices and notes show only here.</span>
+            {preview.deckToken ? (
+              <>
+                <span>Send sponsors this link, which also has the PDF:</span>
+                <a href={deckUrl(preview.deckToken)} className="font-bold underline underline-offset-2">{deckUrl(preview.deckToken).replace(/^https?:\/\//, '')}</a>
+                <button type="button" onClick={() => copyLink(preview.deckToken!)} className="inline-flex items-center gap-1 rounded-full bg-white/70 px-2.5 py-0.5 text-[12.5px] font-bold">
+                  {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? 'Copied' : 'Copy link'}
+                </button>
+              </>
+            ) : (
+              <span>Shortcut will send you the link for your sponsors.</span>
+            )}
+          </div>
+        </div>
+      )}
+      {preview?.who === 'staff' && (
         /* Staff preview: say so, and hand over the link to send. */
         <div data-print-hide className="sd-preview">
           <div className="sd-preview-in">

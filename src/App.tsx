@@ -1222,7 +1222,21 @@ function App() {
                 }
               />
               {/* The sponsor deck: its own link for organizers to send their
-                  sponsors, and a staff-only preview under the partner page. */}
+                  sponsors, the organizer's preview link (sample prices and
+                  notes, no sign-in), and a staff-only preview under the
+                  partner page. */}
+              <Route
+                path="/lounge/preview/:previewToken"
+                element={
+                  <Suspense fallback={
+                    <div className="min-h-screen flex items-center justify-center">
+                      <LoadingSpinner size="large" />
+                    </div>
+                  }>
+                    <SponsorDeck />
+                  </Suspense>
+                }
+              />
               <Route
                 path="/lounge/:token"
                 element={

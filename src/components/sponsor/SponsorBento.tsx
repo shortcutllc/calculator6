@@ -1,7 +1,30 @@
+import { useState } from 'react';
+import { Check, ExternalLink, Link as LinkIcon } from 'lucide-react';
 import WhyShortcutBento from '../proposal/sections/WhyShortcutBento';
 import MobileSignupModule from '../proposal/MobileSignupModule';
 import { useSponsorStatic } from './sponsorUi';
 import '../../styles/proposal-refresh.css';
+
+/** Copy link and Try it yourself for the demo booking page: the proposal
+ *  sign-up module's own buttons (mobile-signup-demo.css), set under the
+ *  card's copy because the card is a fixed height. `.sp-tw` keeps the
+ *  website's element defaults off them on `.sp` pages. */
+function DemoButtons({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(url); setCopied(true); window.setTimeout(() => setCopied(false), 2000); } catch { /* blocked: the link still opens */ }
+  };
+  return (
+    <div className="sp-tw bm-foot-actions mt-1.5 w-full max-w-[300px]">
+      <button type="button" className="bm-btn bm-btn-secondary" onClick={copy}>
+        {copied ? <><Check size={14} /> Copied</> : <><LinkIcon size={14} /> Copy link</>}
+      </button>
+      <a className="bm-btn bm-btn-coral" href={url} target="_blank" rel="noopener noreferrer">
+        Try it yourself <ExternalLink size={14} />
+      </a>
+    </div>
+  );
+}
 
 /* ─────────────────────────────────────────────
    "What sets Shortcut apart", the website's bento, told for a conference
@@ -71,8 +94,12 @@ const COPY = {
   },
 };
 
-export default function SponsorBento({ conferenceName, dateLabel, audience = 'organizer' }: {
+export default function SponsorBento({ conferenceName, dateLabel, audience = 'organizer', demoUrl }: {
   conferenceName: string; dateLabel: string; audience?: 'organizer' | 'sponsor';
+  /** The demo booking page, shown as this conference's wellness lounge
+   *  (utils/demoSignupLink): adds Copy link and Try it yourself under the
+   *  phone, as proposals have. */
+  demoUrl?: string | null;
 }) {
   const copy = COPY[audience];
   /* The sponsor deck's PDF: the proposal PDF's settled bento (.pv-static in
@@ -101,6 +128,7 @@ export default function SponsorBento({ conferenceName, dateLabel, audience = 'or
                 <div className="pv-bcard-copy">
                   <h3>White-labeled and fully customizable</h3>
                   <p>{copy.brandBody}</p>
+                  {demoUrl && !isStatic && <DemoButtons url={demoUrl} />}
                 </div>
                 <div className="pv-bcard-art">
                   <div>

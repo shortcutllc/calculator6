@@ -33,3 +33,36 @@ export const buildDemoSignupLink = (
   }
   return DEMO_SERIES_URL + '?' + params.join('&');
 };
+
+// Conference sponsor pages (Will, 2026-11-20): the same demo day, shown as the conference's
+// wellness lounge. `kind=lounge` makes the coordinator title it "Wellness Lounge at
+// <conference>", put the conference's logo (or name) first in the nav and a "Sponsor logo"
+// placeholder where "with Shortcut" goes. A coordinator without lounge mode still shows the
+// day, as "<conference> Wellness Day".
+//
+// Each lounge station as the demo day's services. Sound baths and movement have no demo
+// event, so they add nothing; the coordinator shows the rest.
+const STATION_SERVICES: Record<string, string[]> = {
+  reset: ['massage'],
+  glow: ['hair', 'facial'],
+  polish: ['nails'],
+  studio: ['headshot'],
+  mindful: ['mindfulness'],
+  sound: [],
+  movement: [],
+};
+
+export const buildLoungeDemoLink = (
+  conferenceName: string | null | undefined,
+  logoUrl: string | null | undefined,
+  stationIds: string[]
+): string | null => {
+  const name = (conferenceName || '').trim();
+  if (!name) return null;
+  const services = [...new Set(stationIds.flatMap((id) => STATION_SERVICES[id] || []))];
+  const params = ['client=' + encodeURIComponent(name.slice(0, 60)), 'kind=lounge'];
+  if (services.length) params.push('services=' + services.map(encodeURIComponent).join(','));
+  const ownStorage = config.supabase.url + '/storage/v1/object/public/';
+  if (logoUrl && logoUrl.startsWith(ownStorage)) params.push('logo=' + encodeURIComponent(logoUrl));
+  return DEMO_SERIES_URL + '?' + params.join('&');
+};

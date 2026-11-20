@@ -45,6 +45,15 @@
 }
 .sp .sd-book-conf { font-size: 11.5px; font-weight: 700; color: #45596A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sp .sd-book-svc { margin: -4px 0 0; font-size: 12px; font-weight: 600; color: #45596A; }
+/* "Try the booking page" under the booking card: the demo day as this
+   conference's lounge (utils/demoSignupLink). */
+.sp .sd-hero .hpm-book { flex-direction: column; gap: 14px; }
+.sp .sd-try {
+  height: 34px; display: inline-flex; align-items: center; gap: 7px; padding: 0 16px; border-radius: 9999px;
+  background: #fff; color: #003756; font-size: 13.5px; font-weight: 700; letter-spacing: -.01em; text-decoration: none;
+  box-shadow: 0 4px 14px rgba(3, 34, 50, .14); transition: transform .3s ease, box-shadow .3s ease;
+}
+.sp .sd-try:hover { color: #003756; transform: translateY(-2px); box-shadow: 0 10px 22px rgba(3, 34, 50, .2); }
 @keyframes sd-slot { 0%, 12% { background: #F1F6F5; color: #003756 } 16%, 100% { background: #003756; color: #fff } }
 .sp .hpm .sd-slot-on { animation: sd-slot 12s linear infinite both; }
 .sp .sd-fields { display: flex; flex-direction: column; gap: 5px; }

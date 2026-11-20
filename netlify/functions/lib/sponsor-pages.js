@@ -187,6 +187,28 @@ const newDeckToken = () => {
   return Array.from(randomBytes(12), (b) => abc[b % abc.length]).join('');
 };
 
+/* The demo booking page, shown as this conference's wellness lounge: the
+   coordinator's standing demo day with kind=lounge (its own title, the
+   conference's logo or name, a "Sponsor logo" placeholder). KEEP IN STEP
+   with buildLoungeDemoLink in src/utils/demoSignupLink.ts. */
+const DEMO_SERIES_URL = 'https://admin.shortcutpros.com/#/selectEvent/SHORTCUTDEMO';
+const DEMO_STATION_SERVICES = {
+  reset: ['massage'], glow: ['hair', 'facial'], polish: ['nails'], studio: ['headshot'],
+  mindful: ['mindfulness'], sound: [], movement: [],
+};
+function loungeDemoUrl(r) {
+  const name = clean(r.conference_name, 60);
+  if (!name) return null;
+  const stations = Array.isArray(r.services) && r.services.length ? r.services : STATION_IDS;
+  const services = [...new Set(stations.flatMap((id) => DEMO_STATION_SERVICES[id] || []))];
+  const params = ['client=' + encodeURIComponent(name), 'kind=lounge'];
+  if (services.length) params.push('services=' + services.join(','));
+  // The coordinator shows a logo only from our own storage.
+  const base = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://oxigtmlqqfbhzekpdalt.supabase.co').replace(/\/$/, '');
+  if (r.logo_url && r.logo_url.startsWith(`${base}/storage/v1/object/public/`)) params.push('logo=' + encodeURIComponent(r.logo_url));
+  return `${DEMO_SERIES_URL}?${params.join('&')}`;
+}
+
 /** What callers see. The password hash never leaves this module. */
 function toPage(r) {
   return {
@@ -208,7 +230,14 @@ function toPage(r) {
     // exists. It shows labeled SAMPLE prices where the organizer has none;
     // they are examples, never the organizer's prices. Never send it out.
     deckPreviewUrl: `${urlFor(r.slug)}/deck`,
+    // The organizer's preview: the same deck with the sample prices and
+    // notes, openable without a sign-in. Send it to the ORGANIZER only,
+    // never to a sponsor (migration 20261120000000).
+    organizerPreviewUrl: r.deck_preview_token ? `${SPONSOR_DECK_BASE_URL}/preview/${r.deck_preview_token}` : null,
     deck: r.deck ? cleanDeck(r.deck) : null,
+    // The demo booking page, branded as this conference's lounge. Fine for
+    // the organizer and for sponsors.
+    demoUrl: loungeDemoUrl(r),
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
@@ -230,6 +259,9 @@ async function storedLogo(supabase, logoUrl, organizerName) {
 
 function dbFail(error) {
   const msg = error?.message || 'Database error';
+  if (/deck_preview_token/i.test(msg)) {
+    throw new SponsorPageError('Organizer preview links need migration 20261120000000_sponsor_deck_preview_links.sql first.', 503);
+  }
   if (/deck/i.test(msg) && (error?.code === '42703' || error?.code === 'PGRST204' || /column|could not find the/i.test(msg))) {
     throw new SponsorPageError('Sponsor decks need migration 20261119000000_sponsor_page_decks.sql first.', 503);
   }
@@ -378,6 +410,12 @@ export async function updateSponsorPage(supabase, ref, changes = {}) {
     // The link never changes once made, so a sent link keeps working.
     row.deck_token = newDeckToken();
     changed.push('sponsor deck link made');
+  }
+  if (has('makeOrganizerPreviewLink') && changes.makeOrganizerPreviewLink && !existing.deck_preview_token) {
+    // Its own random token, so the sponsor link never reveals it. It never
+    // changes once made.
+    row.deck_preview_token = newDeckToken();
+    changed.push('organizer preview link made');
   }
   if (!changed.length) throw new SponsorPageError('Nothing to change. Pass at least one field.');
 

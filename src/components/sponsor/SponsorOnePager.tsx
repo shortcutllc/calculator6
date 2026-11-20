@@ -10,6 +10,7 @@ import SponsorPricing, { type QuoteRows } from './SponsorPricing';
 import SponsorCallSheet from './SponsorCallSheet';
 import { Gate } from './SponsorGate';
 import { INK, BRAND_SHOTS, DEMO_LEADS, SizzleReel } from './sponsorUi';
+import { buildLoungeDemoLink } from '../../utils/demoSignupLink';
 import { LOUNGE_RENDERING, PROOF_GALLERY, PROOF_STATS } from './sponsorData';
 import NavLockup from '../sterling/ShortcutLockup';
 import { Sec } from '../sterling/swMotion';
@@ -468,7 +469,11 @@ export default function SponsorOnePager() {
             <p className="sw-kicker sw-in-fade">What sets Shortcut apart</p>
             <h2 className="sw-h2 sw-in-rise">Tech that runs every sign-up,<br /><span className="sp-coral">and a team that handles the rest.</span></h2>
           </div>
-          <SponsorBento conferenceName={conf.name} dateLabel={conf.dateLabel} />
+          <SponsorBento
+            conferenceName={conf.name}
+            dateLabel={conf.dateLabel}
+            demoUrl={buildLoungeDemoLink(conf.name, organizer.logoUrl, services.map((s) => s.id))}
+          />
         </div>
       </Sec>
 

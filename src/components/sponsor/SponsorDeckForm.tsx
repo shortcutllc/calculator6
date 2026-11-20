@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Check, Copy, ExternalLink, Eye, Link2, X } from 'lucide-react';
 import { Button } from '../Button';
-import { saveSponsorDeck, createDeckLink, deckUrl, cleanDeck } from '../../services/sponsorPageService';
+import { saveSponsorDeck, createDeckLink, createOrganizerPreviewLink, deckUrl, organizerPreviewUrl, cleanDeck } from '../../services/sponsorPageService';
 import type { SponsorDeckDetails, SponsorPageRecord, DeckTierId } from '../../types/sponsorPage';
 
 /* ─────────────────────────────────────────────
@@ -80,9 +80,12 @@ export default function SponsorDeckForm({ page, onClose, onSaved }: {
 }) {
   const [d, setD] = useState<Draft>(() => toDraft(page.deck));
   const [token, setToken] = useState(page.deckToken);
+  const [previewToken, setPreviewToken] = useState(page.deckPreviewToken);
   const [saving, setSaving] = useState(false);
   const [linking, setLinking] = useState(false);
+  const [previewLinking, setPreviewLinking] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [previewCopied, setPreviewCopied] = useState(false);
   const [error, setError] = useState('');
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((prev) => ({ ...prev, [k]: v }));
@@ -103,6 +106,25 @@ export default function SponsorDeckForm({ page, onClose, onSaved }: {
     } finally {
       setLinking(false);
     }
+  };
+
+  const makePreviewLink = async () => {
+    setError('');
+    setPreviewLinking(true);
+    try {
+      const saved = await createOrganizerPreviewLink(page.id);
+      setPreviewToken(saved.deckPreviewToken);
+      onSaved(saved);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not make the preview link.');
+    } finally {
+      setPreviewLinking(false);
+    }
+  };
+
+  const copyPreview = async () => {
+    if (!previewToken) return;
+    try { await navigator.clipboard.writeText(organizerPreviewUrl(previewToken)); setPreviewCopied(true); window.setTimeout(() => setPreviewCopied(false), 1800); } catch { /* blocked */ }
   };
 
   const copy = async () => {
@@ -171,6 +193,34 @@ export default function SponsorDeckForm({ page, onClose, onSaved }: {
           <a href={`/sponsor/${page.slug}/deck`} target="_blank" rel="noreferrer" className="mt-3 flex w-fit items-center gap-1.5 text-sm font-bold underline decoration-shortcut-teal decoration-2 underline-offset-2">
             <Eye size={15} /> Preview the deck (staff only, saved changes)
           </a>
+        </div>
+
+        {/* The organizer's preview link: the deck with its sample prices and
+            notes, for the organizer to review without signing in. */}
+        <div className="mt-3 rounded-lg bg-[#FEDC64]/30 px-4 py-3.5 text-sm text-shortcut-blue">
+          {previewToken ? (
+            <>
+              <div className="font-bold">Preview link for {page.organizerName}</div>
+              <div className="mt-1 break-all font-semibold">{organizerPreviewUrl(previewToken).replace(/^https?:\/\//, '')}</div>
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                <button type="button" onClick={copyPreview} className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-sm font-bold text-shortcut-blue hover:bg-white/70">
+                  {previewCopied ? <Check size={15} /> : <Copy size={15} />} {previewCopied ? 'Copied' : 'Copy link'}
+                </button>
+                <a href={organizerPreviewUrl(previewToken)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-sm font-bold text-shortcut-blue hover:bg-white/70">
+                  <ExternalLink size={15} /> Open
+                </a>
+              </div>
+              <p className={HINT}>For {page.organizerName} to review the deck before it goes to sponsors. It shows sample prices and notes, so never send it to a sponsor.</p>
+            </>
+          ) : (
+            <>
+              <div className="font-bold">No preview link for {page.organizerName} yet</div>
+              <p className="m-0 mt-1 text-text-dark-60">Make one so {page.organizerName} can review the deck, with its sample prices and notes, without signing in. It never changes after that.</p>
+              <button type="button" onClick={makePreviewLink} disabled={previewLinking} className="mt-2.5 inline-flex items-center gap-1.5 rounded-md bg-shortcut-blue px-3 py-1.5 text-sm font-bold text-white disabled:opacity-60">
+                <Link2 size={15} /> {previewLinking ? 'Making the link…' : 'Make the preview link'}
+              </button>
+            </>
+          )}
         </div>
 
         {/* The organizer's offer */}

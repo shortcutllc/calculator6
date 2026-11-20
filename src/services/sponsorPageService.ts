@@ -99,6 +99,7 @@ function toRecord(r: Record<string, unknown>): SponsorPageRecord {
     status: r.status === 'draft' ? 'draft' : 'published',
     deck: r.deck ? cleanDeck(r.deck) : null,
     deckToken: typeof r.deck_token === 'string' && r.deck_token ? r.deck_token : null,
+    deckPreviewToken: typeof r.deck_preview_token === 'string' && r.deck_preview_token ? r.deck_preview_token : null,
     createdAt: String(r.created_at),
     updatedAt: String(r.updated_at),
   };
@@ -226,6 +227,15 @@ export const SPONSOR_DECKS_MIGRATION = '20261119000000_sponsor_page_decks.sql';
 /** The deck's own link. */
 export const deckUrl = (token: string) => `${window.location.origin}/lounge/${token}`;
 
+/* Organizer preview links (Will, 2026-11-20): the deck with its sample
+   prices and notes, for the ORGANIZER to review without a staff sign-in.
+   Its own random token, so the sponsor link never reveals it. Read through
+   get_sponsor_deck_preview(token). */
+export const SPONSOR_DECK_PREVIEWS_MIGRATION = '20261120000000_sponsor_deck_preview_links.sql';
+
+/** The organizer's preview link. */
+export const organizerPreviewUrl = (token: string) => `${window.location.origin}/lounge/preview/${token}`;
+
 const str = (v: unknown, max = 300) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : '');
 const TIER_IDS: DeckTierId[] = ['title', 'station', 'mindful'];
 
@@ -287,6 +297,15 @@ export async function fetchPublicSponsorDeck(token: string): Promise<PublicSpons
   return { kind: 'deck', cfg: toDeckConfig(data as Record<string, unknown>) };
 }
 
+/** The organizer's preview at /lounge/preview/<token>: the deck, plus the
+ *  sponsor link's token so its banner can point to it. */
+export async function fetchOrganizerDeckPreview(token: string): Promise<{ cfg: SponsorDeckConfig; deckToken: string | null } | null> {
+  const { data, error } = await supabase.rpc('get_sponsor_deck_preview', { p_token: token.toLowerCase() });
+  if (error || !data) return null;
+  const r = data as Record<string, unknown>;
+  return { cfg: toDeckConfig(r), deckToken: typeof r.deck_token === 'string' && r.deck_token ? r.deck_token : null };
+}
+
 /** Staff preview of a page's deck at /sponsor/<slug>/deck, before or after
  *  its link exists. Reads the row directly (staff only). */
 export async function fetchSponsorDeckPreview(slug: string): Promise<{ cfg: SponsorDeckConfig; deckToken: string | null } | null> {
@@ -337,6 +356,32 @@ export async function createDeckLink(id: string): Promise<SponsorPageRecord> {
     }
     if (data) return toRecord(data as Record<string, unknown>);
     // Nothing updated: it already has a link.
+    const { data: row, error: readError } = await supabase.from('sponsor_pages').select('*').eq('id', id).single();
+    if (readError) fail(readError);
+    return toRecord(row as Record<string, unknown>);
+  }
+  throw new SponsorPageError('Could not make a unique link. Try again.');
+}
+
+/** Gives a page's deck its organizer preview link (a no-op when it has one). */
+export async function createOrganizerPreviewLink(id: string): Promise<SponsorPageRecord> {
+  for (let n = 0; n < 5; n++) {
+    const { data, error } = await supabase
+      .from('sponsor_pages')
+      .update({ deck_preview_token: newDeckToken() })
+      .eq('id', id)
+      .is('deck_preview_token', null)
+      .select('*')
+      .maybeSingle();
+    if (error) {
+      if (isMissingSchema(error) || /deck_preview_token/i.test(error.message || '')) {
+        throw new SponsorPageError(`Organizer preview links need ${SPONSOR_DECK_PREVIEWS_MIGRATION} first.`, true);
+      }
+      // 23505: another deck has that token. Draw again.
+      if (error.code !== '23505') fail(error);
+      continue;
+    }
+    if (data) return toRecord(data as Record<string, unknown>);
     const { data: row, error: readError } = await supabase.from('sponsor_pages').select('*').eq('id', id).single();
     if (readError) fail(readError);
     return toRecord(row as Record<string, unknown>);
