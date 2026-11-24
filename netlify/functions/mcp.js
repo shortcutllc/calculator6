@@ -87,7 +87,7 @@ function guide(email) {
     '',
     'You have the proposal, holiday package, landing page, sponsor page, QR sign, pricing, client lookup and logo tools, and the sign-up link and staffing tools (create_signup_link, find_signup_links, get_event_staffing, find_pros, list_pro_groups, add_pro_to_event), which act on the live coordinator: real events, real Pros, real texts.'
       + (invoices
-        ? ' You also have the invoice tools (create_invoice, search_invoices, get_invoice). create_invoice emails a real Stripe invoice to the client: always call it with preview: true first, show the user who it goes to, each line, the total and the due date, and send it (confirmedByUser: true) only after they say to. The lead and email drafting tools are only in Slack (Pro).'
+        ? ' You also have the invoice tools (create_invoice, search_invoices, get_invoice). create_invoice emails a real Stripe invoice to the client: always call it with preview: true first, show the user who it goes to, each line, the total and the due date, and send it (confirmedByUser: true) only after they say to. When the user wants the link for their own email rather than Stripe emailing the client, pass emailToClient: false (on the preview too) and give them invoiceUrl. The lead and email drafting tools are only in Slack (Pro).'
         : ' The lead, email drafting and invoice tools are only in Slack (Pro).')
       + ' Where the rules below say to call lookup_lead, read_thread or draft_email, skip that step and ask the user instead.',
     'The rules below are the ones Pro follows in Slack. Ignore anything about Slack formatting.',

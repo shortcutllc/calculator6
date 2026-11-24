@@ -1735,6 +1735,9 @@ async function draftInvoice(params, supabase) {
 
 async function handleCreateInvoice(params, supabase, userId) {
   const draft = await draftInvoice(params, supabase);
+  // emailToClient: false makes the invoice payable at its link without
+  // Stripe emailing it, so the rep can put the link in their own email.
+  const emailIt = params.emailToClient !== false;
   if (draft.error) return draft;
 
   if (draft.lineItems.length === 0) {
@@ -1757,7 +1760,8 @@ async function handleCreateInvoice(params, supabase, userId) {
     totalDollars: totalCents / 100,
     dueDate: draft.dueDate,
     dueDateNote: draft.dueDateNote,
-    proposalId: params.proposalId || null
+    proposalId: params.proposalId || null,
+    emailToClient: emailIt
   };
 
   if (params.preview) {
@@ -1765,7 +1769,7 @@ async function handleCreateInvoice(params, supabase, userId) {
       preview: true,
       ...summary,
       missing: draft.clientEmail ? [] : ['clientEmail'],
-      next: 'Nothing was created. Show the user who it goes to, each line, the total and the due date. After they confirm, call create_invoice again without preview, passing only the fields they changed.'
+      next: `Nothing was created. Show the user who it goes to, each line, the total and the due date, and that ${emailIt ? 'Stripe will email it to the client' : 'it will NOT be emailed: they get the payment link for their own email'}. After they confirm, call create_invoice again without preview, passing only the fields they changed.`
     };
   }
 
@@ -1796,6 +1800,8 @@ async function handleCreateInvoice(params, supabase, userId) {
     customer: customer.id,
     collection_method: 'send_invoice',
     due_date: dueTs,
+    // Link only: nothing automatic, so Stripe never emails it on its own.
+    ...(emailIt ? {} : { auto_advance: false }),
     metadata: { proposalId: params.proposalId || 'standalone' }
   });
 
@@ -1810,8 +1816,11 @@ async function handleCreateInvoice(params, supabase, userId) {
     });
   }
 
-  // Finalize and send
-  const sentInvoice = await stripe.invoices.sendInvoice(invoice.id);
+  // Finalize, and email it unless the rep is sending the link themselves.
+  // Finalizing gives the invoice its payment link (hosted_invoice_url).
+  const sentInvoice = emailIt
+    ? await stripe.invoices.sendInvoice(invoice.id)
+    : await stripe.invoices.finalizeInvoice(invoice.id, { auto_advance: false });
 
   // Save to DB
   const { error: insertError } = await supabase
@@ -1822,11 +1831,11 @@ async function handleCreateInvoice(params, supabase, userId) {
       stripe_customer_id: customer.id,
       invoice_url: sentInvoice.hosted_invoice_url,
       invoice_pdf: sentInvoice.invoice_pdf || null,
-      status: sentInvoice.status || 'sent',
+      status: sentInvoice.status || (emailIt ? 'sent' : 'open'),
       amount_cents: totalCents,
       client_name: clientName,
       created_by_user_id: userId,
-      sent_to_client: true
+      sent_to_client: emailIt
     });
 
   if (insertError) {
@@ -1859,9 +1868,9 @@ async function handleCreateInvoice(params, supabase, userId) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: `💳 Invoice Sent via Pro: ${clientName}`,
+          text: emailIt ? `💳 Invoice Sent via Pro: ${clientName}` : `💳 Invoice Created via Pro, not emailed: ${clientName}`,
           blocks: [
-            { type: 'header', text: { type: 'plain_text', text: '💳 Invoice Sent' } },
+            { type: 'header', text: { type: 'plain_text', text: emailIt ? '💳 Invoice Sent' : '💳 Invoice Created, Link Only' } },
             { type: 'section', fields }
           ]
         })
@@ -1878,7 +1887,10 @@ async function handleCreateInvoice(params, supabase, userId) {
     ...summary,
     clientName,
     amountDollars: totalCents / 100,
-    status: sentInvoice.status || 'sent'
+    status: sentInvoice.status || (emailIt ? 'sent' : 'open'),
+    invoicePdf: sentInvoice.invoice_pdf || null,
+    emailedToClient: emailIt,
+    ...(emailIt ? {} : { next: 'Not emailed. Give the user invoiceUrl (the client pays there) and invoicePdf to put in their own email.' })
   };
 }
 
