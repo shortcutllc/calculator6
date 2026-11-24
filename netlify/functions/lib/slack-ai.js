@@ -976,7 +976,7 @@ const TOOLS = [
   },
   {
     name: 'search_invoices',
-    description: 'Search for Stripe invoices by client name, status, or linked proposal ID. Returns a list of matching invoices.',
+    description: 'Search for Stripe invoices by client name, status, or linked proposal ID. Returns a list of matching invoices. Each status is checked live with Stripe, so a payment or void made in Stripe shows here.',
     input_schema: {
       type: 'object',
       properties: {
@@ -989,7 +989,7 @@ const TOOLS = [
   },
   {
     name: 'get_invoice',
-    description: 'Get full details of a specific invoice by its database ID or Stripe invoice ID (starts with "in_").',
+    description: 'Get full details of a specific invoice by its database ID or Stripe invoice ID (starts with "in_"). Its status is checked live with Stripe.',
     input_schema: {
       type: 'object',
       properties: {

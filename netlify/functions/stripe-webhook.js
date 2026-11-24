@@ -1,8 +1,11 @@
 /**
  * Stripe Webhook Handler — Netlify serverless function.
  *
- * Listens for Stripe events (invoice.paid, etc.) and updates
- * local DB + sends Slack notifications.
+ * Listens for Stripe events and updates the local DB: invoice.paid (plus a
+ * Slack note), and invoice.voided / invoice.marked_uncollectible so an invoice
+ * voided in the Stripe dashboard stops showing "open" here. The Stripe
+ * endpoint has to be sending those two events for this to see them; the
+ * daily invoice-status-sync-scheduled job catches whatever it misses.
  *
  * Endpoint: POST /.netlify/functions/stripe-webhook
  * Configure in Stripe Dashboard → Webhooks → Add endpoint
@@ -10,6 +13,9 @@
 
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { syncedStatus } from './lib/invoice-status.js';
+
+const STATUS_EVENTS = new Set(['invoice.voided', 'invoice.marked_uncollectible']);
 
 export default async (req) => {
   if (req.method !== 'POST') {
@@ -95,6 +101,35 @@ export default async (req) => {
         });
       } catch (err) {
         console.error('Slack notification failed (non-fatal):', err.message);
+      }
+    }
+  }
+
+  // Voided or marked uncollectible (usually in the Stripe dashboard)
+  if (STATUS_EVENTS.has(stripeEvent.type)) {
+    const invoice = stripeEvent.data.object;
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error('Missing Supabase config');
+      return new Response('Server misconfigured', { status: 500 });
+    }
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const { data: row } = await supabase
+      .from('stripe_invoices')
+      .select('id, status')
+      .eq('stripe_invoice_id', invoice.id)
+      .maybeSingle();
+    if (row) {
+      const from = row.status;
+      const next = syncedStatus(from, invoice.status);
+      if (next !== from) {
+        const { error } = await supabase
+          .from('stripe_invoices')
+          .update({ status: next, updated_at: new Date().toISOString() })
+          .eq('id', row.id);
+        if (error) console.error('Failed to update invoice status:', error);
+        else console.log(`stripe-webhook: ${invoice.id} ${from} -> ${next}`);
       }
     }
   }

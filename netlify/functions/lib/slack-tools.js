@@ -14,6 +14,7 @@ import { duplicateProposal } from './proposal-duplicator.js';
 import { createOption, linkProposals, unlinkProposal, renameOption, reorderOption } from './proposal-linker.js';
 import { createLandingPage, getLandingPage } from './landing-page-assembler.js';
 import { createSponsorPage, updateSponsorPage, getSponsorPage, listSponsorPages } from './sponsor-pages.js';
+import { refreshInvoiceStatuses, stripeFromEnv } from './invoice-status.js';
 import { quoteHolidayPackage, holidayServices, holidayPackageRecord, HolidayPackageError } from './holiday-packages.js';
 import { leadPicture, suggestNextActions, nextActions } from './lead-picture.js';
 import { getAccessToken, getThread, bodyFromPayload, lc as lcGmail } from './gmail.js';
@@ -1915,18 +1916,25 @@ async function handleSearchInvoices(params, supabase) {
 
   if (error) return { error: `Database query failed: ${error.message}` };
 
+  // Live status from Stripe (lib/invoice-status.js), so a void or payment the
+  // webhook missed shows here and is saved.
+  const stripe = stripeFromEnv();
+  const { statuses } = stripe
+    ? await refreshInvoiceStatuses(supabase, stripe, invoices || [])
+    : { statuses: new Map() };
+
   const results = (invoices || []).map(inv => ({
     id: inv.id,
     stripeInvoiceId: inv.stripe_invoice_id,
     clientName: inv.client_name,
-    status: inv.status,
+    status: statuses.get(inv.id) || inv.status,
     amountDollars: (inv.amount_cents || 0) / 100,
     invoiceUrl: inv.invoice_url,
     proposalId: inv.proposal_id,
     createdAt: inv.created_at
   }));
 
-  return { success: true, results, resultCount: results.length };
+  return { success: true, results, resultCount: results.length, statusCheckedWithStripe: !!stripe };
 }
 
 async function handleGetInvoice(params, supabase) {
@@ -1942,6 +1950,13 @@ async function handleGetInvoice(params, supabase) {
     .single();
 
   if (error || !invoice) return { error: `Invoice ${params.invoiceId} not found` };
+
+  // Live status from Stripe, saved if it changed (lib/invoice-status.js).
+  const stripe = stripeFromEnv();
+  if (stripe) {
+    const { statuses } = await refreshInvoiceStatuses(supabase, stripe, [invoice]);
+    invoice.status = statuses.get(invoice.id) || invoice.status;
+  }
 
   // Fetch linked proposal name if available
   let proposalName = null;
@@ -1967,7 +1982,8 @@ async function handleGetInvoice(params, supabase) {
     proposalId: invoice.proposal_id,
     proposalName,
     createdAt: invoice.created_at,
-    updatedAt: invoice.updated_at
+    updatedAt: invoice.updated_at,
+    statusCheckedWithStripe: !!stripe
   };
 }
 
