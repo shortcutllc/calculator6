@@ -19,6 +19,7 @@ import {
 } from './pricing-engine.js';
 
 import { getCLEStateConfig } from './cle-state-configs.js';
+import { appointmentOptions, startingChoice } from './appointment-options.js';
 
 /**
  * Apply service defaults to an event, filling in any missing fields.
@@ -113,6 +114,19 @@ function applyServiceDefaults(event) {
   if (event.retouchCount !== undefined && event.retouchCount !== null) service.retouchCount = Number(event.retouchCount);
   // One-off visits (holiday packages) hide the client's "Repeats" picker.
   if (event.hideRepeats) service.hideRepeats = true;
+
+  // Appointment choices the client picks between, e.g. 10, 15 or 20 massages
+  // (lib/appointment-options.js). With no hours or Pros of its own, the
+  // service takes the starting choice's setup.
+  if (event.appointmentOptions) {
+    service.pricingOptions = appointmentOptions(service, event.appointmentOptions);
+    service.selectedOption = startingChoice(service.pricingOptions, event.selectedOption);
+    if (event.totalHours === undefined && event.numPros === undefined) {
+      const start = service.pricingOptions[service.selectedOption];
+      service.totalHours = start.totalHours;
+      service.numPros = start.numPros;
+    }
+  }
 
   // Massage type (chair, table, or general massage)
   if (serviceType === 'massage' && event.massageType) {
@@ -301,6 +315,10 @@ function buildProposalData(input) {
     gratuityType: gratuityType || null,
     gratuityValue: gratuityValue || null
   };
+
+  if (services.some((s) => Array.isArray(s.pricingOptions) && s.pricingOptions.length > 0)) {
+    proposalData.hasPricingOptions = true;
+  }
 
   // A holiday package proposal (lib/holiday-packages.js): set before the
   // recalculation below, which applies its combine-and-save.

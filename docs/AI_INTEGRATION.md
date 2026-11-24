@@ -142,6 +142,8 @@ Every request carries `Authorization: Bearer sk_shortcut_YOUR_KEY` and, with a b
 
 The edit operations for `PATCH` (add a service, change a date, set a discount, and so on) are listed under "Edit Operations" in the guide. Ask your AI for `get_guide`, or read `SYSTEM_PROMPT_TEXT` in `netlify/functions/lib/slack-ai.js`.
 
+**Appointment choices.** A service can offer the client a choice of how many appointments to book, for example 10, 15 or 20 massages, shown as cards on the service. When creating, put `"appointmentOptions": [10, 15, 20]` (and optionally `"selectedOption": 1`) on the event, and leave `totalHours` and `numPros` out. When editing, use `{ "op": "add_pricing_options", "location", "date", "serviceIndex", "appointments": [10, 15, 20] }`, or `"options": [{ "totalHours", "numPros", "name" }]` for exact setups. The server staffs and prices each choice (`lib/appointment-options.js`, the same reverse calculator as `calculate_pricing`). When no staffing lands exactly on a count, the choice holds the nearest count above it and is named for it: 20 twenty-minute massages comes back as "21 appointments". Appointment services only; a class is one flat price.
+
 ### Create a proposal
 
 ```bash

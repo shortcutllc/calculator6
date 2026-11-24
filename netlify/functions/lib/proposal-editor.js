@@ -18,6 +18,7 @@ import {
   applyConferenceRates
 } from './pricing-engine.js';
 import { applyServiceDefaults, normalizeDate, sortDates } from './proposal-assembler.js';
+import { appointmentOptions, startingChoice } from './appointment-options.js';
 import {
   getHolidayPackage,
   holidayServices,
@@ -603,6 +604,26 @@ function handleAddPricingOptions(proposalData, customization, proposalRecord, op
   validateServicePath(proposalData, location, normalizedDate, serviceIndex);
 
   const service = proposalData.services[location][normalizedDate].services[serviceIndex];
+
+  // The client's own choices: appointments [10, 15, 20], or options with
+  // explicit totalHours and numPros (lib/appointment-options.js).
+  const choices = op.appointments || op.options;
+  if (choices) {
+    service.pricingOptions = appointmentOptions(service, choices);
+    service.selectedOption = startingChoice(service.pricingOptions, op.selectedOption);
+    proposalData.hasPricingOptions = true;
+    // The staff editor lets this column override the data's options, so the
+    // new ones must not sit behind an old entry.
+    const key = `${location}-${normalizedDate}-${serviceIndex}`;
+    if (proposalRecord && proposalRecord.pricing_options && proposalRecord.pricing_options[key] !== undefined) {
+      proposalRecord.pricing_options = { ...proposalRecord.pricing_options };
+      delete proposalRecord.pricing_options[key];
+    }
+    return {
+      op: 'add_pricing_options',
+      description: `Added ${service.pricingOptions.length} choices to ${service.serviceType} at ${location}: ${service.pricingOptions.map((o) => o.name).join(', ')}`
+    };
+  }
 
   // Generate 3 options: standard, extended (125%), premium (150%)
   const baseResults = calculateServiceResults(service);

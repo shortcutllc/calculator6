@@ -289,7 +289,7 @@ When editing proposals, use these operations:
 - set_gratuity: Add gratuity (type: "percentage"|"dollar", value: number)
 - remove_gratuity: Remove gratuity
 - set_discount: Set discount percentage on a service
-- add_pricing_options: Generate 3 pricing variants (standard, +25% hours, +50% hours) for a service
+- add_pricing_options: Give a service choices the client picks between. With appointments: [10, 15, 20] (2 to 6 counts) each choice is staffed and priced by the server; with options: [{ totalHours, numPros, name }] staff set each one exactly. selectedOption picks the starting choice. Leave both out for 3 automatic variants (standard, +25% hours, +50% hours). Needs location, date and serviceIndex. Appointment services only; replaces any choices the service had
 - remove_pricing_options: Drop pricing variants from a service
 - select_pricing_option: Pick which variant is the default-selected one (location, date, serviceIndex, optionIndex)
 - update_client_info: Update client name, email, or logo
@@ -335,7 +335,8 @@ The redesigned client viewer lets staff shape how the proposal lands for the pro
 
 ## Pricing Options (V2 multi-option pricing card)
 Each service can carry up to N pricing variants the client clicks between (e.g. Standard / Premium / Best Value).
-- add_pricing_options spins up 3 variants based on the current service params (standard, +25% hours, +50% hours).
+- add_pricing_options with appointments: [10, 15, 20] gives the client those appointment counts to choose from, each staffed and priced by the server. When no staffing lands exactly on a count, the choice holds the nearest count above it and is named for it ("21 appointments" for 20 twenty-minute massages); tell the user. Without appointments or options it spins up 3 variants based on the current service params (standard, +25% hours, +50% hours).
+- When creating a proposal, the same choices go on an event as appointmentOptions: [10, 15, 20].
 - select_pricing_option picks which one is selected when the client first lands — index 0 is the first variant. The selected option's totals become the headline price.
 - remove_pricing_options drops the variants and goes back to a single-price service.
 - The client viewer renders these as side-by-side cards above the Approve CTA — selecting one updates the live total instantly.
@@ -402,9 +403,11 @@ const TOOLS = [
               locationName: { type: 'string', description: 'Short location name like "NYC", "SF Office", "LA HQ" — NOT a full street address' },
               officeAddress: { type: 'string', description: 'Full office street address (e.g., "350 5th Ave, New York NY 10118")' },
               date: { type: 'string', description: 'Event date in YYYY-MM-DD format, or "TBD" if the date is not yet confirmed' },
-              totalHours: { type: 'number', description: 'Hours of service' },
-              numPros: { type: 'integer', description: 'Number of professionals' },
+              totalHours: { type: 'number', description: 'Hours of service. Required unless appointmentOptions is given.' },
+              numPros: { type: 'integer', description: 'Number of professionals. Required unless appointmentOptions is given.' },
               appTime: { type: 'integer', description: 'Appointment time in minutes (optional, uses service default)' },
+              appointmentOptions: { type: 'array', items: { type: 'integer' }, description: 'Let the client choose how many appointments of this service to book, e.g. [10, 15, 20]: 2 to 6 choices, shown as cards on the service, each staffed and priced by the server. Appointment services only (not classes). When no staffing lands exactly on a count, that choice holds the nearest count above it and is named for it (20 twenty-minute massages becomes "21 appointments"): report the names the tool returns.' },
+              selectedOption: { type: 'integer', description: 'With appointmentOptions: which choice starts selected, 0 for the first (default).' },
               isRecurring: { type: 'boolean', description: 'Whether this is a recurring event' },
               recurringFrequency: {
                 type: 'object',
@@ -415,7 +418,7 @@ const TOOLS = [
               },
               discountPercent: { type: 'number', description: 'Discount percentage (0-100)' }
             },
-            required: ['serviceType', 'locationName', 'date', 'totalHours', 'numPros']
+            required: ['serviceType', 'locationName', 'date']
           }
         },
         notes: { type: 'string', description: 'Internal notes about this proposal' },
@@ -481,6 +484,9 @@ const TOOLS = [
               serviceIndex: { type: 'integer' },
               service: { type: 'object', description: 'For add_service: the service config' },
               updates: { type: 'object', description: 'For update_service: field updates. Supports totalHours, numPros, appTime, hourlyRate, proHourly, earlyArrival, retouchingCost, discountPercent, classLength, fixedPrice, participants, mindfulnessType, headshotTier, massageType, nailsType, optionsSelectedDefault (boolean — when false, this service starts unchecked on the client view), optionsFrequency (integer — default frequency for the "X per year" picker)' },
+              appointments: { type: 'array', items: { type: 'integer' }, description: 'For add_pricing_options: appointment counts the client chooses between, e.g. [10, 15, 20] (2 to 6).' },
+              options: { type: 'array', items: { type: 'object', properties: { totalHours: { type: 'number' }, numPros: { type: 'integer' }, name: { type: 'string' } } }, description: 'For add_pricing_options: choices with an exact setup instead of counts, each { totalHours, numPros, name }.' },
+              selectedOption: { type: 'integer', description: 'For add_pricing_options: which choice starts selected, 0 for the first (default).' },
               frequency: { type: 'object', description: 'For set_recurring: { type, occurrences }' },
               type: { type: 'string', description: 'For set_gratuity: percentage or dollar' },
               value: { description: 'For set_gratuity: the amount (number). For set_proposal_field: the value to write (type depends on field).' },

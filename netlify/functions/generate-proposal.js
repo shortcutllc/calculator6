@@ -190,7 +190,8 @@ async function handleCreate(rawBody, user, supabase) {
       client_email: proposalData.clientEmail || body.clientEmail || null,
       client_logo_url: proposalData.clientLogoUrl || body.clientLogoUrl || null,
       notes: body.notes || 'Auto-generated via API',
-      proposal_type: proposalType
+      proposal_type: proposalType,
+      has_pricing_options: !!proposalData.hasPricingOptions
     };
 
     const { data: newProposal, error } = await supabase

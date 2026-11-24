@@ -9,7 +9,7 @@ import { applyOperations } from './proposal-editor.js';
 import { calculateEventOptions } from './reverse-calculator.js';
 import { searchClients, getClientByName, searchProposals } from './client-lookup.js';
 import { fetchAndStoreLogo, storeProvidedLogo, fetchLogoUrl, searchLogoViaBrave, svgLikelyInvisibleOnLight, fetchSvgText } from './logo-fetcher.js';
-import { recalculateProposalSummary } from './pricing-engine.js';
+import { recalculateProposalSummary, isFlatPriceService } from './pricing-engine.js';
 import { duplicateProposal } from './proposal-duplicator.js';
 import { createOption, linkProposals, unlinkProposal, renameOption, reorderOption } from './proposal-linker.js';
 import { createLandingPage, getLandingPage } from './landing-page-assembler.js';
@@ -742,6 +742,13 @@ async function handleCreateProposal(params, supabase, userId) {
   if (!params.events || !Array.isArray(params.events) || params.events.length === 0) {
     return { error: 'At least one event is required in the events array' };
   }
+  // Hours and Pros are required for an appointment service unless the client
+  // gets appointment choices, which carry their own (lib/appointment-options.js).
+  const missingSetup = params.events.findIndex((e) => e && e.serviceType && !isFlatPriceService(e.serviceType)
+    && !e.appointmentOptions && (e.totalHours == null || e.numPros == null));
+  if (missingSetup !== -1) {
+    return { error: `Event ${missingSetup + 1} (${params.events[missingSetup].serviceType}) needs totalHours and numPros, or appointmentOptions for the client to choose from.` };
+  }
 
   // Build customization defaults from the named-contact + custom-note args
   // so the proposal renders "Hi {first name}" and shows Pro's intro line.
@@ -787,7 +794,8 @@ async function handleCreateProposal(params, supabase, userId) {
     client_email: proposalData.clientEmail || params.clientEmail || null,
     client_logo_url: proposalData.clientLogoUrl || params.clientLogoUrl || null,
     notes: params.notes || 'Created by Pro (Slack assistant)',
-    proposal_type: proposalType
+    proposal_type: proposalType,
+    has_pricing_options: !!proposalData.hasPricingOptions
   };
 
   const { data: newProposal, error } = await supabase
