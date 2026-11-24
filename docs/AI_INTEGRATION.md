@@ -62,7 +62,9 @@ A quick check from any client: ask it to "List the latest sponsor pages."
 | Staffing (the /ops Staffing tab's data) | `find_pros`, `list_pro_groups`, `get_event_staffing`, `add_pro_to_event` (preview, then `confirm: true`) |
 | The rules | `get_guide`: the same text as the server's `instructions` (Pro's rules plus the positioning block), for clients that never show instructions to the model. |
 
-Left out on purpose: leads, drafting or sending email, and invoices (those stay in Slack with Pro, where a person sends), and deleting anything (done in the app).
+Left out on purpose: leads and drafting or sending email (those stay in Slack with Pro, where a person sends), and deleting anything (done in the app).
+
+Invoices (`create_invoice`, `search_invoices`, `get_invoice`) are only for the accounts in `INVOICE_USERS` in `netlify/functions/mcp.js`, today Will's, and every key that account holds. Everyone else's AI never sees them, and a call to one comes back as an unknown tool. `create_invoice` emails a real Stripe invoice, so on the connector a send needs `confirmedByUser: true`: the AI calls it with `preview: true`, shows who it goes to, the lines, the total and the due date, and sends only after you say yes. Without the flag nothing reaches Stripe. To give someone else invoicing, add their email to `INVOICE_USERS` and deploy.
 
 New proposals, duplicates and edits post to #proposals like any other. Proposals start as drafts, the same as Pro's.
 

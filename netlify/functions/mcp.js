@@ -11,8 +11,9 @@
  *
  * The tools ARE Pro's: the same definitions (lib/slack-ai.js TOOLS) and the
  * same handlers (lib/slack-tools.js), so a tool taught to Pro is one line in
- * EXPOSED away from every teammate's AI. Lead, email and invoice tools stay
- * Slack-only: they draft and send as a rep, or bill a client.
+ * EXPOSED away from every teammate's AI. Lead and email tools stay Slack-only:
+ * they draft and send as a rep. Invoice tools bill a client, so they are only
+ * for the accounts in INVOICE_USERS.
  *
  * Streamable HTTP, stateless: every POST carries one JSON-RPC message (or a
  * batch) and gets a JSON reply. No sessions and no server-sent stream, so
@@ -38,6 +39,22 @@ const EXPOSED = new Set([
   'create_signup_link', 'find_signup_links', 'get_event_staffing', 'find_pros', 'list_pro_groups', 'add_pro_to_event',
 ]);
 
+/* Invoicing emails a real Stripe invoice to a client, so it is for the
+   accounts named here only, not every key (Will, 2026-11-24). Every key an
+   account holds gets it. */
+const INVOICE_TOOLS = new Set(['create_invoice', 'search_invoices', 'get_invoice']);
+const INVOICE_USERS = new Set(['will@getshortcut.co']);
+const canInvoice = (email) => INVOICE_USERS.has(String(email || '').toLowerCase());
+const allowed = (name, email) => EXPOSED.has(name) || (INVOICE_TOOLS.has(name) && canInvoice(email));
+
+/* On the connector a send must be confirmed: create_invoice without preview
+   needs confirmedByUser: true, which the model only sets after the user saw
+   the preview and said to send it. Stripped before Pro's handler runs. */
+const CONFIRM_PROPERTY = {
+  type: 'boolean',
+  description: 'Set true only after you showed the user the preview (who it goes to, each line, the total, the due date) and they said to send it. Required to send; leave it out with preview: true.',
+};
+
 /* Some clients never show the server's instructions to the model, so the
    same text is also a tool the model can call. */
 const GUIDE_TOOL = {
@@ -46,21 +63,33 @@ const GUIDE_TOOL = {
   inputSchema: { type: 'object', properties: {} },
 };
 
-const TOOL_LIST = [
-  GUIDE_TOOL,
-  ...TOOLS.filter((t) => EXPOSED.has(t.name))
-    .map(({ name, description, input_schema }) => ({ name, description, inputSchema: input_schema })),
-];
+function toolList(email) {
+  return [
+    GUIDE_TOOL,
+    ...TOOLS.filter((t) => allowed(t.name, email)).map(({ name, description, input_schema }) => ({
+      name,
+      description,
+      inputSchema: name === 'create_invoice'
+        ? { ...input_schema, properties: { ...input_schema.properties, confirmedByUser: CONFIRM_PROPERTY } }
+        : input_schema,
+    })),
+  ];
+}
 
 /* Pro's own rules, from CRITICAL RULES on. What comes before that is Slack
    formatting and lead handling, which don't apply here. */
 const PRO_RULES = SYSTEM_PROMPT_TEXT.slice(SYSTEM_PROMPT_TEXT.indexOf('## CRITICAL RULES'));
 
 function guide(email) {
+  const invoices = canInvoice(email);
   return [
     `You are connected to Shortcut's proposals site (proposals.getshortcut.co) as ${email}. Everything you create is saved under their name and is live at the URL the tool returns.`,
     '',
-    'You have the proposal, holiday package, landing page, sponsor page, QR sign, pricing, client lookup and logo tools, and the sign-up link and staffing tools (create_signup_link, find_signup_links, get_event_staffing, find_pros, list_pro_groups, add_pro_to_event), which act on the live coordinator: real events, real Pros, real texts. The lead, email drafting and invoice tools are only in Slack (Pro). Where the rules below say to call lookup_lead, read_thread or draft_email, skip that step and ask the user instead.',
+    'You have the proposal, holiday package, landing page, sponsor page, QR sign, pricing, client lookup and logo tools, and the sign-up link and staffing tools (create_signup_link, find_signup_links, get_event_staffing, find_pros, list_pro_groups, add_pro_to_event), which act on the live coordinator: real events, real Pros, real texts.'
+      + (invoices
+        ? ' You also have the invoice tools (create_invoice, search_invoices, get_invoice). create_invoice emails a real Stripe invoice to the client: always call it with preview: true first, show the user who it goes to, each line, the total and the due date, and send it (confirmedByUser: true) only after they say to. The lead and email drafting tools are only in Slack (Pro).'
+        : ' The lead, email drafting and invoice tools are only in Slack (Pro).')
+      + ' Where the rules below say to call lookup_lead, read_thread or draft_email, skip that step and ask the user instead.',
     'The rules below are the ones Pro follows in Slack. Ignore anything about Slack formatting.',
     '',
     '## Words the client reads',
@@ -102,9 +131,13 @@ async function notify(name, result, supabase) {
 async function callTool(params, ctx) {
   const name = params?.name;
   if (name === GUIDE_TOOL.name) return textContent(guide(ctx.user.email));
-  if (!EXPOSED.has(name)) return textContent(`Unknown tool: ${name}`, true);
+  if (!allowed(name, ctx.user.email)) return textContent(`Unknown tool: ${name}`, true);
 
   const input = { ...(params.arguments || {}) };
+  if (name === 'create_invoice' && !input.preview && input.confirmedByUser !== true) {
+    return textContent('Not sent. Call create_invoice with preview: true first, show the user who it goes to, each line, the total and the due date, then call it again with confirmedByUser: true only after they say to send it.', true);
+  }
+  delete input.confirmedByUser;
   if ((name === 'create_proposal' || name === 'create_holiday_proposal') && !input.notes) input.notes = `Created via API by ${ctx.user.email}`;
 
   // startedAt: slow tools (create_signup_link) stop in time to answer within Netlify's limit.
@@ -135,13 +168,15 @@ async function handle(msg, ctx) {
     case 'ping':
       return rpcResult(msg.id, {});
     case 'tools/list':
-      return rpcResult(msg.id, { tools: TOOL_LIST });
+      return rpcResult(msg.id, { tools: toolList(ctx.user.email) });
     case 'tools/call':
       return rpcResult(msg.id, await callTool(msg.params, ctx));
     default:
       return rpcError(msg.id, -32601, `Method not found: ${msg.method}`);
   }
 }
+
+export { toolList, guide, callTool };
 
 export default async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
