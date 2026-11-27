@@ -37,6 +37,9 @@ const EXPOSED = new Set([
   'create_sponsor_page', 'edit_sponsor_page', 'get_sponsor_page', 'list_sponsor_pages',
   'create_qr_code_sign', 'get_qr_code_sign', 'list_qr_code_signs', 'edit_qr_code_sign',
   'create_signup_link', 'find_signup_links', 'get_event_staffing', 'find_pros', 'list_pro_groups', 'add_pro_to_event',
+  // The rest of the /ops Staffing page (lib/staffing-tools.js, 2026-11-27).
+  'get_staffing_board', 'list_pending_proposals', 'set_likely_to_close', 'set_staffing_note',
+  'text_pros', 'get_pro_replies', 'set_pro_reply_outcome', 'save_pro_group', 'set_pro_group_members',
 ]);
 
 /* Invoicing emails a real Stripe invoice to a client, so it is for the
@@ -85,7 +88,7 @@ function guide(email) {
   return [
     `You are connected to Shortcut's proposals site (proposals.getshortcut.co) as ${email}. Everything you create is saved under their name and is live at the URL the tool returns.`,
     '',
-    'You have the proposal, holiday package, landing page, sponsor page, QR sign, pricing, client lookup and logo tools, and the sign-up link and staffing tools (create_signup_link, find_signup_links, get_event_staffing, find_pros, list_pro_groups, add_pro_to_event), which act on the live coordinator: real events, real Pros, real texts.'
+    'You have the proposal, holiday package, landing page, sponsor page, QR sign, pricing, client lookup and logo tools, and the sign-up link and staffing tools (create_signup_link, find_signup_links, get_event_staffing, find_pros, list_pro_groups, add_pro_to_event, and the Staffing page\'s board, likely-to-close flag, notes, Pro texts, replies and Pro groups: get_staffing_board, list_pending_proposals, set_likely_to_close, set_staffing_note, text_pros, get_pro_replies, set_pro_reply_outcome, save_pro_group, set_pro_group_members), which act on the live coordinator: real events, real Pros, real texts. Every proposal result carries demoSignupUrl, the demo booking page the client sees; share it when asked for the demo or test sign-up link.'
       + (invoices
         ? ' You also have the invoice tools (create_invoice, search_invoices, get_invoice). create_invoice emails a real Stripe invoice to the client: always call it with preview: true first, show the user who it goes to, each line, the total and the due date, and send it (confirmedByUser: true) only after they say to. When the user wants the link for their own email rather than Stripe emailing the client, pass emailToClient: false (on the preview too) and give them invoiceUrl. The lead and email drafting tools are only in Slack (Pro).'
         : ' The lead, email drafting and invoice tools are only in Slack (Pro).')

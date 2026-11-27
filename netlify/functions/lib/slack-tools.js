@@ -20,6 +20,8 @@ import { leadPicture, suggestNextActions, nextActions } from './lead-picture.js'
 import { getAccessToken, getThread, bodyFromPayload, lc as lcGmail } from './gmail.js';
 import { createSignupLink, findSignupLinks, getEventStaffing, findPros, listProGroups, addProToEvent } from './signup-links.js';
 import { addDays, buildInvoiceLineItems, defaultPaymentDue, invoiceRecipient, paymentDueNote, stripeDueTimestamp } from './invoice-defaults.js';
+import { proposalSignupDemo } from './demo-signup.js';
+import { STAFFING_TOOL_HANDLERS } from './staffing-tools.js';
 
 const PROPOSAL_BASE_URL = 'https://proposals.getshortcut.co/proposal';
 const PROPOSAL_SHORT_URL = 'https://proposals.getshortcut.co/p';
@@ -82,6 +84,14 @@ const TOOL_HANDLERS = {
   find_pros: (params, supabase) => findPros(params, supabase),
   list_pro_groups: (params) => listProGroups(params),
   add_pro_to_event: (params, supabase) => addProToEvent(params, supabase),
+  // The rest of the /ops Staffing page (lib/staffing-tools.js): the board, the
+  // likely-to-close flag, notes, texting Pros and their replies, Pro groups.
+  ...Object.fromEntries(
+    Object.entries(STAFFING_TOOL_HANDLERS).map(([name, fn]) => [
+      name,
+      async (params, supabase, userId, ctx) => fn(params, supabase, { email: await callerEmail(supabase, ctx) }),
+    ])
+  ),
   create_invoice: handleCreateInvoice,
   search_invoices: handleSearchInvoices,
   get_invoice: handleGetInvoice,
@@ -823,6 +833,7 @@ async function handleCreateProposal(params, supabase, userId) {
     success: true,
     proposalId: newProposal.id,
     url: getProposalShareUrl(newProposal.id, newProposal.slug),
+    ...proposalSignupDemo(newProposal),
     clientName: proposalData.clientName,
     status: 'draft',
     summary: proposalData.summary,
@@ -973,6 +984,7 @@ async function handleEditProposal(params, supabase, userId) {
     success: true,
     proposalId: params.proposalId,
     url: getProposalShareUrl(params.proposalId, existing.slug),
+    ...proposalSignupDemo({ ...existing, data: updatedData, client_name: updatedRecord.client_name, client_logo_url: updatedRecord.client_logo_url }),
     clientName: updatedData.clientName,
     status: updatedRecord.status,
     summary: updatedData.summary,
@@ -1017,6 +1029,7 @@ async function handleGetProposal(params, supabase) {
     success: true,
     proposalId: proposal.id,
     url: getProposalShareUrl(proposal.id, proposal.slug),
+    ...proposalSignupDemo(proposal),
     clientName: proposal.client_name,
     clientEmail: proposal.client_email,
     status: proposal.status,

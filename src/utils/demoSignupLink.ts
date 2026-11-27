@@ -11,6 +11,8 @@ const DEMO_SERIES_URL = 'https://admin.shortcutpros.com/#/selectEvent/SHORTCUTDE
 // The viewers' stand-ins for a missing client name. A demo for "Client" helps no one.
 const PLACEHOLDER_NAMES = ['client', 'unknown'];
 
+// KEEP IN STEP with netlify/functions/lib/demo-signup.js, which makes the same link on
+// the server so Pro and the AI connector can share it (demoSignupUrl, 2026-11-27).
 export const buildDemoSignupLink = (
   clientName: string | null | undefined,
   clientLogoUrl: string | null | undefined,

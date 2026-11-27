@@ -24,6 +24,7 @@
  * Migration 20261119000000_sponsor_page_decks.sql.
  */
 import { randomBytes } from 'node:crypto';
+import { DEMO_SERIES_URL } from './demo-signup.js';
 import { CALL_HOSTS, hostFor } from './call-hours.js';
 import { storeProvidedLogo } from './logo-fetcher.js';
 
@@ -191,7 +192,6 @@ const newDeckToken = () => {
    coordinator's standing demo day with kind=lounge (its own title, the
    conference's logo or name, a "Sponsor logo" placeholder). KEEP IN STEP
    with buildLoungeDemoLink in src/utils/demoSignupLink.ts. */
-const DEMO_SERIES_URL = 'https://admin.shortcutpros.com/#/selectEvent/SHORTCUTDEMO';
 const DEMO_STATION_SERVICES = {
   reset: ['massage'], glow: ['hair', 'facial'], polish: ['nails'], studio: ['headshot'],
   mindful: ['mindfulness'], sound: [], movement: [],
